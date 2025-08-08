@@ -2,128 +2,181 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { Request, Response } from 'express';
+import { INestApplication } from '@nestjs/common';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+let app: INestApplication | null = null;
 
-  // Enable CORS - Configure based on environment
-  const isDevelopment = process.env.NODE_ENV !== 'production';
+async function bootstrap(): Promise<INestApplication> {
+  if (!app) {
+    app = await NestFactory.create(AppModule);
 
-  if (isDevelopment) {
-    // Development: Allow all origins
-    app.enableCors({
-      origin: true, // Allow all origins
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: [
-        'Origin',
-        'X-Requested-With',
-        'Content-Type',
-        'Accept',
-        'Authorization',
-        'Cache-Control',
-        'X-API-Key',
-      ],
-      exposedHeaders: ['Set-Cookie'],
-      preflightContinue: false,
-      optionsSuccessStatus: 204,
-    });
-    console.log(`🌐 CORS enabled for all origins (development mode)`);
-  } else {
-    // Production: Use specific origins
-    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
-    app.enableCors({
-      origin:
-        allowedOrigins.length > 0 ? allowedOrigins : ['http://localhost:3000'],
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: [
-        'Origin',
-        'X-Requested-With',
-        'Content-Type',
-        'Accept',
-        'Authorization',
-        'Cache-Control',
-        'X-API-Key',
-      ],
-      exposedHeaders: ['Set-Cookie'],
-      preflightContinue: false,
-      optionsSuccessStatus: 204,
-    });
-    console.log(
-      `🌐 CORS enabled for specific origins: ${allowedOrigins.join(', ')}`,
+    // Enable CORS - Configure based on environment
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+
+    if (isDevelopment) {
+      // Development: Allow all origins
+      app.enableCors({
+        origin: true, // Allow all origins
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        allowedHeaders: [
+          'Origin',
+          'X-Requested-With',
+          'Content-Type',
+          'Accept',
+          'Authorization',
+          'Cache-Control',
+          'X-API-Key',
+        ],
+        exposedHeaders: ['Set-Cookie'],
+        preflightContinue: false,
+        optionsSuccessStatus: 204,
+      });
+      console.log(`🌐 CORS enabled for all origins (development mode)`);
+    } else {
+      // Production: Use specific origins
+      const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
+      app.enableCors({
+        origin:
+          allowedOrigins.length > 0
+            ? allowedOrigins
+            : ['http://localhost:3000'],
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        allowedHeaders: [
+          'Origin',
+          'X-Requested-With',
+          'Content-Type',
+          'Accept',
+          'Authorization',
+          'Cache-Control',
+          'X-API-Key',
+        ],
+        exposedHeaders: ['Set-Cookie'],
+        preflightContinue: false,
+        optionsSuccessStatus: 204,
+      });
+      console.log(
+        `🌐 CORS enabled for specific origins: ${allowedOrigins.join(', ')}`,
+      );
+    }
+
+    // Global validation pipe
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
     );
-  }
 
-  // Global validation pipe
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
+    // Global prefix
+    app.setGlobalPrefix('api/v1');
 
-  // Global prefix
-  app.setGlobalPrefix('api/v1');
+    // Swagger documentation setup
+    const config = new DocumentBuilder()
+      .setTitle('Flexify Auth Service API')
+      .setDescription(
+        'A comprehensive authentication service built with NestJS and Supabase. This API provides user registration, login, logout, and session management functionality.',
+      )
+      .setVersion('1.0.0')
+      .addTag('auth', 'Authentication endpoints')
+      .addTag('health', 'Health check endpoints')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          name: 'JWT',
+          description: 'Enter JWT token',
+          in: 'header',
+        },
+        'JWT-auth',
+      )
+      .addCookieAuth('auth-token', {
+        type: 'apiKey',
+        in: 'cookie',
+        name: 'auth-token',
+        description: 'HTTP-only cookie containing the authentication token',
+      })
+      .build();
 
-  // Swagger documentation setup
-  const config = new DocumentBuilder()
-    .setTitle('Flexify Auth Service API')
-    .setDescription(
-      'A comprehensive authentication service built with NestJS and Supabase. This API provides user registration, login, logout, and session management functionality.',
-    )
-    .setVersion('1.0.0')
-    .addTag('auth', 'Authentication endpoints')
-    .addTag('health', 'Health check endpoints')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter JWT token',
-        in: 'header',
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document, {
+      swaggerOptions: {
+        persistAuthorization: true,
+        docExpansion: 'list',
+        filter: true,
+        showRequestDuration: true,
       },
-      'JWT-auth',
-    )
-    .addCookieAuth('auth-token', {
-      type: 'apiKey',
-      in: 'cookie',
-      name: 'auth-token',
-      description: 'HTTP-only cookie containing the authentication token',
-    })
-    .build();
+      customSiteTitle: 'Flexify Auth Service API Documentation',
+    });
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document, {
-    swaggerOptions: {
-      persistAuthorization: true,
-      docExpansion: 'list',
-      filter: true,
-      showRequestDuration: true,
-    },
-    customSiteTitle: 'Flexify Auth Service API Documentation',
-  });
+    // Only listen on port if not in Vercel environment
+    if (!process.env.VERCEL) {
+      const port = process.env.PORT || 3000;
+      await app.listen(port);
+      console.log(`🚀 Auth service is running on: http://localhost:${port}`);
+      console.log(`📚 API Documentation: http://localhost:${port}/api/v1`);
+      console.log(
+        `📖 Swagger Documentation: http://localhost:${port}/api/docs`,
+      );
+    }
 
-  // Only listen on port if not in Vercel environment
-  if (!process.env.VERCEL) {
-    const port = process.env.PORT || 3000;
-    await app.listen(port);
-    console.log(`🚀 Auth service is running on: http://localhost:${port}`);
-    console.log(`📚 API Documentation: http://localhost:${port}/api/v1`);
-    console.log(`📖 Swagger Documentation: http://localhost:${port}/api/docs`);
+    await app.init();
   }
-
   return app;
 }
 
-// For Vercel deployment - only bootstrap if not in production or if explicitly requested
-if (process.env.NODE_ENV !== 'production' || process.env.VERCEL) {
+// Default export for Vercel serverless function
+export default async function handler(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  try {
+    const app = await bootstrap();
+    const expressApp = app.getHttpAdapter().getInstance();
+
+    // Handle CORS preflight
+    if (req.method === 'OPTIONS') {
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+      res.setHeader(
+        'Access-Control-Allow-Methods',
+        'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      );
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-API-Key',
+      );
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.status(200).end();
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    return expressApp(req, res);
+  } catch (error) {
+    console.error('❌ Handler error:', error);
+
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error';
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: isDevelopment ? errorMessage : 'Something went wrong',
+      ...(isDevelopment && {
+        stack: error instanceof Error ? error.stack : undefined,
+      }),
+    });
+  }
+}
+
+// For local development
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
   bootstrap().catch((error) => {
     console.error('Failed to start application:', error);
     process.exit(1);
   });
 }
-
-export { bootstrap };

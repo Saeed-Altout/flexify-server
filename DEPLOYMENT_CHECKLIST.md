@@ -21,10 +21,10 @@
 
 ### 3. Configuration Files Verified
 
-- [ ] `vercel.json` - Vercel configuration
-- [ ] `api/index.ts` - Serverless function entry point
+- [ ] `vercel.json` - Vercel configuration (points to src/main.ts)
+- [ ] `src/main.ts` - Default export function for Vercel
 - [ ] `package.json` - Updated with Vercel build script
-- [ ] `src/main.ts` - Updated for Vercel compatibility
+- [ ] All TypeScript errors resolved
 
 ## 🏗️ Deployment Steps
 
@@ -61,21 +61,36 @@
 
 ## 🧪 Post-Deployment Testing
 
-### 1. API Endpoint Testing
+### 1. Health Check Testing
+
+- [ ] Test `/health` endpoint
+  ```bash
+  curl https://your-project-name.vercel.app/health
+  ```
+  Expected response:
+  ```json
+  {
+    "status": "ok",
+    "timestamp": "2024-01-01T00:00:00.000Z",
+    "environment": "production"
+  }
+  ```
+
+### 2. API Endpoint Testing
 
 - [ ] Test `/api/v1/auth/sign-up` endpoint
 - [ ] Test `/api/v1/auth/sign-in` endpoint
 - [ ] Test `/api/v1/auth/sign-out` endpoint
 - [ ] Test `/api/v1/auth/me` endpoint
 
-### 2. CORS Testing
+### 3. CORS Testing
 
 - [ ] Test from frontend application
 - [ ] Verify cookies are being set
 - [ ] Check CORS headers are correct
 - [ ] Test preflight requests
 
-### 3. Function Testing
+### 4. Function Testing
 
 - [ ] Check function logs in Vercel dashboard
 - [ ] Monitor execution times
@@ -102,11 +117,12 @@
 
 ### Common Issues
 
-- [ ] CORS errors - Check ALLOWED_ORIGINS
-- [ ] Environment variables not found - Verify in Vercel dashboard
-- [ ] Build failures - Check build logs
-- [ ] Function timeouts - Increase maxDuration
-- [ ] Cookie issues - Check COOKIE_DOMAIN
+- [ ] **Serverless Function Crashed** - Check Vercel function logs for detailed error messages
+- [ ] **CORS errors** - Check ALLOWED_ORIGINS environment variable
+- [ ] **Environment variables not found** - Verify in Vercel dashboard
+- [ ] **Build failures** - Check build logs
+- [ ] **Function timeouts** - Optimize code for faster execution
+- [ ] **Cookie issues** - Check COOKIE_DOMAIN environment variable
 
 ### Debugging Steps
 
@@ -190,6 +206,8 @@ Your deployment is successful when:
 ---
 
 **Deployment URL**: `https://your-project-name.vercel.app/api/v1`
+
+**Health Check**: `https://your-project-name.vercel.app/health`
 
 **Documentation**: `https://your-project-name.vercel.app/api/docs`
 
