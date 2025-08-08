@@ -1,8 +1,13 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from './supabase.service';
-import { UserProfile, AuthResponse } from '../types/auth.types';
-import { RegisterDto, LoginDto } from '../dto/auth.dto';
+import { UserProfile } from '../types/auth.types';
+import {
+  SignUpDto,
+  SignInDto,
+  StandardResponseDto,
+  UserProfileDto,
+} from '../dto/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -13,15 +18,20 @@ export class AuthService {
     private configService: ConfigService,
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<AuthResponse> {
+  async signUp(signUpDto: SignUpDto): Promise<{
+    data: UserProfileDto;
+    message: string;
+    status: string;
+    access_token?: string;
+  }> {
     try {
       this.logger.log(
-        `Attempting to register user with email: ${registerDto.email}`,
+        `Attempting to sign up user with email: ${signUpDto.email}`,
       );
 
       // Check if user already exists
       const existingUser = await this.supabaseService.getUserByEmail(
-        registerDto.email,
+        signUpDto.email,
       );
       if (existingUser) {
         throw new Error('User already exists with this email');
@@ -29,52 +39,88 @@ export class AuthService {
 
       // Create user in Supabase
       const user = await this.supabaseService.createUser(
-        registerDto.email,
-        registerDto.name,
-        registerDto.password,
+        signUpDto.email,
+        signUpDto.name,
+        signUpDto.password,
       );
 
-      this.logger.log(`Successfully registered user: ${user.id}`);
+      this.logger.log(`Successfully signed up user: ${user.id}`);
+
+      // For sign up, we need to sign in the user to get a token
+      let access_token: string | undefined;
+      try {
+        const signInResponse = await this.supabaseService.signInUser(
+          signUpDto.email,
+          signUpDto.password,
+        );
+        access_token = signInResponse.access_token;
+      } catch {
+        this.logger.warn('Could not automatically sign in user after sign up');
+      }
 
       return {
-        user,
-        message: 'User registered successfully',
+        data: user,
+        message: 'User signed up successfully',
+        status: 'success',
+        access_token,
       };
     } catch (error) {
-      this.logger.error(`Registration failed: ${error.message}`);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Sign up failed: ${errorMessage}`);
       throw error;
     }
   }
 
-  async login(loginDto: LoginDto): Promise<AuthResponse> {
+  async signIn(signInDto: SignInDto): Promise<{
+    data: UserProfileDto;
+    message: string;
+    status: string;
+    access_token?: string;
+  }> {
     try {
-      this.logger.log(`Attempting to login user with email: ${loginDto.email}`);
-
-      const authResponse = await this.supabaseService.signInUser(
-        loginDto.email,
-        loginDto.password,
+      this.logger.log(
+        `Attempting to sign in user with email: ${signInDto.email}`,
       );
 
-      this.logger.log(`Successfully logged in user: ${authResponse.user.id}`);
+      const authResponse = await this.supabaseService.signInUser(
+        signInDto.email,
+        signInDto.password,
+      );
 
-      return authResponse;
+      this.logger.log(`Successfully signed in user: ${authResponse.user.id}`);
+
+      return {
+        data: authResponse.user,
+        message: 'User signed in successfully',
+        status: 'success',
+        access_token: authResponse.access_token,
+      };
     } catch (error) {
-      this.logger.error(`Login failed: ${error.message}`);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Sign in failed: ${errorMessage}`);
       throw new UnauthorizedException('Invalid credentials');
     }
   }
 
-  async logout(token: string): Promise<{ message: string }> {
+  async signOut(token: string): Promise<StandardResponseDto<null>> {
     try {
-      this.logger.log('Attempting to logout user');
+      this.logger.log('Attempting to sign out user');
 
       await this.supabaseService.signOutUser(token);
 
-      this.logger.log('Successfully logged out user');
+      this.logger.log('Successfully signed out user');
 
-      return { message: 'Logged out successfully' };
+      return {
+        data: null,
+        message: 'User signed out successfully',
+        status: 'success',
+      };
     } catch (error) {
-      this.logger.error(`Logout failed: ${error.message}`);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Sign out failed: ${errorMessage}`);
       throw error;
     }
   }
@@ -88,7 +134,9 @@ export class AuthService {
 
       return user;
     } catch (error) {
-      this.logger.error(`Get current user failed: ${error.message}`);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Get current user failed: ${errorMessage}`);
       throw error;
     }
   }
@@ -97,27 +145,10 @@ export class AuthService {
     try {
       return await this.supabaseService.verifySession(token);
     } catch (error) {
-      this.logger.error(`Token validation failed: ${error.message}`);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Token validation failed: ${errorMessage}`);
       return null;
-    }
-  }
-
-  async refreshToken(token: string): Promise<AuthResponse> {
-    try {
-      // For Supabase, we'll need to implement token refresh logic
-      // This is a placeholder implementation
-      const user = await this.supabaseService.verifySession(token);
-      if (!user) {
-        throw new UnauthorizedException('Invalid token');
-      }
-
-      return {
-        user,
-        message: 'Token refreshed successfully',
-      };
-    } catch (error) {
-      this.logger.error(`Token refresh failed: ${error.message}`);
-      throw error;
     }
   }
 }

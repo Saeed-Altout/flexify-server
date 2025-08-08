@@ -28,11 +28,12 @@ import { AuthService } from '../services/auth.service';
 import { AuthGuard } from '../guards/auth.guard';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import {
-  RegisterDto,
-  LoginDto,
+  SignUpDto,
+  SignInDto,
   AuthResponseDto,
   ErrorResponseDto,
-  VerifyAuthResponseDto,
+  StandardResponseDto,
+  UserProfileDto,
 } from '../dto/auth.dto';
 import type { UserProfile } from '../types/auth.types';
 
@@ -42,19 +43,19 @@ import type { UserProfile } from '../types/auth.types';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('register')
+  @Post('sign-up')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary: 'Register a new user',
+    summary: 'Sign up a new user',
     description:
       'Creates a new user account with email and name. Password is optional for Supabase magic links.',
   })
   @ApiBody({
-    type: RegisterDto,
-    description: 'User registration data',
+    type: SignUpDto,
+    description: 'User sign up data',
     examples: {
       withPassword: {
-        summary: 'Register with password',
+        summary: 'Sign up with password',
         value: {
           email: 'john.doe@example.com',
           name: 'John Doe',
@@ -62,7 +63,7 @@ export class AuthController {
         },
       },
       withoutPassword: {
-        summary: 'Register without password (magic link)',
+        summary: 'Sign up without password (magic link)',
         value: {
           email: 'john.doe@example.com',
           name: 'John Doe',
@@ -71,20 +72,21 @@ export class AuthController {
     },
   })
   @ApiCreatedResponse({
-    description: 'User successfully registered',
+    description: 'User successfully signed up',
     type: AuthResponseDto,
     examples: {
       success: {
-        summary: 'Registration successful',
+        summary: 'Sign up successful',
         value: {
-          user: {
+          data: {
             id: '123e4567-e89b-12d3-a456-426614174000',
             email: 'john.doe@example.com',
             name: 'John Doe',
             created_at: '2023-01-01T00:00:00.000Z',
             updated_at: '2023-01-01T00:00:00.000Z',
           },
-          message: 'User registered successfully',
+          message: 'User signed up successfully',
+          status: 'success',
         },
       },
     },
@@ -97,15 +99,26 @@ export class AuthController {
     description: 'Internal server error',
     type: ErrorResponseDto,
   })
-  async register(
-    @Body() registerDto: RegisterDto,
+  async signUp(
+    @Body() signUpDto: SignUpDto,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<AuthResponseDto> {
-    const authResponse = await this.authService.register(registerDto);
+  ): Promise<StandardResponseDto<UserProfileDto>> {
+    const authResponse = await this.authService.signUp(signUpDto);
 
-    // Set HTTP-only cookie with the access token
-    if (authResponse.access_token) {
-      res.cookie('auth-token', authResponse.access_token, {
+    // Set HTTP-only cookies with token and user data
+    if (authResponse.data) {
+      // Set token cookie if available
+      if (authResponse.access_token) {
+        res.cookie('auth-token', authResponse.access_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+      }
+
+      // Set user cookie
+      res.cookie('user', JSON.stringify(authResponse.data), {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -114,31 +127,32 @@ export class AuthController {
     }
 
     return {
-      user: authResponse.user,
-      message: authResponse.message || 'User registered successfully',
+      data: authResponse.data,
+      message: authResponse.message,
+      status: authResponse.status,
     };
   }
 
-  @Post('login')
+  @Post('sign-in')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'User login',
+    summary: 'User sign in',
     description:
-      'Authenticates a user with email and password. Returns user profile and sets authentication cookie.',
+      'Authenticates a user with email and password. Returns user profile and sets authentication cookies.',
   })
   @ApiBody({
-    type: LoginDto,
-    description: 'User login credentials',
+    type: SignInDto,
+    description: 'User sign in credentials',
     examples: {
       withPassword: {
-        summary: 'Login with password',
+        summary: 'Sign in with password',
         value: {
           email: 'john.doe@example.com',
           password: 'securePassword123',
         },
       },
       withoutPassword: {
-        summary: 'Login without password (magic link)',
+        summary: 'Sign in without password (magic link)',
         value: {
           email: 'john.doe@example.com',
         },
@@ -146,20 +160,21 @@ export class AuthController {
     },
   })
   @ApiOkResponse({
-    description: 'User successfully logged in',
+    description: 'User successfully signed in',
     type: AuthResponseDto,
     examples: {
       success: {
-        summary: 'Login successful',
+        summary: 'Sign in successful',
         value: {
-          user: {
+          data: {
             id: '123e4567-e89b-12d3-a456-426614174000',
             email: 'john.doe@example.com',
             name: 'John Doe',
             created_at: '2023-01-01T00:00:00.000Z',
             updated_at: '2023-01-01T00:00:00.000Z',
           },
-          message: 'Login successful',
+          message: 'User signed in successfully',
+          status: 'success',
         },
       },
     },
@@ -172,15 +187,26 @@ export class AuthController {
     description: 'Invalid input data',
     type: ErrorResponseDto,
   })
-  async login(
-    @Body() loginDto: LoginDto,
+  async signIn(
+    @Body() signInDto: SignInDto,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<AuthResponseDto> {
-    const authResponse = await this.authService.login(loginDto);
+  ): Promise<StandardResponseDto<UserProfileDto>> {
+    const authResponse = await this.authService.signIn(signInDto);
 
-    // Set HTTP-only cookie with the access token
-    if (authResponse.access_token) {
-      res.cookie('auth-token', authResponse.access_token, {
+    // Set HTTP-only cookies with token and user data
+    if (authResponse.data) {
+      // Set token cookie if available
+      if (authResponse.access_token) {
+        res.cookie('auth-token', authResponse.access_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+      }
+
+      // Set user cookie
+      res.cookie('user', JSON.stringify(authResponse.data), {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -189,28 +215,31 @@ export class AuthController {
     }
 
     return {
-      user: authResponse.user,
-      message: 'Login successful',
+      data: authResponse.data,
+      message: authResponse.message,
+      status: authResponse.status,
     };
   }
 
-  @Post('logout')
+  @Post('sign-out')
   @UseGuards(AuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'User logout',
+    summary: 'User sign out',
     description:
-      'Logs out the current user and clears the authentication cookie.',
+      'Signs out the current user and clears the authentication cookies.',
   })
   @ApiCookieAuth('auth-token')
   @ApiBearerAuth('JWT-auth')
   @ApiOkResponse({
-    description: 'User successfully logged out',
+    description: 'User successfully signed out',
     examples: {
       success: {
-        summary: 'Logout successful',
+        summary: 'Sign out successful',
         value: {
-          message: 'Logged out successfully',
+          data: null,
+          message: 'User signed out successfully',
+          status: 'success',
         },
       },
     },
@@ -219,20 +248,25 @@ export class AuthController {
     description: 'User not authenticated',
     type: ErrorResponseDto,
   })
-  async logout(
+  async signOut(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<{ message: string }> {
+  ): Promise<StandardResponseDto<null>> {
     const token = this.extractTokenFromRequest(req);
 
     if (token) {
-      await this.authService.logout(token);
+      await this.authService.signOut(token);
     }
 
-    // Clear the auth cookie
+    // Clear the auth cookies
     res.clearCookie('auth-token');
+    res.clearCookie('user');
 
-    return { message: 'Logged out successfully' };
+    return {
+      data: null,
+      message: 'User signed out successfully',
+      status: 'success',
+    };
   }
 
   @Get('me')
@@ -251,7 +285,7 @@ export class AuthController {
       success: {
         summary: 'User profile retrieved',
         value: {
-          user: {
+          data: {
             id: '123e4567-e89b-12d3-a456-426614174000',
             email: 'john.doe@example.com',
             name: 'John Doe',
@@ -259,6 +293,7 @@ export class AuthController {
             updated_at: '2023-01-01T00:00:00.000Z',
           },
           message: 'Current user retrieved successfully',
+          status: 'success',
         },
       },
     },
@@ -267,116 +302,13 @@ export class AuthController {
     description: 'User not authenticated',
     type: ErrorResponseDto,
   })
-  getCurrentUser(@CurrentUser() user: UserProfile): AuthResponseDto {
+  getCurrentUser(
+    @CurrentUser() user: UserProfile,
+  ): StandardResponseDto<UserProfileDto> {
     return {
-      user,
+      data: user,
       message: 'Current user retrieved successfully',
-    };
-  }
-
-  @Get('verify')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Verify authentication status',
-    description:
-      'Checks if the current request is authenticated and returns user information if valid.',
-  })
-  @ApiCookieAuth('auth-token')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOkResponse({
-    description: 'Authentication status verified',
-    type: VerifyAuthResponseDto,
-    examples: {
-      authenticated: {
-        summary: 'User is authenticated',
-        value: {
-          isAuthenticated: true,
-          user: {
-            id: '123e4567-e89b-12d3-a456-426614174000',
-            email: 'john.doe@example.com',
-            name: 'John Doe',
-            created_at: '2023-01-01T00:00:00.000Z',
-            updated_at: '2023-01-01T00:00:00.000Z',
-          },
-        },
-      },
-      notAuthenticated: {
-        summary: 'User is not authenticated',
-        value: {
-          isAuthenticated: false,
-        },
-      },
-    },
-  })
-  async verifyAuth(
-    @Req() req: Request,
-  ): Promise<{ isAuthenticated: boolean; user?: UserProfile }> {
-    const token = this.extractTokenFromRequest(req);
-
-    if (!token) {
-      return { isAuthenticated: false };
-    }
-
-    const user = await this.authService.validateToken(token);
-    return {
-      isAuthenticated: !!user,
-      user: user || undefined,
-    };
-  }
-
-  @Post('refresh')
-  @UseGuards(AuthGuard)
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Refresh authentication token',
-    description:
-      'Refreshes the current authentication token and returns a new one.',
-  })
-  @ApiCookieAuth('auth-token')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOkResponse({
-    description: 'Token refreshed successfully',
-    type: AuthResponseDto,
-    examples: {
-      success: {
-        summary: 'Token refreshed',
-        value: {
-          user: {
-            id: '123e4567-e89b-12d3-a456-426614174000',
-            email: 'john.doe@example.com',
-            name: 'John Doe',
-            created_at: '2023-01-01T00:00:00.000Z',
-            updated_at: '2023-01-01T00:00:00.000Z',
-          },
-          message: 'Token refreshed successfully',
-        },
-      },
-    },
-  })
-  @ApiUnauthorizedResponse({
-    description: 'User not authenticated',
-    type: ErrorResponseDto,
-  })
-  async refreshToken(
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<AuthResponseDto> {
-    const token = this.extractTokenFromRequest(req);
-    const authResponse = await this.authService.refreshToken(token!);
-
-    // Set new HTTP-only cookie with the refreshed token
-    if (authResponse.access_token) {
-      res.cookie('auth-token', authResponse.access_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
-    }
-
-    return {
-      user: authResponse.user,
-      message: authResponse.message || 'Token refreshed successfully',
+      status: 'success',
     };
   }
 

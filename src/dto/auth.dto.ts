@@ -1,7 +1,7 @@
 import { IsEmail, IsString, IsOptional, MinLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class RegisterDto {
+export class SignUpDto {
   @ApiProperty({
     description: 'User email address',
     example: 'john.doe@example.com',
@@ -32,7 +32,7 @@ export class RegisterDto {
   password?: string;
 }
 
-export class LoginDto {
+export class SignInDto {
   @ApiProperty({
     description: 'User email address',
     example: 'john.doe@example.com',
@@ -51,30 +51,60 @@ export class LoginDto {
   password?: string;
 }
 
-export class AuthResponseDto {
+export class StandardResponseDto<T = any> {
   @ApiProperty({
-    description: 'User profile information',
-    example: {
-      id: '123e4567-e89b-12d3-a456-426614174000',
-      email: 'john.doe@example.com',
-      name: 'John Doe',
-      created_at: '2023-01-01T00:00:00.000Z',
-      updated_at: '2023-01-01T00:00:00.000Z',
-    },
+    description: 'Response data',
+    example: {},
   })
-  user: {
-    id: string;
-    email: string;
-    name?: string;
-    created_at: string;
-    updated_at: string;
-  };
+  data: T;
+
+  @ApiProperty({
+    description: 'Response message',
+    example: 'Operation completed successfully',
+  })
+  message: string;
+
+  @ApiProperty({
+    description: 'Response status',
+    example: 'success',
+  })
+  status: string;
+}
+
+export class UserProfileDto {
+  @ApiProperty({
+    description: 'User ID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  id: string;
+
+  @ApiProperty({
+    description: 'User email address',
+    example: 'john.doe@example.com',
+  })
+  email: string;
 
   @ApiPropertyOptional({
-    description: 'Response message',
-    example: 'User registered successfully',
+    description: 'User full name',
+    example: 'John Doe',
   })
-  message?: string;
+  name?: string;
+
+  @ApiProperty({
+    description: 'User creation timestamp',
+    example: '2023-01-01T00:00:00.000Z',
+  })
+  created_at: string;
+
+  @ApiProperty({
+    description: 'User last update timestamp',
+    example: '2023-01-01T00:00:00.000Z',
+  })
+  updated_at: string;
+}
+
+export class AuthResponseDto extends StandardResponseDto<UserProfileDto> {
+  // Inherits data, message, and status from StandardResponseDto
 }
 
 export class ErrorResponseDto {
@@ -95,30 +125,4 @@ export class ErrorResponseDto {
     example: 'Bad Request',
   })
   error: string;
-}
-
-export class VerifyAuthResponseDto {
-  @ApiProperty({
-    description: 'Whether the user is authenticated',
-    example: true,
-  })
-  isAuthenticated: boolean;
-
-  @ApiPropertyOptional({
-    description: 'User profile if authenticated',
-    example: {
-      id: '123e4567-e89b-12d3-a456-426614174000',
-      email: 'john.doe@example.com',
-      name: 'John Doe',
-      created_at: '2023-01-01T00:00:00.000Z',
-      updated_at: '2023-01-01T00:00:00.000Z',
-    },
-  })
-  user?: {
-    id: string;
-    email: string;
-    name?: string;
-    created_at: string;
-    updated_at: string;
-  };
 }
