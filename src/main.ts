@@ -33,7 +33,8 @@ async function bootstrap() {
     // Production: Use specific origins
     const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
     app.enableCors({
-      origin: allowedOrigins,
+      origin:
+        allowedOrigins.length > 0 ? allowedOrigins : ['http://localhost:3000'],
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       allowedHeaders: [
@@ -111,4 +112,10 @@ async function bootstrap() {
   console.log(`📚 API Documentation: http://localhost:${port}/api/v1`);
   console.log(`📖 Swagger Documentation: http://localhost:${port}/api/docs`);
 }
-bootstrap();
+
+// For Vercel deployment
+if (process.env.NODE_ENV !== 'production') {
+  bootstrap();
+}
+
+export { bootstrap };

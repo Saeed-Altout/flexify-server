@@ -620,6 +620,222 @@ export class AuthService {
 }
 ```
 
+## 🚀 Vercel Deployment
+
+### Prerequisites
+
+1. **Vercel Account**: Sign up at [vercel.com](https://vercel.com)
+2. **GitHub Repository**: Push your code to GitHub
+3. **Environment Variables**: Set up your environment variables in Vercel
+
+### Step-by-Step Deployment
+
+#### 1. Connect to Vercel
+
+1. Go to [vercel.com](https://vercel.com) and sign in
+2. Click "New Project"
+3. Import your GitHub repository
+4. Select the repository and click "Deploy"
+
+#### 2. Configure Environment Variables
+
+In your Vercel project dashboard, go to **Settings** → **Environment Variables** and add:
+
+```env
+# Supabase Configuration
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_SERVICE_KEY=your_supabase_service_key
+SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# JWT Configuration
+JWT_SECRET=your_jwt_secret_key
+JWT_EXPIRES_IN=7d
+
+# CORS Configuration
+ALLOWED_ORIGINS=https://your-frontend-domain.vercel.app
+
+# Cookie Configuration (Production)
+COOKIE_DOMAIN=your-vercel-domain.vercel.app
+
+# Server Configuration
+NODE_ENV=production
+```
+
+#### 3. Configure Build Settings
+
+In your Vercel project dashboard, go to **Settings** → **General** and set:
+
+- **Framework Preset**: Other
+- **Build Command**: `npm run vercel-build`
+- **Output Directory**: `dist`
+- **Install Command**: `npm install`
+
+#### 4. Deploy
+
+1. Click "Deploy" in your Vercel dashboard
+2. Wait for the build to complete
+3. Your API will be available at `https://your-project-name.vercel.app`
+
+### Vercel Configuration Files
+
+#### `vercel.json`
+
+```json
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "src/main.ts",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["src/**/*"],
+        "maxLambdaSize": "15mb"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "src/main.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "src/main.ts"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "src/main.ts": {
+      "maxDuration": 30
+    }
+  }
+}
+```
+
+#### `api/index.ts`
+
+```typescript
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from '../src/app.module';
+import { ValidationPipe } from '@nestjs/common';
+
+let app: any;
+
+async function bootstrap() {
+  if (!app) {
+    app = await NestFactory.create(AppModule);
+
+    // Enable CORS for Vercel
+    app.enableCors({
+      origin: process.env.ALLOWED_ORIGINS?.split(',') || [
+        'http://localhost:3000',
+      ],
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: [
+        'Origin',
+        'X-Requested-With',
+        'Content-Type',
+        'Accept',
+        'Authorization',
+        'Cache-Control',
+        'X-API-Key',
+      ],
+      exposedHeaders: ['Set-Cookie'],
+    });
+
+    // Global validation pipe
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
+
+    // Global prefix
+    app.setGlobalPrefix('api/v1');
+
+    await app.init();
+  }
+  return app;
+}
+
+export default async function handler(req: any, res: any) {
+  const app = await bootstrap();
+  const expressApp = app.getHttpAdapter().getInstance();
+
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.setHeader(
+      'Access-Control-Allow-Methods',
+      'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+    );
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-API-Key',
+    );
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.status(200).end();
+    return;
+  }
+
+  return expressApp(req, res);
+}
+```
+
+### Post-Deployment
+
+#### 1. Test Your API
+
+Your API endpoints will be available at:
+
+- `https://your-project-name.vercel.app/api/v1/auth/sign-up`
+- `https://your-project-name.vercel.app/api/v1/auth/sign-in`
+- `https://your-project-name.vercel.app/api/v1/auth/sign-out`
+- `https://your-project-name.vercel.app/api/v1/auth/me`
+
+#### 2. Update Frontend Configuration
+
+Update your frontend to use the new Vercel URL:
+
+```javascript
+// Update your API base URL
+const API_BASE_URL = 'https://your-project-name.vercel.app/api/v1';
+
+// Example fetch
+const response = await fetch(`${API_BASE_URL}/auth/sign-in`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  credentials: 'include',
+  body: JSON.stringify(credentials),
+});
+```
+
+#### 3. Monitor Deployment
+
+- Check Vercel dashboard for deployment status
+- Monitor function logs for any errors
+- Test all endpoints to ensure they work correctly
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **CORS Errors**: Ensure `ALLOWED_ORIGINS` includes your frontend domain
+2. **Environment Variables**: Double-check all environment variables are set in Vercel
+3. **Build Failures**: Check the build logs in Vercel dashboard
+4. **Function Timeouts**: Increase `maxDuration` in `vercel.json` if needed
+
+#### Debugging
+
+1. **Check Logs**: Go to Vercel dashboard → Functions → View logs
+2. **Test Locally**: Use `vercel dev` to test locally
+3. **Environment Variables**: Verify all variables are set correctly
+
 ## 🔒 Security Considerations
 
 ### Cookie Security
