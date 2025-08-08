@@ -109,6 +109,10 @@ In your Vercel project dashboard, go to **Settings** → **General** and set:
       "dest": "src/main.ts"
     },
     {
+      "src": "/health",
+      "dest": "src/main.ts"
+    },
+    {
       "src": "/(.*)",
       "dest": "src/main.ts"
     }
@@ -125,76 +129,142 @@ In your Vercel project dashboard, go to **Settings** → **General** and set:
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
+import { Request, Response } from 'express';
 
-let app: any;
+let app: INestApplication | null = null;
 
-async function bootstrap() {
+async function bootstrap(): Promise<INestApplication> {
   if (!app) {
-    app = await NestFactory.create(AppModule);
+    try {
+      // Check for required environment variables
+      const requiredEnvVars = [
+        'SUPABASE_URL',
+        'SUPABASE_SERVICE_KEY',
+        'SUPABASE_ANON_KEY',
+      ];
 
-    // Enable CORS for Vercel
-    app.enableCors({
-      origin: process.env.ALLOWED_ORIGINS?.split(',') || [
-        'http://localhost:3000',
-      ],
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: [
-        'Origin',
-        'X-Requested-With',
-        'Content-Type',
-        'Accept',
-        'Authorization',
-        'Cache-Control',
-        'X-API-Key',
-      ],
-      exposedHeaders: ['Set-Cookie'],
-    });
+      const missingVars = requiredEnvVars.filter(
+        (varName) => !process.env[varName],
+      );
 
-    // Global validation pipe
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    );
+      if (missingVars.length > 0) {
+        console.warn(
+          `Missing environment variables: ${missingVars.join(', ')}. Running in development mode.`,
+        );
+      }
 
-    // Global prefix
-    app.setGlobalPrefix('api/v1');
+      app = await NestFactory.create(AppModule);
 
-    await app.init();
+      // Enable CORS for Vercel
+      app.enableCors({
+        origin: process.env.ALLOWED_ORIGINS?.split(',') || [
+          'http://localhost:3000',
+        ],
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        allowedHeaders: [
+          'Origin',
+          'X-Requested-With',
+          'Content-Type',
+          'Accept',
+          'Authorization',
+          'Cache-Control',
+          'X-API-Key',
+        ],
+        exposedHeaders: ['Set-Cookie'],
+        preflightContinue: false,
+        optionsSuccessStatus: 204,
+      });
+
+      // Global validation pipe
+      app.useGlobalPipes(
+        new ValidationPipe({
+          whitelist: true,
+          forbidNonWhitelisted: true,
+          transform: true,
+        }),
+      );
+
+      // Global prefix
+      app.setGlobalPrefix('api/v1');
+
+      await app.init();
+      console.log('✅ NestJS application initialized successfully');
+    } catch (error) {
+      console.error('❌ Failed to bootstrap app:', error);
+      throw error;
+    }
   }
   return app;
 }
 
-export default async function handler(req: any, res: any) {
-  const app = await bootstrap();
-  const expressApp = app.getHttpAdapter().getInstance();
+export default async function handler(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  try {
+    const app = await bootstrap();
+    const expressApp = app.getHttpAdapter().getInstance();
 
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.setHeader(
-      'Access-Control-Allow-Methods',
-      'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-    );
-    res.setHeader(
-      'Access-Control-Allow-Headers',
-      'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-API-Key',
-    );
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.status(200).end();
-    return;
+    // Handle CORS preflight
+    if (req.method === 'OPTIONS') {
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+      res.setHeader(
+        'Access-Control-Allow-Methods',
+        'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      );
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-API-Key',
+      );
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.status(200).end();
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    return expressApp(req, res);
+  } catch (error) {
+    console.error('❌ Handler error:', error);
+
+    // Send a more detailed error response in development
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error';
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: isDevelopment ? errorMessage : 'Something went wrong',
+      ...(isDevelopment && {
+        stack: error instanceof Error ? error.stack : undefined,
+      }),
+    });
   }
-
-  return expressApp(req, res);
 }
 ```
 
 ## 🧪 Testing Your Deployment
 
-### 1. Test API Endpoints
+### 1. Test Health Check
+
+First, test the health check endpoint:
+
+```bash
+curl https://your-project-name.vercel.app/health
+```
+
+Expected response:
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "environment": "production"
+}
+```
+
+### 2. Test API Endpoints
 
 Your API endpoints will be available at:
 
@@ -203,7 +273,7 @@ Your API endpoints will be available at:
 - `https://your-project-name.vercel.app/api/v1/auth/sign-out`
 - `https://your-project-name.vercel.app/api/v1/auth/me`
 
-### 2. Test with cURL
+### 3. Test with cURL
 
 ```bash
 # Test sign-up
@@ -224,7 +294,7 @@ curl -X POST https://your-project-name.vercel.app/api/v1/auth/sign-in \
   }'
 ```
 
-### 3. Test CORS
+### 4. Test CORS
 
 ```javascript
 // Test from your frontend
@@ -268,7 +338,17 @@ fetch('https://your-project-name.vercel.app/api/v1/auth/me', {
 
 ### Common Issues
 
-#### 1. CORS Errors
+#### 1. Serverless Function Crashed
+
+**Problem**: Function crashes with 500 error
+**Solution**:
+
+- Check Vercel function logs for detailed error messages
+- Verify all environment variables are set correctly
+- Ensure Supabase credentials are valid
+- Check if the application is trying to listen on a port (shouldn't in serverless)
+
+#### 2. CORS Errors
 
 **Problem**: Frontend can't access the API
 **Solution**:
@@ -277,7 +357,7 @@ fetch('https://your-project-name.vercel.app/api/v1/auth/me', {
 - Ensure your frontend domain is included
 - Test with `http://localhost:3000` for local development
 
-#### 2. Environment Variables Not Found
+#### 3. Environment Variables Not Found
 
 **Problem**: API can't find environment variables
 **Solution**:
@@ -286,7 +366,7 @@ fetch('https://your-project-name.vercel.app/api/v1/auth/me', {
 - Ensure variable names match exactly
 - Redeploy after adding new variables
 
-#### 3. Build Failures
+#### 4. Build Failures
 
 **Problem**: Deployment fails during build
 **Solution**:
@@ -295,7 +375,7 @@ fetch('https://your-project-name.vercel.app/api/v1/auth/me', {
 - Ensure all dependencies are in `package.json`
 - Verify TypeScript compilation
 
-#### 4. Function Timeouts
+#### 5. Function Timeouts
 
 **Problem**: API requests timeout
 **Solution**:
@@ -304,7 +384,7 @@ fetch('https://your-project-name.vercel.app/api/v1/auth/me', {
 - Consider using caching
 - Check function logs for performance issues
 
-#### 5. Cookie Issues
+#### 6. Cookie Issues
 
 **Problem**: Cookies not being set or read
 **Solution**:
@@ -377,6 +457,7 @@ git push origin main
 - [ ] Environment variables configured
 - [ ] Build settings configured
 - [ ] Deployment successful
+- [ ] Health check endpoint working
 - [ ] API endpoints tested
 - [ ] CORS working correctly
 - [ ] Cookies functioning

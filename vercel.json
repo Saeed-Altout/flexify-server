@@ -16,6 +16,10 @@
       "dest": "src/main.ts"
     },
     {
+      "src": "/health",
+      "dest": "src/main.ts"
+    },
+    {
       "src": "/(.*)",
       "dest": "src/main.ts"
     }

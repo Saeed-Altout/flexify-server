@@ -106,16 +106,24 @@ async function bootstrap() {
     customSiteTitle: 'Flexify Auth Service API Documentation',
   });
 
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
-  console.log(`🚀 Auth service is running on: http://localhost:${port}`);
-  console.log(`📚 API Documentation: http://localhost:${port}/api/v1`);
-  console.log(`📖 Swagger Documentation: http://localhost:${port}/api/docs`);
+  // Only listen on port if not in Vercel environment
+  if (!process.env.VERCEL) {
+    const port = process.env.PORT || 3000;
+    await app.listen(port);
+    console.log(`🚀 Auth service is running on: http://localhost:${port}`);
+    console.log(`📚 API Documentation: http://localhost:${port}/api/v1`);
+    console.log(`📖 Swagger Documentation: http://localhost:${port}/api/docs`);
+  }
+
+  return app;
 }
 
-// For Vercel deployment
-if (process.env.NODE_ENV !== 'production') {
-  bootstrap();
+// For Vercel deployment - only bootstrap if not in production or if explicitly requested
+if (process.env.NODE_ENV !== 'production' || process.env.VERCEL) {
+  bootstrap().catch((error) => {
+    console.error('Failed to start application:', error);
+    process.exit(1);
+  });
 }
 
 export { bootstrap };
