@@ -58,6 +58,8 @@ export class AuthController {
         process.env.NODE_ENV === 'production'
           ? process.env.COOKIE_DOMAIN
           : undefined,
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days for better persistence
+      sameSite: 'lax', // Better compatibility across browsers
     });
 
     console.log('🍪 Setting cookies with options:', {
@@ -86,6 +88,8 @@ export class AuthController {
         process.env.NODE_ENV === 'production'
           ? process.env.COOKIE_DOMAIN
           : undefined,
+      maxAge: 0, // Expire immediately
+      sameSite: 'lax', // Match the setting options
     });
 
     res.clearCookie('auth-token', clearOptions);
@@ -355,7 +359,7 @@ export class AuthController {
 
     const debugCookieOptions = createSafeCookieOptions({
       maxAge: 60 * 60 * 1000, // 1 hour
-      sameSite: 'none' as const,
+      sameSite: 'lax' as const,
     });
 
     // Set test cookies
@@ -374,6 +378,34 @@ export class AuthController {
       options: {
         testCookie: testCookieOptions,
         debugCookie: debugCookieOptions,
+      },
+    };
+  }
+
+  @Get('cookie-info')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get cookie information',
+    description: 'Returns information about current cookies and configuration.',
+  })
+  @ApiOkResponse({
+    description: 'Cookie information retrieved successfully',
+  })
+  getCookieInfo(@Req() req: Request) {
+    const cookies = req.headers.cookie;
+    const cookieList = cookies ? cookies.split(';').map((c) => c.trim()) : [];
+
+    return {
+      message: 'Cookie information retrieved',
+      status: 'success',
+      data: {
+        totalCookies: cookieList.length,
+        cookies: cookieList,
+        hasAuthToken: cookieList.some((c) => c.startsWith('auth-token=')),
+        hasUserData: cookieList.some((c) => c.startsWith('user=')),
+        userAgent: req.headers['user-agent'],
+        origin: req.headers.origin,
+        host: req.headers.host,
       },
     };
   }

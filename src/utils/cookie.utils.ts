@@ -188,17 +188,25 @@ export function createSafeCookieOptions(
 ) {
   const { domain, ...otherOptions } = options;
 
+  // Determine environment-specific settings
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isLocalhost = process.env.NODE_ENV === 'development';
+
+  // Base cookie options optimized for persistence
   const cookieOptions = {
-    httpOnly: false, // Allow JavaScript access
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: (process.env.NODE_ENV === 'production' ? 'lax' : 'none') as
-      | 'lax'
-      | 'none', // More permissive in development
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    httpOnly: false, // Allow JavaScript access for frontend
+    secure: isProduction, // Only secure in production (HTTPS required for sameSite: 'none')
+    sameSite: isLocalhost ? 'lax' : ('lax' as const), // Use 'lax' for better compatibility
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days for better persistence
     path: '/',
     ...otherOptions,
     domain: validateCookieDomain(domain),
   };
+
+  // Override sameSite if explicitly provided and secure is true
+  if (options.sameSite === 'none' && cookieOptions.secure) {
+    cookieOptions.sameSite = 'none';
+  }
 
   // Debug logging for cookie options
   console.log('🍪 Creating cookie options:', {
@@ -207,6 +215,7 @@ export function createSafeCookieOptions(
     secure: cookieOptions.secure,
     sameSite: cookieOptions.sameSite,
     httpOnly: cookieOptions.httpOnly,
+    maxAge: `${Math.round(cookieOptions.maxAge / (24 * 60 * 60 * 1000))} days`,
   });
 
   return cookieOptions;
