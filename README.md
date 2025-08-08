@@ -187,6 +187,7 @@ npm run start:prod
 ### Authentication Endpoints
 
 #### Register User
+
 ```http
 POST /api/v1/auth/register
 Content-Type: application/json
@@ -199,6 +200,7 @@ Content-Type: application/json
 ```
 
 #### Login User
+
 ```http
 POST /api/v1/auth/login
 Content-Type: application/json
@@ -210,6 +212,7 @@ Content-Type: application/json
 ```
 
 #### Get Current User
+
 ```http
 GET /api/v1/auth/me
 Authorization: Bearer <token>
@@ -217,6 +220,7 @@ Authorization: Bearer <token>
 ```
 
 #### Verify Authentication
+
 ```http
 GET /api/v1/auth/verify
 Authorization: Bearer <token>
@@ -224,6 +228,7 @@ Authorization: Bearer <token>
 ```
 
 #### Logout User
+
 ```http
 POST /api/v1/auth/logout
 Authorization: Bearer <token>
@@ -231,6 +236,7 @@ Authorization: Bearer <token>
 ```
 
 #### Refresh Token
+
 ```http
 POST /api/v1/auth/refresh
 Authorization: Bearer <token>
@@ -240,16 +246,19 @@ Authorization: Bearer <token>
 ## 🔐 Security Features
 
 ### JWT Token Management
+
 - Tokens are stored in HTTP-only cookies for enhanced security
 - Automatic token refresh mechanism
 - Secure cookie configuration (httpOnly, secure, sameSite)
 
 ### Authentication Guard
+
 - Route protection with `@UseGuards(AuthGuard)`
 - Automatic token validation
 - User context injection with `@CurrentUser()` decorator
 
 ### Input Validation
+
 - DTO-based validation using class-validator
 - Automatic request sanitization
 - Type-safe request handling
@@ -291,16 +300,19 @@ if (isValid) {
 ## 🧪 Testing
 
 ### Unit Tests
+
 ```bash
 npm run test
 ```
 
 ### E2E Tests
+
 ```bash
 npm run test:e2e
 ```
 
 ### Test Coverage
+
 ```bash
 npm run test:cov
 ```
@@ -348,16 +360,335 @@ Ensure all required environment variables are set in your deployment environment
 
 ### Environment Variables
 
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `PORT` | Server port | No | 3000 |
-| `NODE_ENV` | Environment | No | development |
-| `SUPABASE_URL` | Supabase project URL | Yes | - |
-| `SUPABASE_SERVICE_KEY` | Supabase service key | Yes | - |
-| `SUPABASE_ANON_KEY` | Supabase anon key | Yes | - |
-| `JWT_SECRET` | JWT secret key | No | auto-generated |
-| `JWT_EXPIRES_IN` | JWT expiration | No | 7d |
-| `ALLOWED_ORIGINS` | CORS origins | No | localhost:3000 |
+| Variable               | Description          | Required | Default        |
+| ---------------------- | -------------------- | -------- | -------------- |
+| `PORT`                 | Server port          | No       | 3000           |
+| `NODE_ENV`             | Environment          | No       | development    |
+| `SUPABASE_URL`         | Supabase project URL | Yes      | -              |
+| `SUPABASE_SERVICE_KEY` | Supabase service key | Yes      | -              |
+| `SUPABASE_ANON_KEY`    | Supabase anon key    | Yes      | -              |
+| `JWT_SECRET`           | JWT secret key       | No       | auto-generated |
+| `JWT_EXPIRES_IN`       | JWT expiration       | No       | 7d             |
+| `ALLOWED_ORIGINS`      | CORS origins         | No       | localhost:3000 |
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+# Flexify Backend
+
+A comprehensive authentication service built with NestJS and Supabase.
+
+## 🚀 Quick Start
+
+1. **Clone the repository**
+
+   ```bash
+   git clone <repository-url>
+   cd flexify-backend
+   ```
+
+2. **Install dependencies**
+
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+
+   ```bash
+   cp env.example .env
+   # Edit .env with your Supabase credentials
+   ```
+
+4. **Run the application**
+   ```bash
+   npm run start:dev
+   ```
+
+## 🔐 Authentication Endpoints
+
+### Endpoints
+
+- `POST /api/v1/auth/sign-up` - Register a new user
+- `POST /api/v1/auth/sign-in` - Sign in user
+- `POST /api/v1/auth/sign-out` - Sign out user
+- `GET /api/v1/auth/me` - Get current user profile
+
+### Response Format
+
+All responses follow a standard format:
+
+```typescript
+{
+  data: {} | [] | null,
+  message: string,
+  status: string
+}
+```
+
+### Cookie Management
+
+The authentication system uses cookies for session management. Cookies are set to be accessible by frontend JavaScript for seamless user experience.
+
+#### Cookie Configuration
+
+- **auth-token**: Contains the JWT access token
+- **user**: Contains the user profile data as JSON string
+
+#### Cookie Settings
+
+- `httpOnly: false` - Allows frontend JavaScript to read cookies
+- `secure: true` - HTTPS only in production
+- `sameSite: 'lax'` - CSRF protection
+- `maxAge: 7 days` - Token expiry
+- `path: '/'` - Available across the site
+
+## 🍪 Frontend Integration
+
+### Reading Cookies in Frontend
+
+```javascript
+// Utility function to get cookies
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+// Get user data
+const userData = getCookie('user');
+const user = userData ? JSON.parse(userData) : null;
+
+// Get auth token
+const authToken = getCookie('auth-token');
+```
+
+### React Example
+
+```jsx
+import { useState, useEffect } from 'react';
+
+function useAuth() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Read user data from cookie
+    const userData = getCookie('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+    setLoading(false);
+  }, []);
+
+  const signIn = async (credentials) => {
+    const response = await fetch('/api/v1/auth/sign-in', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // Important for cookies
+      body: JSON.stringify(credentials),
+    });
+
+    const result = await response.json();
+    if (result.status === 'success') {
+      // User data is automatically set in cookies
+      setUser(result.data);
+    }
+    return result;
+  };
+
+  const signOut = async () => {
+    await fetch('/api/v1/auth/sign-out', {
+      method: 'POST',
+      credentials: 'include',
+    });
+    setUser(null);
+  };
+
+  return { user, loading, signIn, signOut };
+}
+```
+
+### Vue.js Example
+
+```javascript
+// composables/useAuth.js
+import { ref, onMounted } from 'vue';
+
+export function useAuth() {
+  const user = ref(null);
+  const loading = ref(true);
+
+  const getCookie = (name) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  };
+
+  onMounted(() => {
+    const userData = getCookie('user');
+    if (userData) {
+      user.value = JSON.parse(userData);
+    }
+    loading.value = false;
+  });
+
+  const signIn = async (credentials) => {
+    const response = await fetch('/api/v1/auth/sign-in', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(credentials),
+    });
+
+    const result = await response.json();
+    if (result.status === 'success') {
+      user.value = result.data;
+    }
+    return result;
+  };
+
+  const signOut = async () => {
+    await fetch('/api/v1/auth/sign-out', {
+      method: 'POST',
+      credentials: 'include',
+    });
+    user.value = null;
+  };
+
+  return { user, loading, signIn, signOut };
+}
+```
+
+### Angular Example
+
+```typescript
+// services/auth.service.ts
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject, Observable } from 'rxjs';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class AuthService {
+  private userSubject = new BehaviorSubject<any>(null);
+  public user$ = this.userSubject.asObservable();
+
+  constructor(private http: HttpClient) {
+    this.loadUserFromCookie();
+  }
+
+  private loadUserFromCookie() {
+    const userData = this.getCookie('user');
+    if (userData) {
+      this.userSubject.next(JSON.parse(userData));
+    }
+  }
+
+  private getCookie(name: string): string | null {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+    return null;
+  }
+
+  signIn(credentials: any): Observable<any> {
+    return this.http.post('/api/v1/auth/sign-in', credentials, {
+      withCredentials: true,
+    });
+  }
+
+  signOut(): Observable<any> {
+    return this.http.post(
+      '/api/v1/auth/sign-out',
+      {},
+      {
+        withCredentials: true,
+      },
+    );
+  }
+}
+```
+
+## 🔒 Security Considerations
+
+### Cookie Security
+
+1. **HttpOnly**: Set to `false` to allow frontend access
+2. **Secure**: Only sent over HTTPS in production
+3. **SameSite**: Set to `lax` for CSRF protection
+4. **Domain**: Configurable for production environments
+5. **Path**: Set to `/` for site-wide access
+
+### CORS Configuration
+
+The application is configured with proper CORS settings:
+
+- **Development**: Allows all origins with credentials
+- **Production**: Configurable allowed origins
+
+### Environment Variables
+
+```env
+# Supabase Configuration
+SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_KEY=your_service_key
+
+# Cookie Configuration (Production)
+COOKIE_DOMAIN=your-domain.com
+NODE_ENV=production
+
+# CORS Configuration (Production)
+ALLOWED_ORIGINS=https://your-frontend-domain.com
+```
+
+## 📚 API Documentation
+
+Visit `http://localhost:3000/api/docs` for interactive API documentation.
+
+## 🧪 Testing
+
+```bash
+# Unit tests
+npm run test
+
+# E2E tests
+npm run test:e2e
+
+# Test coverage
+npm run test:cov
+```
+
+## 🚀 Deployment
+
+1. **Build the application**
+
+   ```bash
+   npm run build
+   ```
+
+2. **Set production environment variables**
+
+   ```bash
+   NODE_ENV=production
+   COOKIE_DOMAIN=your-domain.com
+   ALLOWED_ORIGINS=https://your-frontend-domain.com
+   ```
+
+3. **Start the application**
+   ```bash
+   npm run start:prod
+   ```
 
 ## 🤝 Contributing
 

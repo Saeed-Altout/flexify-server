@@ -43,6 +43,49 @@ import type { UserProfile } from '../types/auth.types';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  /**
+   * Set cookies with proper configuration for frontend accessibility
+   */
+  private setAuthCookies(
+    res: Response,
+    token: string,
+    userData: UserProfileDto,
+  ) {
+    const cookieOptions = {
+      httpOnly: false, // Allow frontend JavaScript to read
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: 'lax' as const, // CSRF protection
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/', // Available across the site
+      domain:
+        process.env.NODE_ENV === 'production'
+          ? process.env.COOKIE_DOMAIN
+          : undefined, // Domain in production
+    };
+
+    // Set authentication token cookie
+    res.cookie('auth-token', token, cookieOptions);
+
+    // Set user data cookie (accessible to frontend)
+    res.cookie('user', JSON.stringify(userData), cookieOptions);
+  }
+
+  /**
+   * Clear authentication cookies
+   */
+  private clearAuthCookies(res: Response) {
+    const clearOptions = {
+      path: '/',
+      domain:
+        process.env.NODE_ENV === 'production'
+          ? process.env.COOKIE_DOMAIN
+          : undefined,
+    };
+
+    res.clearCookie('auth-token', clearOptions);
+    res.clearCookie('user', clearOptions);
+  }
+
   @Post('sign-up')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -105,25 +148,9 @@ export class AuthController {
   ): Promise<StandardResponseDto<UserProfileDto>> {
     const authResponse = await this.authService.signUp(signUpDto);
 
-    // Set HTTP-only cookies with token and user data
-    if (authResponse.data) {
-      // Set token cookie if available
-      if (authResponse.access_token) {
-        res.cookie('auth-token', authResponse.access_token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        });
-      }
-
-      // Set user cookie
-      res.cookie('user', JSON.stringify(authResponse.data), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
+    // Set cookies with token and user data (accessible to frontend)
+    if (authResponse.data && authResponse.access_token) {
+      this.setAuthCookies(res, authResponse.access_token, authResponse.data);
     }
 
     return {
@@ -193,25 +220,9 @@ export class AuthController {
   ): Promise<StandardResponseDto<UserProfileDto>> {
     const authResponse = await this.authService.signIn(signInDto);
 
-    // Set HTTP-only cookies with token and user data
-    if (authResponse.data) {
-      // Set token cookie if available
-      if (authResponse.access_token) {
-        res.cookie('auth-token', authResponse.access_token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        });
-      }
-
-      // Set user cookie
-      res.cookie('user', JSON.stringify(authResponse.data), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
+    // Set cookies with token and user data (accessible to frontend)
+    if (authResponse.data && authResponse.access_token) {
+      this.setAuthCookies(res, authResponse.access_token, authResponse.data);
     }
 
     return {
@@ -259,8 +270,7 @@ export class AuthController {
     }
 
     // Clear the auth cookies
-    res.clearCookie('auth-token');
-    res.clearCookie('user');
+    this.clearAuthCookies(res);
 
     return {
       data: null,
