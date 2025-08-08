@@ -38,6 +38,49 @@
         }
         button:hover { background-color: #45a049; }
         button:disabled { background-color: #cccccc; cursor: not-allowed; }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-success {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #059669;
+        }
+
+        .btn-danger {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+
+        .cookie-list {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #e5e7eb;
+        }
         pre {
             background-color: #f8f8f8;
             padding: 10px;
@@ -65,13 +108,25 @@
             <h3>🧪 Test Endpoints</h3>
             <button onclick="testHealth()">Test Health Endpoint</button>
             <button onclick="testCors()">Test CORS Endpoint</button>
+            <button onclick="testBasicCookie()">Test Basic Cookie</button>
             <button onclick="testAuth()">Test Auth Endpoint</button>
+            <button onclick="testSignIn()">Test Sign-In (Cookies)</button>
             <button onclick="runAllTests()">Run All Tests</button>
         </div>
 
         <div class="test-section">
             <h3>📊 Test Results</h3>
             <div id="results"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🍪 Cookie Testing</h3>
+            <div class="button-group">
+                <button onclick="testCookies()" class="btn btn-primary">Test Cookie Setting</button>
+                <button onclick="checkCookies()" class="btn btn-success">Check Current Cookies</button>
+                <button onclick="clearTestCookies()" class="btn btn-danger">Clear Test Cookies</button>
+            </div>
+            <div id="cookie-results" class="mt-3 p-3 bg-gray-100 rounded-lg"></div>
         </div>
 
         <div class="test-section info">
@@ -141,8 +196,79 @@
             await makeRequest('cors-test', 'CORS Test Endpoint');
         }
 
+        async function testBasicCookie() {
+            const backendUrl = document.getElementById('backendUrl').value;
+            const url = `${backendUrl}/api/v1/test-cookie`;
+            
+            try {
+                addResult('🍪 Testing basic cookie setting...', 'info');
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult(`✅ Basic cookie set!<br><pre>${JSON.stringify(data, null, 2)}</pre>`, 'success');
+                    
+                    // Check if cookie is visible
+                    setTimeout(() => {
+                        checkCookies();
+                        addResult('🔍 Checking for basic cookie...', 'info');
+                    }, 500);
+                } else {
+                    addResult(`❌ Failed to set basic cookie - Status: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Error setting basic cookie: ${error.message}`, 'error');
+                console.error('Basic cookie error:', error);
+            }
+        }
+
         async function testAuth() {
             await makeRequest('auth/profile', 'Auth Profile Endpoint (should fail without auth)');
+        }
+
+        async function testSignIn() {
+            const backendUrl = document.getElementById('backendUrl').value;
+            const url = `${backendUrl}/api/v1/auth/sign-in`;
+            
+            try {
+                addResult('🔐 Testing sign-in with cookies...', 'info');
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'test@example.com',
+                        password: 'testpassword123'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult(`✅ Sign-in successful!<br><pre>${JSON.stringify(data, null, 2)}</pre>`, 'success');
+                    
+                    // Check if auth cookies are visible
+                    setTimeout(() => {
+                        checkCookies();
+                        addResult('🔍 Checking for auth cookies...', 'info');
+                    }, 500);
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    addResult(`❌ Sign-in failed - Status: ${response.status}<br><pre>${JSON.stringify(errorData, null, 2)}</pre>`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Error during sign-in: ${error.message}`, 'error');
+                console.error('Sign-in error:', error);
+            }
         }
 
         async function runAllTests() {
@@ -150,8 +276,84 @@
             addResult('🚀 Starting all CORS tests...', 'info');
             await testHealth();
             await testCors();
+            await testBasicCookie();
             await testAuth();
+            addResult('🍪 Testing cookie functionality...', 'info');
+            await testCookies();
             addResult('🏁 All tests completed!', 'info');
+        }
+
+        // Cookie testing functions
+        async function testCookies() {
+            const backendUrl = document.getElementById('backendUrl').value;
+            const url = `${backendUrl}/api/v1/auth/test-cookies`;
+            
+            try {
+                addResult('🍪 Testing cookie setting...', 'info');
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult(`✅ Cookies set successfully!<br><pre>${JSON.stringify(data, null, 2)}</pre>`, 'success');
+                    
+                    // Check if cookies are visible
+                    setTimeout(() => {
+                        checkCookies();
+                    }, 500);
+                } else {
+                    addResult(`❌ Failed to set cookies - Status: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Error setting cookies: ${error.message}`, 'error');
+                console.error('Cookie setting error:', error);
+            }
+        }
+
+        function checkCookies() {
+            const cookies = document.cookie;
+            const cookieResults = document.getElementById('cookie-results');
+            
+            if (cookies) {
+                const cookieList = cookies.split(';').map(cookie => {
+                    const [name, value] = cookie.trim().split('=');
+                    return `<div><strong>${name}:</strong> ${value}</div>`;
+                }).join('');
+                
+                cookieResults.innerHTML = `
+                    <h4>🍪 Current Cookies:</h4>
+                    <div class="cookie-list">${cookieList}</div>
+                    <div class="mt-2 text-sm text-gray-600">Total cookies: ${cookies.split(';').length}</div>
+                    <div class="mt-2 text-sm text-blue-600">
+                        💡 Tip: Also check Browser Dev Tools > Application > Cookies for more details
+                    </div>
+                `;
+            } else {
+                cookieResults.innerHTML = `
+                    <div class="text-gray-500">No cookies found</div>
+                    <div class="mt-2 text-sm text-blue-600">
+                        💡 Tip: Check Browser Dev Tools > Application > Cookies for more details
+                    </div>
+                `;
+            }
+        }
+
+        function clearTestCookies() {
+            // Clear test cookies by setting them to expire
+            document.cookie = 'test-cookie=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            document.cookie = 'debug-cookie=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            document.cookie = 'simple-test=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            document.cookie = 'user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            
+            addResult('🗑️ Test cookies cleared', 'info');
+            checkCookies();
         }
 
         // Auto-run health test on page load

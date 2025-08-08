@@ -40,6 +40,7 @@ async function bootstrap(): Promise<INestApplication> {
 
     console.log(`🌐 CORS enabled globally for all origins`);
     console.log(`🔒 Credentials enabled for cross-origin requests`);
+    console.log(`🍪 Cookies will be accessible to frontend JavaScript`);
     console.log(
       `📋 All HTTP methods allowed: GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD`,
     );
@@ -135,6 +136,13 @@ export default async function handler(
       'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-API-Key, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials',
     );
     res.setHeader('Access-Control-Max-Age', '86400');
+
+    // Debug logging for serverless environment
+    console.log('🚀 Vercel handler - CORS headers set:', {
+      origin: origin || '*',
+      credentials: 'true',
+      methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD',
+    });
 
     // Handle CORS preflight
     if (req.method === 'OPTIONS') {

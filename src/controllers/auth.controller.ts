@@ -60,11 +60,19 @@ export class AuthController {
           : undefined,
     });
 
+    console.log('🍪 Setting cookies with options:', {
+      ...cookieOptions,
+      token: token ? `${token.substring(0, 10)}...` : 'undefined',
+      userData: userData ? 'present' : 'undefined',
+    });
+
     // Set authentication token cookie
     res.cookie('auth-token', token, cookieOptions);
 
     // Set user data cookie (accessible to frontend)
     res.cookie('user', JSON.stringify(userData), cookieOptions);
+
+    console.log('✅ Cookies set successfully');
   }
 
   /**
@@ -317,6 +325,56 @@ export class AuthController {
       data: user,
       message: 'Current user retrieved successfully',
       status: 'success',
+    };
+  }
+
+  @Get('test-cookies')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Test cookie functionality',
+    description: 'Sets test cookies to verify cookie handling is working.',
+  })
+  @ApiOkResponse({
+    description: 'Test cookies set successfully',
+    examples: {
+      success: {
+        summary: 'Test cookies set',
+        value: {
+          message: 'Test cookies set successfully',
+          status: 'success',
+          cookies: ['test-cookie', 'debug-cookie'],
+        },
+      },
+    },
+  })
+  testCookies(@Res({ passthrough: true }) res: Response) {
+    // Set test cookies with different configurations
+    const testCookieOptions = createSafeCookieOptions({
+      maxAge: 60 * 60 * 1000, // 1 hour
+    });
+
+    const debugCookieOptions = createSafeCookieOptions({
+      maxAge: 60 * 60 * 1000, // 1 hour
+      sameSite: 'none' as const,
+    });
+
+    // Set test cookies
+    res.cookie('test-cookie', 'test-value-123', testCookieOptions);
+    res.cookie('debug-cookie', 'debug-value-456', debugCookieOptions);
+
+    console.log('🧪 Test cookies set with options:', {
+      testCookie: testCookieOptions,
+      debugCookie: debugCookieOptions,
+    });
+
+    return {
+      message: 'Test cookies set successfully',
+      status: 'success',
+      cookies: ['test-cookie', 'debug-cookie'],
+      options: {
+        testCookie: testCookieOptions,
+        debugCookie: debugCookieOptions,
+      },
     };
   }
 

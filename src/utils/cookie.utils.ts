@@ -174,6 +174,7 @@ export function validateCookieDomain(domain?: string): string | undefined {
 
 /**
  * Create safe cookie options with domain validation
+ * Optimized for frontend accessibility and cross-origin requests
  */
 export function createSafeCookieOptions(
   options: {
@@ -187,13 +188,26 @@ export function createSafeCookieOptions(
 ) {
   const { domain, ...otherOptions } = options;
 
-  return {
-    httpOnly: false,
+  const cookieOptions = {
+    httpOnly: false, // Allow JavaScript access
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax' as const,
+    sameSite: (process.env.NODE_ENV === 'production' ? 'lax' : 'none') as
+      | 'lax'
+      | 'none', // More permissive in development
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     path: '/',
     ...otherOptions,
     domain: validateCookieDomain(domain),
   };
+
+  // Debug logging for cookie options
+  console.log('🍪 Creating cookie options:', {
+    ...cookieOptions,
+    domain: cookieOptions.domain || 'undefined (will use current domain)',
+    secure: cookieOptions.secure,
+    sameSite: cookieOptions.sameSite,
+    httpOnly: cookieOptions.httpOnly,
+  });
+
+  return cookieOptions;
 }
