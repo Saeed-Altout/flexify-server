@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS Test - Flexify Backend</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { border-color: #4CAF50; background-color: #f1f8e9; }
+        .error { border-color: #f44336; background-color: #ffebee; }
+        .info { border-color: #2196F3; background-color: #e3f2fd; }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #45a049; }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        pre {
+            background-color: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .status {
+            font-weight: bold;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌐 CORS Test for Flexify Backend</h1>
+        <p>This page tests CORS functionality by making requests to your NestJS backend from different origins.</p>
+        
+        <div class="test-section info">
+            <h3>📋 Test Configuration</h3>
+            <p><strong>Backend URL:</strong> <input type="text" id="backendUrl" value="http://localhost:3000" style="width: 300px; padding: 5px;"></p>
+            <p><strong>Current Origin:</strong> <span id="currentOrigin"></span></p>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Test Endpoints</h3>
+            <button onclick="testHealth()">Test Health Endpoint</button>
+            <button onclick="testCors()">Test CORS Endpoint</button>
+            <button onclick="testAuth()">Test Auth Endpoint</button>
+            <button onclick="runAllTests()">Run All Tests</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Test Results</h3>
+            <div id="results"></div>
+        </div>
+
+        <div class="test-section info">
+            <h3>ℹ️ How to Use</h3>
+            <ol>
+                <li>Make sure your NestJS backend is running on the specified port</li>
+                <li>Click any test button to test CORS functionality</li>
+                <li>Check the browser's developer console for detailed CORS information</li>
+                <li>If you see CORS errors, check your backend CORS configuration</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Display current origin
+        document.getElementById('currentOrigin').textContent = window.location.origin;
+        
+        const resultsDiv = document.getElementById('results');
+        
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-section ${type}`;
+            div.innerHTML = `
+                <div class="status">${type.toUpperCase()}: ${new Date().toLocaleTimeString()}</div>
+                <div>${message}</div>
+            `;
+            resultsDiv.appendChild(div);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        function clearResults() {
+            resultsDiv.innerHTML = '';
+        }
+
+        async function makeRequest(endpoint, description) {
+            const backendUrl = document.getElementById('backendUrl').value;
+            const url = `${backendUrl}/api/v1/${endpoint}`;
+            
+            try {
+                addResult(`🔄 Testing: ${description}`, 'info');
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult(`✅ Success: ${description}<br><pre>${JSON.stringify(data, null, 2)}</pre>`, 'success');
+                } else {
+                    addResult(`❌ Error: ${description} - Status: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ CORS Error: ${description}<br>Error: ${error.message}`, 'error');
+                console.error(`CORS Error for ${description}:`, error);
+            }
+        }
+
+        async function testHealth() {
+            await makeRequest('health', 'Health Check Endpoint');
+        }
+
+        async function testCors() {
+            await makeRequest('cors-test', 'CORS Test Endpoint');
+        }
+
+        async function testAuth() {
+            await makeRequest('auth/profile', 'Auth Profile Endpoint (should fail without auth)');
+        }
+
+        async function runAllTests() {
+            clearResults();
+            addResult('🚀 Starting all CORS tests...', 'info');
+            await testHealth();
+            await testCors();
+            await testAuth();
+            addResult('🏁 All tests completed!', 'info');
+        }
+
+        // Auto-run health test on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                addResult('🔄 Auto-running health test...', 'info');
+                testHealth();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

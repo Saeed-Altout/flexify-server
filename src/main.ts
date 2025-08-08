@@ -11,56 +11,38 @@ async function bootstrap(): Promise<INestApplication> {
   if (!app) {
     app = await NestFactory.create(AppModule);
 
-    // Enable CORS - Configure based on environment
-    const isDevelopment = process.env.NODE_ENV !== 'production';
+    // Enable CORS globally for all domains
+    app.enableCors({
+      origin: true, // Allow all origins
+      credentials: true, // Allow credentials (cookies, authorization headers)
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+      allowedHeaders: [
+        'Origin',
+        'X-Requested-With',
+        'Content-Type',
+        'Accept',
+        'Authorization',
+        'Cache-Control',
+        'X-API-Key',
+        'Access-Control-Allow-Origin',
+        'Access-Control-Allow-Headers',
+        'Access-Control-Allow-Methods',
+        'Access-Control-Allow-Credentials',
+        'X-Forwarded-For',
+        'X-Forwarded-Proto',
+        'X-Forwarded-Host',
+      ],
+      exposedHeaders: ['Set-Cookie', 'Authorization', 'X-Total-Count'],
+      preflightContinue: false,
+      optionsSuccessStatus: 204,
+      maxAge: 86400, // Cache preflight response for 24 hours
+    });
 
-    if (isDevelopment) {
-      // Development: Allow all origins
-      app.enableCors({
-        origin: true, // Allow all origins
-        credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-        allowedHeaders: [
-          'Origin',
-          'X-Requested-With',
-          'Content-Type',
-          'Accept',
-          'Authorization',
-          'Cache-Control',
-          'X-API-Key',
-        ],
-        exposedHeaders: ['Set-Cookie'],
-        preflightContinue: false,
-        optionsSuccessStatus: 204,
-      });
-      console.log(`🌐 CORS enabled for all origins (development mode)`);
-    } else {
-      // Production: Use specific origins
-      const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
-      app.enableCors({
-        origin:
-          allowedOrigins.length > 0
-            ? allowedOrigins
-            : ['http://localhost:3000'],
-        credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-        allowedHeaders: [
-          'Origin',
-          'X-Requested-With',
-          'Content-Type',
-          'Accept',
-          'Authorization',
-          'Cache-Control',
-          'X-API-Key',
-        ],
-        exposedHeaders: ['Set-Cookie'],
-        preflightContinue: false,
-        optionsSuccessStatus: 204,
-      });
-      console.log(
-        `🌐 CORS enabled for specific origins: ${allowedOrigins.join(', ')}`,
-      );
-    }
+    console.log(`🌐 CORS enabled globally for all origins`);
+    console.log(`🔒 Credentials enabled for cross-origin requests`);
+    console.log(
+      `📋 All HTTP methods allowed: GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD`,
+    );
 
     // Global validation pipe
     app.useGlobalPipes(
@@ -138,18 +120,24 @@ export default async function handler(
     const app = await bootstrap();
     const expressApp = app.getHttpAdapter().getInstance();
 
+    // Enhanced CORS headers for serverless environment
+    const origin = req.headers.origin;
+
+    // Set CORS headers for all requests
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader(
+      'Access-Control-Allow-Methods',
+      'GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD',
+    );
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-API-Key, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials',
+    );
+    res.setHeader('Access-Control-Max-Age', '86400');
+
     // Handle CORS preflight
     if (req.method === 'OPTIONS') {
-      res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
-      res.setHeader(
-        'Access-Control-Allow-Methods',
-        'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      );
-      res.setHeader(
-        'Access-Control-Allow-Headers',
-        'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-API-Key',
-      );
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.status(200).end();
       return;
     }
