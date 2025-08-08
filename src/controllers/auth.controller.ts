@@ -36,7 +36,14 @@ import {
   UserProfileDto,
 } from '../dto/auth.dto';
 import type { UserProfile } from '../types/auth.types';
-import { createSafeCookieOptions } from '../utils/cookie.utils';
+import {
+  setCookie,
+  clearCookie,
+  getAuthCookieOptions,
+  getSessionCookieOptions,
+  createSafeCookieOptions,
+} from '../utils/cookie.utils';
+import { cookieConfig } from '../config/cookie.config';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -52,15 +59,13 @@ export class AuthController {
     token: string,
     userData: UserProfileDto,
   ) {
-    // Use utility function to create safe cookie options
-    const cookieOptions = createSafeCookieOptions({
-      domain:
-        process.env.NODE_ENV === 'production'
-          ? process.env.COOKIE_DOMAIN
-          : undefined,
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days for better persistence
-      sameSite: 'lax', // Better compatibility across browsers
-    });
+    // Get cookie options optimized for authentication
+    const cookieOptions = getAuthCookieOptions();
+
+    // Add domain if in production
+    if (process.env.NODE_ENV === 'production' && process.env.COOKIE_DOMAIN) {
+      cookieOptions.domain = process.env.COOKIE_DOMAIN;
+    }
 
     console.log('🍪 Setting cookies with options:', {
       ...cookieOptions,
@@ -69,10 +74,10 @@ export class AuthController {
     });
 
     // Set authentication token cookie
-    res.cookie('auth-token', token, cookieOptions);
+    setCookie(res, 'auth-token', token, cookieOptions);
 
     // Set user data cookie (accessible to frontend)
-    res.cookie('user', JSON.stringify(userData), cookieOptions);
+    setCookie(res, 'user', JSON.stringify(userData), cookieOptions);
 
     console.log('✅ Cookies set successfully');
   }
@@ -81,19 +86,17 @@ export class AuthController {
    * Clear authentication cookies
    */
   private clearAuthCookies(res: Response) {
-    // Use utility function to create safe cookie options
-    const clearOptions = createSafeCookieOptions({
-      path: '/',
-      domain:
-        process.env.NODE_ENV === 'production'
-          ? process.env.COOKIE_DOMAIN
-          : undefined,
-      maxAge: 0, // Expire immediately
-      sameSite: 'lax', // Match the setting options
-    });
+    // Get cookie options for clearing
+    const clearOptions = getAuthCookieOptions();
 
-    res.clearCookie('auth-token', clearOptions);
-    res.clearCookie('user', clearOptions);
+    // Add domain if in production
+    if (process.env.NODE_ENV === 'production' && process.env.COOKIE_DOMAIN) {
+      clearOptions.domain = process.env.COOKIE_DOMAIN;
+    }
+
+    // Clear cookies using utility function
+    clearCookie(res, 'auth-token', clearOptions);
+    clearCookie(res, 'user', clearOptions);
   }
 
   @Post('sign-up')
@@ -353,18 +356,16 @@ export class AuthController {
   })
   testCookies(@Res({ passthrough: true }) res: Response) {
     // Set test cookies with different configurations
-    const testCookieOptions = createSafeCookieOptions({
-      maxAge: 60 * 60 * 1000, // 1 hour
-    });
+    const testCookieOptions = getAuthCookieOptions();
+    testCookieOptions.maxAge = 60 * 60 * 1000; // 1 hour
 
-    const debugCookieOptions = createSafeCookieOptions({
-      maxAge: 60 * 60 * 1000, // 1 hour
-      sameSite: 'lax' as const,
-    });
+    const debugCookieOptions = getAuthCookieOptions();
+    debugCookieOptions.maxAge = 60 * 60 * 1000; // 1 hour
+    debugCookieOptions.sameSite = 'lax';
 
-    // Set test cookies
-    res.cookie('test-cookie', 'test-value-123', testCookieOptions);
-    res.cookie('debug-cookie', 'debug-value-456', debugCookieOptions);
+    // Set test cookies using utility functions
+    setCookie(res, 'test-cookie', 'test-value-123', testCookieOptions);
+    setCookie(res, 'debug-cookie', 'debug-value-456', debugCookieOptions);
 
     console.log('🧪 Test cookies set with options:', {
       testCookie: testCookieOptions,
@@ -379,6 +380,74 @@ export class AuthController {
         testCookie: testCookieOptions,
         debugCookie: debugCookieOptions,
       },
+    };
+  }
+
+  @Get('test-cookies-comprehensive')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Comprehensive cookie testing',
+    description:
+      'Tests all cookie configurations and provides detailed debugging information.',
+  })
+  @ApiOkResponse({
+    description: 'Comprehensive cookie test completed',
+  })
+  testCookiesComprehensive(@Res({ passthrough: true }) res: Response) {
+    // Test different cookie configurations
+    const authConfig = getAuthCookieOptions();
+    const sessionConfig = getSessionCookieOptions();
+
+    // Test authentication cookies
+    setCookie(res, 'test-auth-token', 'test-jwt-token-123', authConfig);
+    setCookie(
+      res,
+      'test-user-data',
+      JSON.stringify({ id: 'test-123', email: 'test@example.com' }),
+      authConfig,
+    );
+
+    // Test session cookies
+    setCookie(res, 'test-session', 'session-data-456', sessionConfig);
+
+    // Test custom cookies
+    const customConfig = createSafeCookieOptions({
+      maxAge: 60 * 60 * 1000, // 1 hour
+      sameSite: 'lax',
+    });
+    setCookie(res, 'test-custom', 'custom-value-789', customConfig);
+
+    // Test environment-specific cookies
+    const envInfo = cookieConfig.getEnvironmentInfo();
+    setCookie(res, 'test-environment', JSON.stringify(envInfo), {
+      ...authConfig,
+      maxAge: 60 * 60 * 1000, // 1 hour
+    });
+
+    console.log('🧪 Comprehensive cookie test completed:', {
+      authConfig,
+      sessionConfig,
+      customConfig,
+      environment: envInfo,
+    });
+
+    return {
+      message: 'Comprehensive cookie test completed',
+      status: 'success',
+      cookies: [
+        'test-auth-token',
+        'test-user-data',
+        'test-session',
+        'test-custom',
+        'test-environment',
+      ],
+      configurations: {
+        auth: authConfig,
+        session: sessionConfig,
+        custom: customConfig,
+        environment: envInfo,
+      },
+      timestamp: new Date().toISOString(),
     };
   }
 

@@ -11,7 +11,7 @@ async function bootstrap(): Promise<INestApplication> {
   if (!app) {
     app = await NestFactory.create(AppModule);
 
-    // Enable CORS globally for all domains
+    // Enable CORS globally for all domains with enhanced cookie support
     app.enableCors({
       origin: true, // Allow all origins
       credentials: true, // Allow credentials (cookies, authorization headers)
@@ -27,8 +27,16 @@ async function bootstrap(): Promise<INestApplication> {
         'X-Forwarded-For',
         'X-Forwarded-Proto',
         'X-Forwarded-Host',
+        'Cookie',
+        'Set-Cookie',
       ],
-      exposedHeaders: ['Set-Cookie', 'Authorization', 'X-Total-Count'],
+      exposedHeaders: [
+        'Set-Cookie',
+        'Authorization',
+        'X-Total-Count',
+        'Access-Control-Allow-Credentials',
+        'Access-Control-Allow-Origin',
+      ],
       preflightContinue: false,
       optionsSuccessStatus: 204,
       maxAge: 86400, // Cache preflight response for 24 hours
@@ -117,7 +125,7 @@ export default async function handler(
     const app = await bootstrap();
     const expressApp = app.getHttpAdapter().getInstance();
 
-    // Enhanced CORS headers for serverless environment
+    // Enhanced CORS headers for serverless environment with cookie support
     const origin = req.headers.origin;
 
     // Set CORS headers for all requests
@@ -129,9 +137,13 @@ export default async function handler(
     );
     res.setHeader(
       'Access-Control-Allow-Headers',
-      'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-API-Key, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials',
+      'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-API-Key, Cookie, Set-Cookie, X-Forwarded-For, X-Forwarded-Proto, X-Forwarded-Host',
     );
     res.setHeader('Access-Control-Max-Age', '86400');
+    res.setHeader(
+      'Access-Control-Expose-Headers',
+      'Set-Cookie, Authorization, X-Total-Count',
+    );
 
     // Debug logging for serverless environment
     console.log('🚀 Vercel handler - CORS headers set:', {

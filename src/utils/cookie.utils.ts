@@ -1,152 +1,12 @@
 /**
- * Cookie utility functions for frontend integration
- * These functions help manage authentication cookies set by the backend
+ * Backend Cookie Utilities for NestJS
+ * Handles cookie configuration and validation for authentication
  */
 
-export interface UserProfile {
-  id: string;
-  email: string;
-  name?: string;
-  created_at: string;
-  updated_at: string;
-}
+import { Response } from 'express';
+import { cookieConfig, type CookieConfig } from '../config/cookie.config';
 
-/**
- * Get a cookie value by name
- * @param name - Cookie name
- * @returns Cookie value or null if not found
- */
-export function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null; // SSR support
-
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-  return null;
-}
-
-/**
- * Set a cookie with proper configuration
- * @param name - Cookie name
- * @param value - Cookie value
- * @param options - Cookie options
- */
-export function setCookie(
-  name: string,
-  value: string,
-  options: {
-    maxAge?: number;
-    path?: string;
-    domain?: string;
-    secure?: boolean;
-    sameSite?: 'strict' | 'lax' | 'none';
-  } = {},
-): void {
-  if (typeof document === 'undefined') return; // SSR support
-
-  const {
-    maxAge = 7 * 24 * 60 * 60 * 1000, // 7 days default
-    path = '/',
-    domain,
-    secure = process.env.NODE_ENV === 'production',
-    sameSite = 'lax',
-  } = options;
-
-  let cookieString = `${name}=${value}`;
-
-  if (maxAge) cookieString += `; max-age=${maxAge}`;
-  if (path) cookieString += `; path=${path}`;
-  if (domain) cookieString += `; domain=${domain}`;
-  if (secure) cookieString += '; secure';
-  if (sameSite) cookieString += `; samesite=${sameSite}`;
-
-  document.cookie = cookieString;
-}
-
-/**
- * Delete a cookie
- * @param name - Cookie name
- * @param options - Cookie options (must match original cookie)
- */
-export function deleteCookie(
-  name: string,
-  options: { path?: string; domain?: string } = {},
-): void {
-  if (typeof document === 'undefined') return; // SSR support
-
-  const { path = '/', domain } = options;
-
-  let cookieString = `${name}=; max-age=0`;
-  if (path) cookieString += `; path=${path}`;
-  if (domain) cookieString += `; domain=${domain}`;
-
-  document.cookie = cookieString;
-}
-
-/**
- * Get user profile from cookie
- * @returns User profile or null if not found
- */
-export function getUserFromCookie(): UserProfile | null {
-  const userData = getCookie('user');
-  if (!userData) return null;
-
-  try {
-    return JSON.parse(userData);
-  } catch (error) {
-    console.error('Error parsing user cookie:', error);
-    return null;
-  }
-}
-
-/**
- * Get authentication token from cookie
- * @returns Auth token or null if not found
- */
-export function getAuthTokenFromCookie(): string | null {
-  return getCookie('auth-token');
-}
-
-/**
- * Check if user is authenticated
- * @returns True if user is authenticated
- */
-export function isAuthenticated(): boolean {
-  const user = getUserFromCookie();
-  const token = getAuthTokenFromCookie();
-  return !!(user && token);
-}
-
-/**
- * Clear all authentication cookies
- */
-export function clearAuthCookies(): void {
-  deleteCookie('auth-token');
-  deleteCookie('user');
-}
-
-/**
- * Utility function to handle authentication state
- * @returns Object with user, token, and authentication status
- */
-export function getAuthState() {
-  if (typeof window === 'undefined') {
-    return {
-      user: null,
-      token: null,
-      isAuthenticated: false,
-    };
-  }
-
-  const user = getUserFromCookie();
-  const token = getAuthTokenFromCookie();
-
-  return {
-    user,
-    token,
-    isAuthenticated: !!(user && token),
-  };
-}
+export type CookieOptions = Partial<CookieConfig>;
 
 /**
  * Safely validate and format cookie domain
@@ -173,50 +33,89 @@ export function validateCookieDomain(domain?: string): string | undefined {
 }
 
 /**
- * Create safe cookie options with domain validation
- * Optimized for frontend accessibility and cross-origin requests
+ * Create safe cookie options optimized for global compatibility
+ * Works across all browsers and environments
  */
 export function createSafeCookieOptions(
-  options: {
-    httpOnly?: boolean;
-    secure?: boolean;
-    sameSite?: 'strict' | 'lax' | 'none';
-    maxAge?: number;
-    path?: string;
-    domain?: string;
-  } = {},
-) {
-  const { domain, ...otherOptions } = options;
+  options: CookieOptions = {},
+): CookieOptions {
+  // Get base configuration from global cookie config
+  const baseConfig = cookieConfig.getConfig();
 
-  // Determine environment-specific settings
-  const isProduction = process.env.NODE_ENV === 'production';
-  const isLocalhost = process.env.NODE_ENV === 'development';
-
-  // Base cookie options optimized for persistence
-  const cookieOptions = {
-    httpOnly: false, // Allow JavaScript access for frontend
-    secure: isProduction, // Only secure in production (HTTPS required for sameSite: 'none')
-    sameSite: isLocalhost ? 'lax' : ('lax' as const), // Use 'lax' for better compatibility
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days for better persistence
-    path: '/',
-    ...otherOptions,
-    domain: validateCookieDomain(domain),
+  // Merge with provided options
+  const cookieOptions: CookieOptions = {
+    ...baseConfig,
+    ...options,
+    domain: options.domain
+      ? validateCookieDomain(options.domain)
+      : baseConfig.domain,
   };
 
-  // Override sameSite if explicitly provided and secure is true
-  if (options.sameSite === 'none' && cookieOptions.secure) {
-    cookieOptions.sameSite = 'none';
-  }
-
   // Debug logging for cookie options
-  console.log('🍪 Creating cookie options:', {
+  console.log('🍪 Creating global cookie options:', {
     ...cookieOptions,
     domain: cookieOptions.domain || 'undefined (will use current domain)',
     secure: cookieOptions.secure,
     sameSite: cookieOptions.sameSite,
     httpOnly: cookieOptions.httpOnly,
-    maxAge: `${Math.round(cookieOptions.maxAge / (24 * 60 * 60 * 1000))} days`,
+    maxAge: cookieOptions.maxAge
+      ? `${Math.round(cookieOptions.maxAge / (24 * 60 * 60 * 1000))} days`
+      : 'undefined',
+    environment: cookieConfig.getEnvironmentInfo().environment,
   });
 
   return cookieOptions;
+}
+
+/**
+ * Set a cookie on the response with proper configuration
+ */
+export function setCookie(
+  res: Response,
+  name: string,
+  value: string,
+  options: CookieOptions = {},
+): void {
+  const cookieOptions = createSafeCookieOptions(options);
+
+  // Set cookie using Express response
+  res.cookie(name, value, cookieOptions);
+
+  console.log(`🍪 Cookie set: ${name}`, {
+    value: value.substring(0, 20) + (value.length > 20 ? '...' : ''),
+    options: cookieOptions,
+  });
+}
+
+/**
+ * Clear a cookie by setting it to expire immediately
+ */
+export function clearCookie(
+  res: Response,
+  name: string,
+  options: CookieOptions = {},
+): void {
+  const cookieOptions = createSafeCookieOptions({
+    ...options,
+    maxAge: 0, // Expire immediately
+  });
+
+  // Clear cookie using Express response
+  res.clearCookie(name, cookieOptions);
+
+  console.log(`🍪 Cookie cleared: ${name}`, { options: cookieOptions });
+}
+
+/**
+ * Get cookie options for authentication cookies
+ */
+export function getAuthCookieOptions(): CookieOptions {
+  return cookieConfig.getAuthConfig();
+}
+
+/**
+ * Get cookie options for session cookies
+ */
+export function getSessionCookieOptions(): CookieOptions {
+  return cookieConfig.getSessionConfig();
 }
