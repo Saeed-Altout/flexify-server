@@ -33,26 +33,4 @@ export class AppController {
       },
     });
   }
-
-  @Get('test-cookie')
-  testCookie(@Res() res: Response) {
-    // Test basic cookie functionality
-    const cookieOptions = {
-      httpOnly: false,
-      secure: false, // Allow HTTP in development
-      sameSite: 'none' as const,
-      maxAge: 60 * 60 * 1000, // 1 hour
-      path: '/',
-    };
-
-    // Set a simple test cookie
-    res.cookie('simple-test', 'hello-world', cookieOptions);
-
-    return res.json({
-      message: 'Test cookie set',
-      timestamp: new Date().toISOString(),
-      cookieOptions,
-      note: 'Check browser dev tools > Application > Cookies to see if cookie is set',
-    });
-  }
 }

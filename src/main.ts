@@ -11,10 +11,10 @@ async function bootstrap(): Promise<INestApplication> {
   if (!app) {
     app = await NestFactory.create(AppModule);
 
-    // Enable CORS globally for all domains with enhanced cookie support
+    // Enable CORS globally for all domains
     app.enableCors({
       origin: true, // Allow all origins
-      credentials: true, // Allow credentials (cookies, authorization headers)
+      credentials: true, // Allow credentials (authorization headers)
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
       allowedHeaders: [
         'Origin',
@@ -27,11 +27,8 @@ async function bootstrap(): Promise<INestApplication> {
         'X-Forwarded-For',
         'X-Forwarded-Proto',
         'X-Forwarded-Host',
-        'Cookie',
-        'Set-Cookie',
       ],
       exposedHeaders: [
-        'Set-Cookie',
         'Authorization',
         'X-Total-Count',
         'Access-Control-Allow-Credentials',
@@ -44,7 +41,6 @@ async function bootstrap(): Promise<INestApplication> {
 
     console.log(`🌐 CORS enabled globally for all origins`);
     console.log(`🔒 Credentials enabled for cross-origin requests`);
-    console.log(`🍪 Cookies will be accessible to frontend JavaScript`);
     console.log(
       `📋 All HTTP methods allowed: GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD`,
     );
@@ -81,12 +77,6 @@ async function bootstrap(): Promise<INestApplication> {
         },
         'JWT-auth',
       )
-      .addCookieAuth('auth-token', {
-        type: 'apiKey',
-        in: 'cookie',
-        name: 'auth-token',
-        description: 'HTTP-only cookie containing the authentication token',
-      })
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
@@ -125,7 +115,7 @@ export default async function handler(
     const app = await bootstrap();
     const expressApp = app.getHttpAdapter().getInstance();
 
-    // Enhanced CORS headers for serverless environment with cookie support
+    // Enhanced CORS headers for serverless environment
     const origin = req.headers.origin;
 
     // Set CORS headers for all requests
@@ -137,12 +127,12 @@ export default async function handler(
     );
     res.setHeader(
       'Access-Control-Allow-Headers',
-      'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-API-Key, Cookie, Set-Cookie, X-Forwarded-For, X-Forwarded-Proto, X-Forwarded-Host',
+      'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-API-Key, X-Forwarded-For, X-Forwarded-Proto, X-Forwarded-Host',
     );
     res.setHeader('Access-Control-Max-Age', '86400');
     res.setHeader(
       'Access-Control-Expose-Headers',
-      'Set-Cookie, Authorization, X-Total-Count',
+      'Authorization, X-Total-Count',
     );
 
     // Debug logging for serverless environment
