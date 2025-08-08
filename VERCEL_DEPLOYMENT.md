@@ -115,11 +115,6 @@ In your Vercel project dashboard, go to **Settings** → **General** and set:
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "src/main.ts": {
-      "maxDuration": 30
-    }
   }
 }
 ```
@@ -305,9 +300,9 @@ fetch('https://your-project-name.vercel.app/api/v1/auth/me', {
 **Problem**: API requests timeout
 **Solution**:
 
-- Increase `maxDuration` in `vercel.json`
 - Optimize your code for faster execution
 - Consider using caching
+- Check function logs for performance issues
 
 #### 5. Cookie Issues
 

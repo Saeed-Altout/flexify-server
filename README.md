@@ -705,11 +705,6 @@ In your Vercel project dashboard, go to **Settings** → **General** and set:
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "src/main.ts": {
-      "maxDuration": 30
-    }
   }
 }
 ```
