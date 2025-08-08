@@ -36,6 +36,7 @@ import {
   UserProfileDto,
 } from '../dto/auth.dto';
 import type { UserProfile } from '../types/auth.types';
+import { createSafeCookieOptions } from '../utils/cookie.utils';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -51,17 +52,13 @@ export class AuthController {
     token: string,
     userData: UserProfileDto,
   ) {
-    const cookieOptions = {
-      httpOnly: false, // Allow frontend JavaScript to read
-      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-      sameSite: 'lax' as const, // CSRF protection
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/', // Available across the site
+    // Use utility function to create safe cookie options
+    const cookieOptions = createSafeCookieOptions({
       domain:
         process.env.NODE_ENV === 'production'
           ? process.env.COOKIE_DOMAIN
-          : undefined, // Domain in production
-    };
+          : undefined,
+    });
 
     // Set authentication token cookie
     res.cookie('auth-token', token, cookieOptions);
@@ -74,13 +71,14 @@ export class AuthController {
    * Clear authentication cookies
    */
   private clearAuthCookies(res: Response) {
-    const clearOptions = {
+    // Use utility function to create safe cookie options
+    const clearOptions = createSafeCookieOptions({
       path: '/',
       domain:
         process.env.NODE_ENV === 'production'
           ? process.env.COOKIE_DOMAIN
           : undefined,
-    };
+    });
 
     res.clearCookie('auth-token', clearOptions);
     res.clearCookie('user', clearOptions);

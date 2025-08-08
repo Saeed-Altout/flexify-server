@@ -147,3 +147,53 @@ export function getAuthState() {
     isAuthenticated: !!(user && token),
   };
 }
+
+/**
+ * Safely validate and format cookie domain
+ * Prevents "option domain is invalid" errors
+ */
+export function validateCookieDomain(domain?: string): string | undefined {
+  if (!domain) {
+    return undefined;
+  }
+
+  // Basic domain format validation
+  const domainRegex =
+    /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+
+  if (!domainRegex.test(domain)) {
+    console.warn(
+      `Invalid cookie domain format: ${domain}. Domain will be omitted.`,
+    );
+    return undefined;
+  }
+
+  // Remove leading dot if present (some browsers don't like it)
+  return domain.startsWith('.') ? domain.slice(1) : domain;
+}
+
+/**
+ * Create safe cookie options with domain validation
+ */
+export function createSafeCookieOptions(
+  options: {
+    httpOnly?: boolean;
+    secure?: boolean;
+    sameSite?: 'strict' | 'lax' | 'none';
+    maxAge?: number;
+    path?: string;
+    domain?: string;
+  } = {},
+) {
+  const { domain, ...otherOptions } = options;
+
+  return {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: '/',
+    ...otherOptions,
+    domain: validateCookieDomain(domain),
+  };
+}
