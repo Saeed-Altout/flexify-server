@@ -1,4 +1,9 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from './supabase.service';
 import { UserProfile } from '../types/auth.types';
@@ -34,7 +39,7 @@ export class AuthService {
         signUpDto.email,
       );
       if (existingUser) {
-        throw new Error('User already exists with this email');
+        throw new BadRequestException('User already exists with this email');
       }
 
       // Create user in Supabase
@@ -68,7 +73,17 @@ export class AuthService {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Sign up failed: ${errorMessage}`);
-      throw error;
+
+      // If it's already an HTTP exception, re-throw it
+      if (
+        error instanceof BadRequestException ||
+        error instanceof UnauthorizedException
+      ) {
+        throw error;
+      }
+
+      // For any other error, throw a generic bad request
+      throw new BadRequestException('Failed to create user account');
     }
   }
 
@@ -121,7 +136,17 @@ export class AuthService {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Sign out failed: ${errorMessage}`);
-      throw error;
+
+      // If it's already an HTTP exception, re-throw it
+      if (
+        error instanceof BadRequestException ||
+        error instanceof UnauthorizedException
+      ) {
+        throw error;
+      }
+
+      // For any other error, throw an unauthorized exception
+      throw new UnauthorizedException('Failed to sign out user');
     }
   }
 
@@ -137,7 +162,17 @@ export class AuthService {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Get current user failed: ${errorMessage}`);
-      throw error;
+
+      // If it's already an HTTP exception, re-throw it
+      if (
+        error instanceof BadRequestException ||
+        error instanceof UnauthorizedException
+      ) {
+        throw error;
+      }
+
+      // For any other error, throw an unauthorized exception
+      throw new UnauthorizedException('Invalid or expired token');
     }
   }
 

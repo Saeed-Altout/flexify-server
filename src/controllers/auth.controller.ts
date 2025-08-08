@@ -93,7 +93,7 @@ export class AuthController {
     },
   })
   @ApiBadRequestResponse({
-    description: 'Invalid input data',
+    description: 'Invalid input data or user already exists',
     type: ErrorResponseDto,
   })
   @ApiInternalServerErrorResponse({
