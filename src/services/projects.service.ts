@@ -95,6 +95,11 @@ export class ProjectsService {
     },
   ): Promise<ProjectResponseDto> {
     this.ensureAdminOrThrow(user);
+    // After ensureAdminOrThrow, user is guaranteed to be defined and have ADMIN role
+    if (!user) {
+      throw new ForbiddenException('Admin privileges required');
+    }
+
     this.validateDates(dto.startDate, dto.endDate);
 
     // Upload files first (optional)
@@ -163,6 +168,11 @@ export class ProjectsService {
     },
   ): Promise<ProjectResponseDto> {
     this.ensureAdminOrThrow(user);
+    // After ensureAdminOrThrow, user is guaranteed to be defined and have ADMIN role
+    if (!user) {
+      throw new ForbiddenException('Admin privileges required');
+    }
+
     if (dto.startDate || dto.endDate) {
       this.validateDates(dto.startDate, dto.endDate);
     }
@@ -220,6 +230,11 @@ export class ProjectsService {
 
   async delete(user: UserProfile | undefined, id: string): Promise<void> {
     this.ensureAdminOrThrow(user);
+    // After ensureAdminOrThrow, user is guaranteed to be defined and have ADMIN role
+    if (!user) {
+      throw new ForbiddenException('Admin privileges required');
+    }
+
     const client: any = this.supabase as unknown as { [k: string]: any };
     const supa = client['supabase'] as { from: Function };
     if (!supa) throw new Error('Supabase client unavailable');
