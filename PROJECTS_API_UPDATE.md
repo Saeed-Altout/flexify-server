@@ -4,9 +4,9 @@
 
 The Projects API has been updated to implement a simplified access model where:
 
-- **Public users** can only view public projects
+- **Public users** can view all projects (both public and private)
 - **Admins** can create, manage, and view all projects (including private ones)
-- **Regular users** can only view public projects
+- **Regular users** can view all projects (both public and private)
 
 ## Key Changes Made
 
@@ -20,14 +20,14 @@ The Projects API has been updated to implement a simplified access model where:
 
 - **Added `avatarUrl`**: Creator's avatar URL from user profile
 - **Added `creatorName`**: Creator's display name
-- **Removed `includePrivate`**: No longer needed as public endpoint only returns public projects
+- **Removed `includePrivate`**: No longer needed as main endpoint returns all projects
 
 ### 3. Endpoint Changes
 
-#### Public Projects List (GET `/projects`)
+#### All Projects List (GET `/projects`)
 
 - **Before**: Could include private projects with `includePrivate=true` (admin only)
-- **After**: Only returns public projects (`is_public = true`)
+- **After**: Returns all projects (both public and private)
 - **New Fields**: `avatarUrl`, `creatorName` for each project
 - **Access**: Public (no authentication required)
 
@@ -86,10 +86,10 @@ END$$;
 
 ### 2. API Usage Examples
 
-#### Frontend - Public Projects List
+#### Frontend - All Projects List
 
 ```typescript
-// Get public projects (no auth required)
+// Get all projects (no auth required)
 const response = await fetch('/api/projects?page=1&limit=10');
 const projects = await response.json();
 
@@ -138,15 +138,15 @@ const response = await fetch('/api/projects', {
 
 ### 1. Role-Based Access Control
 
-- **Public Endpoints**: No authentication required, only public data
+- **Public Endpoints**: No authentication required, returns all projects
 - **Admin Endpoints**: JWT token with ADMIN role required
 - **Project Management**: Only admins can create/update/delete projects
 
-### 2. Data Isolation
+### 2. Data Visibility
 
-- Public users cannot access private projects
-- Private projects are completely hidden from public API responses
-- Admin dashboard provides full visibility for project management
+- Public users can view all projects (both public and private)
+- Private projects are visible to all users but clearly marked
+- Admin dashboard provides full management capabilities
 
 ### 3. User Ownership
 
@@ -156,7 +156,7 @@ const response = await fetch('/api/projects', {
 ## Benefits of This Approach
 
 1. **Simplified Frontend Logic**: No need to handle `includePrivate` parameter
-2. **Better Security**: Clear separation between public and admin access
+2. **Better User Experience**: All users can see all projects with creator information
 3. **Improved UX**: Users see creator information (avatar, name) for each project
 4. **Cleaner API**: Dedicated admin endpoint for management operations
 5. **Scalable**: Easy to add more admin-specific features in the future
@@ -166,7 +166,7 @@ const response = await fetch('/api/projects', {
 ### 1. Test Public Access
 
 ```bash
-# Should return only public projects
+# Should return all projects (both public and private)
 curl http://localhost:3000/api/projects
 ```
 

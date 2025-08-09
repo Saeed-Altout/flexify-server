@@ -132,7 +132,7 @@ export class ProjectsController {
 
   @Get()
   @ApiOperation({
-    summary: 'List public projects with pagination, search, and filtering',
+    summary: 'List all projects with pagination, search, and filtering',
   })
   @ApiOkResponse({ description: 'Projects list' })
   async list(
@@ -160,7 +160,7 @@ export class ProjectsController {
         prev,
       },
       status: 'success',
-      message: 'Projects fetched successfully',
+      message: 'All projects fetched successfully',
     };
   }
 

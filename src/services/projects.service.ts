@@ -258,8 +258,7 @@ export class ProjectsService {
       { count: 'exact' },
     );
 
-    // Only return public projects by default
-    req = req.eq('is_public', true);
+    // Return all projects (both public and private)
 
     if (query.q) {
       const term = `%${query.q}%`;
