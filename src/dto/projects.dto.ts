@@ -173,13 +173,6 @@ export class ProjectQueryDto {
   @IsArray()
   @IsString({ each: true })
   technology?: string[];
-
-  @ApiPropertyOptional({
-    description: 'Include non-public projects (admin only)',
-    default: false,
-  })
-  @IsOptional()
-  includePrivate?: boolean = false;
 }
 
 export class ProjectResponseDto {
@@ -236,6 +229,12 @@ export class ProjectResponseDto {
 
   @ApiProperty()
   updated_at: string;
+
+  @ApiPropertyOptional({ description: 'Creator avatar URL' })
+  avatarUrl?: string | null;
+
+  @ApiPropertyOptional({ description: 'Creator name' })
+  creatorName?: string | null;
 }
 
 export class PagedProjectsResponseDto {

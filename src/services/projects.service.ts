@@ -16,6 +16,7 @@ import {
 
 interface ProjectRow {
   id: string;
+  user_id: string;
   name: string;
   logo_url: string | null;
   cover_url: string | null;
@@ -33,6 +34,9 @@ interface ProjectRow {
   comments: number | null;
   created_at: string;
   updated_at: string;
+  // Joined user profile data
+  creator_avatar_url?: string | null;
+  creator_name?: string | null;
 }
 
 @Injectable()
@@ -67,6 +71,8 @@ export class ProjectsService {
       comments: row.comments ?? null,
       created_at: row.created_at,
       updated_at: row.updated_at,
+      avatarUrl: row.creator_avatar_url,
+      creatorName: row.creator_name,
     };
   }
 
@@ -119,6 +125,7 @@ export class ProjectsService {
     if (!supa) throw new Error('Supabase client unavailable');
 
     const payload = {
+      user_id: user.id,
       name: dto.name,
       logo_url: logoUrl,
       cover_url: coverUrl,
@@ -239,12 +246,20 @@ export class ProjectsService {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    let req = (supa.from('projects') as any).select('*', { count: 'exact' });
+    // Join with user_profiles to get creator information
+    let req = (supa.from('projects') as any).select(
+      `
+        *,
+        user_profiles!projects_user_id_fkey(
+          avatar_url,
+          name
+        )
+      `,
+      { count: 'exact' },
+    );
 
-    const isAdmin = !!user && user.role === 'ADMIN';
-    if (!isAdmin || !query.includePrivate) {
-      req = req.eq('is_public', true);
-    }
+    // Only return public projects by default
+    req = req.eq('is_public', true);
 
     if (query.q) {
       const term = `%${query.q}%`;
@@ -263,8 +278,74 @@ export class ProjectsService {
       this.logger.error(`List projects error: ${error.message}`);
       throw new BadRequestException('Failed to fetch projects');
     }
+
+    // Transform the joined data
+    const transformedData = (data as any[]).map((row) => ({
+      ...row,
+      creator_avatar_url: row.user_profiles?.avatar_url || null,
+      creator_name: row.user_profiles?.name || null,
+    }));
+
     return {
-      data: (data as ProjectRow[]).map((r) => this.toDto(r)),
+      data: transformedData.map((r) => this.toDto(r as ProjectRow)),
+      total: count ?? 0,
+    };
+  }
+
+  // Admin-only method to get all projects (including private ones)
+  async findAllForAdmin(
+    query: ProjectQueryDto,
+    user: UserProfile,
+  ): Promise<{ data: ProjectResponseDto[]; total: number }> {
+    this.ensureAdminOrThrow(user);
+
+    const client: any = this.supabase as unknown as { [k: string]: any };
+    const supa = client['supabase'] as { from: Function };
+    if (!supa) throw new Error('Supabase client unavailable');
+
+    const page = Math.max(1, Number(query.page ?? 1));
+    const limit = Math.min(100, Math.max(1, Number(query.limit ?? 10)));
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    // Join with user_profiles to get creator information
+    let req = (supa.from('projects') as any).select(
+      `
+        *,
+        user_profiles!projects_user_id_fkey(
+          avatar_url,
+          name
+        )
+      `,
+      { count: 'exact' },
+    );
+
+    if (query.q) {
+      const term = `%${query.q}%`;
+      req = req.or(`name.ilike.${term},description.ilike.${term}`);
+    }
+
+    if (query.technology && query.technology.length > 0) {
+      req = req.contains('technologies', query.technology);
+    }
+
+    req = req.order('created_at', { ascending: false }).range(from, to);
+
+    const { data, error, count } = await req;
+    if (error) {
+      this.logger.error(`Admin list projects error: ${error.message}`);
+      throw new BadRequestException('Failed to fetch projects');
+    }
+
+    // Transform the joined data
+    const transformedData = (data as any[]).map((row) => ({
+      ...row,
+      creator_avatar_url: row.user_profiles?.avatar_url || null,
+      creator_name: row.user_profiles?.name || null,
+    }));
+
+    return {
+      data: transformedData.map((r) => this.toDto(r as ProjectRow)),
       total: count ?? 0,
     };
   }
@@ -274,13 +355,34 @@ export class ProjectsService {
     const supa = client['supabase'] as { from: Function };
     if (!supa) throw new Error('Supabase client unavailable');
 
-    let req = (supa.from('projects') as any).select('*').eq('id', id).single();
+    // Join with user_profiles to get creator information
+    let req = (supa.from('projects') as any)
+      .select(
+        `
+        *,
+        user_profiles!projects_user_id_fkey(
+          avatar_url,
+          name
+        )
+      `,
+      )
+      .eq('id', id)
+      .single();
+
     const { data, error } = await req;
     if (error) {
       this.logger.error(`Get project error: ${error.message}`);
       throw new BadRequestException('Failed to fetch project');
     }
-    const dto = this.toDto(data as ProjectRow);
+
+    // Transform the joined data
+    const transformedData = {
+      ...data,
+      creator_avatar_url: data.user_profiles?.avatar_url || null,
+      creator_name: data.user_profiles?.name || null,
+    };
+
+    const dto = this.toDto(transformedData as ProjectRow);
     const isAdmin = !!user && user.role === 'ADMIN';
     if (!dto.isPublic && !isAdmin) {
       throw new ForbiddenException('This project is not public');

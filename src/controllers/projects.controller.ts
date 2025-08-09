@@ -132,7 +132,7 @@ export class ProjectsController {
 
   @Get()
   @ApiOperation({
-    summary: 'List projects with pagination, search, and filtering',
+    summary: 'List public projects with pagination, search, and filtering',
   })
   @ApiOkResponse({ description: 'Projects list' })
   async list(
@@ -161,6 +161,38 @@ export class ProjectsController {
       },
       status: 'success',
       message: 'Projects fetched successfully',
+    };
+  }
+
+  @Get('admin/all')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Admin only: List all projects including private ones',
+  })
+  @ApiOkResponse({ description: 'All projects list (admin only)' })
+  async listAllForAdmin(
+    @CurrentUser() user: UserProfile,
+    @Query() query: ProjectQueryDto,
+  ): Promise<ProjectsListEnvelopeDto> {
+    const result = await this.projectsService.findAllForAdmin(query, user);
+    const page = Number(query.page ?? 1);
+    const limit = Number(query.limit ?? 10);
+    const total = result.total;
+    const totalPages = Math.ceil(total / (limit || 1)) || 1;
+    const next = page < totalPages;
+    const prev = page > 1;
+    return {
+      data: {
+        projects: result.data,
+        limit,
+        page,
+        total,
+        next,
+        prev,
+      },
+      status: 'success',
+      message: 'All projects fetched successfully (admin view)',
     };
   }
 

@@ -118,9 +118,40 @@ SELECT
     COUNT(*) as row_count
 FROM public.user_sessions;
 
+-- Migration: Add user_id to existing projects table (if it doesn't exist)
+DO $$
+BEGIN
+    -- Add user_id column if it doesn't exist
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'projects' AND column_name = 'user_id'
+    ) THEN
+        ALTER TABLE public.projects ADD COLUMN user_id UUID;
+        
+        -- Set a default admin user_id for existing projects (you'll need to update this)
+        -- This assumes you have at least one admin user in your system
+        UPDATE public.projects 
+        SET user_id = (
+            SELECT id FROM public.user_profiles 
+            WHERE role = 'ADMIN' 
+            LIMIT 1
+        )
+        WHERE user_id IS NULL;
+        
+        -- Make user_id NOT NULL after setting default values
+        ALTER TABLE public.projects ALTER COLUMN user_id SET NOT NULL;
+        
+        -- Add foreign key constraint
+        ALTER TABLE public.projects 
+        ADD CONSTRAINT projects_user_id_fkey 
+        FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+    END IF;
+END$$;
+
 -- Projects table
 CREATE TABLE IF NOT EXISTS public.projects (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     name TEXT NOT NULL,
     logo_url TEXT,
     cover_url TEXT,
@@ -148,6 +179,16 @@ CREATE POLICY "Public can read public projects" ON public.projects
     FOR SELECT
     USING (is_public = true);
 
+-- Only admins can create/update/delete projects
+DROP POLICY IF EXISTS "Admins can manage projects" ON public.projects;
+CREATE POLICY "Admins can manage projects" ON public.projects
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM public.user_profiles 
+            WHERE id = auth.uid() AND role = 'ADMIN'
+        )
+    );
+
 -- Service role can do everything
 DROP POLICY IF EXISTS "Service role can manage all projects" ON public.projects;
 CREATE POLICY "Service role can manage all projects" ON public.projects
@@ -162,6 +203,7 @@ CREATE TRIGGER on_projects_updated
 -- Helpful indexes
 -- Enable trigram extension required for gin_trgm_ops
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX IF NOT EXISTS idx_projects_user_id ON public.projects(user_id);
 CREATE INDEX IF NOT EXISTS idx_projects_is_public ON public.projects(is_public);
 CREATE INDEX IF NOT EXISTS idx_projects_status ON public.projects(status);
 CREATE INDEX IF NOT EXISTS idx_projects_technologies ON public.projects USING GIN (technologies);
