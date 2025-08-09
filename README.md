@@ -912,3 +912,20 @@ npm run test:cov
 ## 📄 License
 
 This project is licensed under the MIT License.
+
+## 📦 Projects Module
+
+Admin-only mutations with public read access.
+
+Endpoints (prefixed by `api/v1`):
+
+- POST `/projects` (admin) multipart/form-data: fields of CreateProjectDto plus optional files `logo`, `cover`
+- PUT `/projects/{id}` (admin) multipart/form-data: fields of UpdateProjectDto plus optional files `logo`, `cover`
+- DELETE `/projects/{id}` (admin)
+- GET `/projects` supports: `page`, `limit`, `q`, repeated `technology`
+- GET `/projects/{id}`
+
+Env vars:
+
+- `ADMIN_EMAILS` comma-separated admin emails
+- `SUPABASE_STORAGE_BUCKET` storage bucket for project assets (default `project-assets`)

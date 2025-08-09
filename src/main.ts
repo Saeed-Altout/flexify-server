@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { Request, Response } from 'express';
 import { INestApplication } from '@nestjs/common';
+import { HttpExceptionFilter } from './filters/http-exception.filter';
 
 let app: INestApplication | null = null;
 
@@ -53,6 +54,9 @@ async function bootstrap(): Promise<INestApplication> {
         transform: true,
       }),
     );
+
+    // Global error filter for standardized error envelopes
+    app.useGlobalFilters(new HttpExceptionFilter());
 
     // Global prefix
     app.setGlobalPrefix('api/v1');

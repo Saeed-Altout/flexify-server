@@ -129,6 +129,62 @@ CREATE POLICY "Users can delete their own sessions" ON public.user_sessions
     FOR DELETE USING (auth.uid() = user_id);
 ```
 
+### 2.4 Create Projects Table
+
+Run this in the **SQL Editor** or use the appended section in `supabase-setup.sql`:
+
+```sql
+CREATE TABLE IF NOT EXISTS public.projects (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    logo_url TEXT,
+    cover_url TEXT,
+    description TEXT NOT NULL,
+    brief TEXT NOT NULL,
+    technologies TEXT[] NOT NULL,
+    github_link TEXT,
+    demo_link TEXT,
+    is_featured BOOLEAN NOT NULL DEFAULT FALSE,
+    is_public BOOLEAN NOT NULL DEFAULT TRUE,
+    status TEXT NOT NULL CHECK (status IN ('inprogress','completed','planning')),
+    start_date DATE,
+    end_date DATE,
+    likes INTEGER NOT NULL DEFAULT 0,
+    comments INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public can read public projects" ON public.projects
+    FOR SELECT
+    USING (is_public = true);
+
+CREATE POLICY "Service role can manage all projects" ON public.projects
+    FOR ALL USING (auth.role() = 'service_role');
+
+DROP TRIGGER IF EXISTS on_projects_updated ON public.projects;
+CREATE TRIGGER on_projects_updated
+    BEFORE UPDATE ON public.projects
+    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+CREATE INDEX IF NOT EXISTS idx_projects_is_public ON public.projects(is_public);
+CREATE INDEX IF NOT EXISTS idx_projects_status ON public.projects(status);
+CREATE INDEX IF NOT EXISTS idx_projects_technologies ON public.projects USING GIN (technologies);
+-- Requires pg_trgm extension for trigram indexes
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX IF NOT EXISTS idx_projects_name_trgm ON public.projects USING GIN (name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_projects_description_trgm ON public.projects USING GIN (description gin_trgm_ops);
+```
+
+### 2.5 Storage Bucket
+
+Create a public storage bucket for assets:
+
+- Name: `project-assets` (or your chosen name)
+- Set environment variable `SUPABASE_STORAGE_BUCKET` accordingly
+
 ## ⚙️ Step 3: Authentication Configuration
 
 ### 3.1 Configure Authentication Settings

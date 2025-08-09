@@ -101,3 +101,53 @@ SELECT
     'user_sessions' as table_name,
     COUNT(*) as row_count
 FROM public.user_sessions;
+
+-- Projects table
+CREATE TABLE IF NOT EXISTS public.projects (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    logo_url TEXT,
+    cover_url TEXT,
+    description TEXT NOT NULL,
+    brief TEXT NOT NULL,
+    technologies TEXT[] NOT NULL,
+    github_link TEXT,
+    demo_link TEXT,
+    is_featured BOOLEAN NOT NULL DEFAULT FALSE,
+    is_public BOOLEAN NOT NULL DEFAULT TRUE,
+    status TEXT NOT NULL CHECK (status IN ('inprogress','completed','planning')),
+    start_date DATE,
+    end_date DATE,
+    likes INTEGER NOT NULL DEFAULT 0,
+    comments INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
+
+-- Public can read only public projects
+DROP POLICY IF EXISTS "Public can read public projects" ON public.projects;
+CREATE POLICY "Public can read public projects" ON public.projects
+    FOR SELECT
+    USING (is_public = true);
+
+-- Service role can do everything
+DROP POLICY IF EXISTS "Service role can manage all projects" ON public.projects;
+CREATE POLICY "Service role can manage all projects" ON public.projects
+    FOR ALL USING (auth.role() = 'service_role');
+
+-- Trigger to update updated_at
+DROP TRIGGER IF EXISTS on_projects_updated ON public.projects;
+CREATE TRIGGER on_projects_updated
+    BEFORE UPDATE ON public.projects
+    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+-- Helpful indexes
+-- Enable trigram extension required for gin_trgm_ops
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX IF NOT EXISTS idx_projects_is_public ON public.projects(is_public);
+CREATE INDEX IF NOT EXISTS idx_projects_status ON public.projects(status);
+CREATE INDEX IF NOT EXISTS idx_projects_technologies ON public.projects USING GIN (technologies);
+CREATE INDEX IF NOT EXISTS idx_projects_name_trgm ON public.projects USING GIN (name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_projects_description_trgm ON public.projects USING GIN (description gin_trgm_ops);

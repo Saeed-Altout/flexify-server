@@ -4,9 +4,16 @@ export default () => ({
     url: process.env.SUPABASE_URL,
     serviceKey: process.env.SUPABASE_SERVICE_KEY,
     anonKey: process.env.SUPABASE_ANON_KEY,
+    storageBucket: process.env.SUPABASE_STORAGE_BUCKET || 'project-assets',
   },
   jwt: {
     secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key',
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  },
+  admin: {
+    emails: (process.env.ADMIN_EMAILS || '')
+      .split(',')
+      .map((e) => e.trim())
+      .filter((e) => e.length > 0),
   },
 });

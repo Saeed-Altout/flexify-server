@@ -8,6 +8,7 @@ export class SupabaseService {
   private readonly logger = new Logger(SupabaseService.name);
   private supabase: SupabaseClient;
   private isDevelopmentMode = false;
+  private storageBucket: string;
 
   constructor(private configService: ConfigService) {
     const supabaseUrl = this.configService.get<string>('supabase.url');
@@ -39,6 +40,10 @@ export class SupabaseService {
     } else {
       this.supabase = createClient(supabaseUrl, supabaseServiceKey);
     }
+
+    this.storageBucket =
+      this.configService.get<string>('supabase.storageBucket') ||
+      'project-assets';
   }
 
   async createUser(
@@ -331,6 +336,60 @@ export class SupabaseService {
         error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Error in verifySession: ${errorMessage}`);
       return null;
+    }
+  }
+
+  /**
+   * Uploads a file buffer to Supabase Storage and returns a public URL if available
+   */
+  async uploadPublicAsset(
+    path: string,
+    fileBuffer: Buffer,
+    contentType: string,
+  ): Promise<string> {
+    // In development dummy mode, return a mock URL
+    if (
+      this.isDevelopmentMode ||
+      !this.configService.get<string>('supabase.url')
+    ) {
+      this.logger.warn(
+        'uploadPublicAsset called in development mode. Returning mock URL.',
+      );
+      return `https://dummy.supabase.co/storage/v1/object/public/${this.storageBucket}/${encodeURIComponent(
+        path,
+      )}`;
+    }
+
+    const { error } = await this.supabase.storage
+      .from(this.storageBucket)
+      .upload(path, fileBuffer, {
+        contentType,
+        upsert: true,
+      });
+    if (error) {
+      this.logger.error(`Storage upload error: ${error.message}`);
+      throw new Error(`Failed to upload file: ${error.message}`);
+    }
+
+    const { data } = this.supabase.storage
+      .from(this.storageBucket)
+      .getPublicUrl(path);
+    return data.publicUrl;
+  }
+
+  /** Deletes a file from storage; best-effort */
+  async deleteAsset(path: string): Promise<void> {
+    if (
+      this.isDevelopmentMode ||
+      !this.configService.get<string>('supabase.url')
+    ) {
+      return;
+    }
+    const { error } = await this.supabase.storage
+      .from(this.storageBucket)
+      .remove([path]);
+    if (error) {
+      this.logger.warn(`Failed to delete asset ${path}: ${error.message}`);
     }
   }
 }
