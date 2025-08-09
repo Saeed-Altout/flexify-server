@@ -11,7 +11,6 @@ import {
   MaxLength,
   ArrayNotEmpty,
   ArrayMinSize,
-  ValidateIf,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { StandardResponseDto } from './auth.dto';
@@ -257,8 +256,8 @@ export class ProjectItemResponseDto extends StandardResponseDto<ProjectResponseD
 export class ProjectsListResponseDto extends StandardResponseDto<PagedProjectsResponseDto> {}
 
 export class ProjectsListDataDto {
-  @ApiProperty({ type: [ProjectResponseDto], name: 'courses' })
-  courses: ProjectResponseDto[];
+  @ApiProperty({ type: [ProjectResponseDto], name: 'projects' })
+  projects: ProjectResponseDto[];
 
   @ApiProperty()
   limit: number;

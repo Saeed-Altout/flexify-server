@@ -12,18 +12,14 @@ import {
   UploadedFiles,
   UseGuards,
   UseInterceptors,
-  BadRequestException,
   Req,
 } from '@nestjs/common';
 import {
-  ApiBadRequestResponse,
   ApiBearerAuth,
-  ApiBody,
   ApiConsumes,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
-  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
@@ -153,7 +149,7 @@ export class ProjectsController {
     const prev = page > 1;
     return {
       data: {
-        courses: result.data,
+        projects: result.data,
         limit,
         page,
         total,
