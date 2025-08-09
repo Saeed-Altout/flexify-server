@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { UserProfile, AuthResponse } from '../types/auth.types';
+import { UserProfile, AuthResponse, UserRole } from '../types/auth.types';
 
 @Injectable()
 export class SupabaseService {
@@ -65,6 +65,7 @@ export class SupabaseService {
           id: 'dev-user-id',
           email,
           name,
+          role: 'USER',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -77,7 +78,7 @@ export class SupabaseService {
         email,
         password,
         email_confirm: true,
-        user_metadata: { name },
+        user_metadata: { name, role: 'USER' },
       });
 
       if (error) {
@@ -110,10 +111,12 @@ export class SupabaseService {
         throw new Error('Failed to create user');
       }
 
+      const profile = await this.fetchUserProfile(user.id);
       return {
         id: user.id,
         email: user.email!,
         name: (user.user_metadata?.name as string) || name,
+        role: profile?.role || (user.user_metadata?.role as UserRole) || 'USER',
         created_at: user.created_at,
         updated_at: user.updated_at!,
       };
@@ -141,6 +144,7 @@ export class SupabaseService {
             id: 'dev-user-id',
             email,
             name: 'Development User',
+            role: 'USER',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           },
@@ -162,11 +166,17 @@ export class SupabaseService {
         throw new Error('User not found');
       }
 
+      const profile = await this.fetchUserProfile(data.user.id);
       return {
         user: {
           id: data.user.id,
           email: data.user.email!,
-          name: data.user.user_metadata?.name as string | undefined,
+          name:
+            (data.user.user_metadata?.name as string | undefined) ??
+            profile?.name,
+          role:
+            (profile?.role || (data.user.user_metadata?.role as UserRole)) ??
+            'USER',
           created_at: data.user.created_at,
           updated_at: data.user.updated_at!,
         },
@@ -208,10 +218,12 @@ export class SupabaseService {
         return null;
       }
 
+      const profile = await this.fetchUserProfile(user.id);
       return {
         id: user.id,
         email: user.email!,
-        name: user.user_metadata?.name as string | undefined,
+        name: (user.user_metadata?.name as string | undefined) ?? profile?.name,
+        role: profile?.role || (user.user_metadata?.role as UserRole) || 'USER',
         created_at: user.created_at,
         updated_at: user.updated_at!,
       };
@@ -251,10 +263,12 @@ export class SupabaseService {
         return null;
       }
 
+      const profile = await this.fetchUserProfile(user.id);
       return {
         id: user.id,
         email: user.email!,
-        name: user.user_metadata?.name as string | undefined,
+        name: (user.user_metadata?.name as string | undefined) ?? profile?.name,
+        role: profile?.role || (user.user_metadata?.role as UserRole) || 'USER',
         created_at: user.created_at,
         updated_at: user.updated_at!,
       };
@@ -308,6 +322,7 @@ export class SupabaseService {
             id: 'dev-user-id',
             email: 'dev@example.com',
             name: 'Development User',
+            role: 'USER',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           };
@@ -324,10 +339,12 @@ export class SupabaseService {
         return null;
       }
 
+      const profile = await this.fetchUserProfile(user.id);
       return {
         id: user.id,
         email: user.email!,
-        name: user.user_metadata?.name as string | undefined,
+        name: (user.user_metadata?.name as string | undefined) ?? profile?.name,
+        role: profile?.role || (user.user_metadata?.role as UserRole) || 'USER',
         created_at: user.created_at,
         updated_at: user.updated_at!,
       };
@@ -390,6 +407,37 @@ export class SupabaseService {
       .remove([path]);
     if (error) {
       this.logger.warn(`Failed to delete asset ${path}: ${error.message}`);
+    }
+  }
+  // Fetch minimal user profile (name and role) from public.user_profiles
+  // Returns null if not found or on error
+  private async fetchUserProfile(
+    userId: string,
+  ): Promise<{ name?: string; role: UserRole } | null> {
+    try {
+      if (
+        this.isDevelopmentMode ||
+        !this.configService.get<string>('supabase.url')
+      ) {
+        return { name: 'Development User', role: 'USER' };
+      }
+      const { data, error } = await (this.supabase as any)
+        .from('user_profiles')
+        .select('name, role')
+        .eq('id', userId)
+        .single();
+      if (error) {
+        this.logger.warn(`fetchUserProfile error: ${error.message}`);
+        return null;
+      }
+      return {
+        name: data?.name ?? undefined,
+        role: (data?.role as UserRole) ?? 'USER',
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      this.logger.warn(`fetchUserProfile exception: ${msg}`);
+      return null;
     }
   }
 }

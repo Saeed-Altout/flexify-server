@@ -7,9 +7,24 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
     email TEXT UNIQUE NOT NULL,
     name TEXT,
     avatar_url TEXT,
+    role TEXT NOT NULL DEFAULT 'USER' CHECK (role IN ('ADMIN','USER')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Ensure role column and defaults exist for pre-existing tables
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS role TEXT;
+ALTER TABLE public.user_profiles ALTER COLUMN role SET DEFAULT 'USER';
+UPDATE public.user_profiles SET role = 'USER' WHERE role IS NULL;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'user_profiles_role_check'
+    ) THEN
+        ALTER TABLE public.user_profiles
+        ADD CONSTRAINT user_profiles_role_check CHECK (role IN ('ADMIN','USER'));
+    END IF;
+END$$;
 
 -- Step 2: Enable Row Level Security
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
@@ -28,11 +43,12 @@ CREATE POLICY "Users can insert their own profile" ON public.user_profiles
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO public.user_profiles (id, email, name)
+    INSERT INTO public.user_profiles (id, email, name, role)
     VALUES (
         NEW.id,
         NEW.email,
-        COALESCE(NEW.raw_user_meta_data->>'name', NEW.email)
+        COALESCE(NEW.raw_user_meta_data->>'name', NEW.email),
+        COALESCE(NEW.raw_user_meta_data->>'role', 'USER')
     );
     RETURN NEW;
 END;

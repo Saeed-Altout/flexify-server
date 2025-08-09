@@ -63,7 +63,7 @@ export class ProjectsController {
     @UploadedFiles()
     files?: { logo?: any[]; cover?: any[] },
   ): Promise<{ data: ProjectResponseDto; status: string; message: string }> {
-    // Only admins can mutate; ProjectsService will check using admin emails
+    // Only admins can mutate; enforced via user.role
     // Extract logo and cover from files[] by fieldname if provided
     const logo = files?.logo?.[0];
     const cover = files?.cover?.[0];
@@ -74,7 +74,7 @@ export class ProjectsController {
         : undefined,
     };
     return this.projectsService
-      .create(user?.email, body, payloadFiles)
+      .create(user, body, payloadFiles)
       .then((project) => ({
         data: project,
         status: 'success',
@@ -110,7 +110,7 @@ export class ProjectsController {
         : undefined,
     };
     return this.projectsService
-      .update(user?.email, id, body, payloadFiles)
+      .update(user, id, body, payloadFiles)
       .then((project) => ({
         data: project,
         status: 'success',
@@ -127,7 +127,7 @@ export class ProjectsController {
     @CurrentUser() user: UserProfile,
     @Param('id') id: string,
   ): Promise<void> {
-    await this.projectsService.delete(user?.email, id);
+    await this.projectsService.delete(user, id);
   }
 
   @Get()
@@ -139,8 +139,11 @@ export class ProjectsController {
     @Query() query: ProjectQueryDto,
     @Req() req: Request,
   ): Promise<ProjectsListEnvelopeDto> {
-    const userEmail = await this.getOptionalUserEmailFromAuthHeader(req);
-    const result = await this.projectsService.findAll(query, userEmail);
+    const userFromToken = await this.getOptionalUserFromAuthHeader(req);
+    const result = await this.projectsService.findAll(
+      query,
+      userFromToken ?? undefined,
+    );
     const page = Number(query.page ?? 1);
     const limit = Number(query.limit ?? 10);
     const total = result.total;
@@ -168,8 +171,11 @@ export class ProjectsController {
     @Param('id') id: string,
     @Req() req: Request,
   ): Promise<{ data: ProjectResponseDto; status: string; message: string }> {
-    const userEmail = await this.getOptionalUserEmailFromAuthHeader(req);
-    const project = await this.projectsService.findOne(id, userEmail);
+    const userFromToken = await this.getOptionalUserFromAuthHeader(req);
+    const project = await this.projectsService.findOne(
+      id,
+      userFromToken ?? undefined,
+    );
     return {
       data: project,
       status: 'success',
@@ -177,14 +183,14 @@ export class ProjectsController {
     };
   }
 
-  private async getOptionalUserEmailFromAuthHeader(
+  private async getOptionalUserFromAuthHeader(
     req: Request,
-  ): Promise<string | undefined> {
+  ): Promise<UserProfile | null> {
     const [type, token] = req.headers.authorization?.split(' ') ?? [];
     if (type === 'Bearer' && token) {
       const user = await this.supabaseService.verifySession(token);
-      return user?.email;
+      return user;
     }
-    return undefined;
+    return null;
   }
 }

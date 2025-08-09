@@ -91,6 +91,13 @@ export class UserProfileDto {
   name?: string;
 
   @ApiProperty({
+    description: 'User role',
+    example: 'USER',
+    enum: ['ADMIN', 'USER'],
+  })
+  role: 'ADMIN' | 'USER';
+
+  @ApiProperty({
     description: 'User creation timestamp',
     example: '2023-01-01T00:00:00.000Z',
   })

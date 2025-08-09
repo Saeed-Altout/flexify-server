@@ -4,8 +4,8 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from './supabase.service';
+import type { UserProfile } from '../types/auth.types';
 import {
   CreateProjectDto,
   UpdateProjectDto,
@@ -39,14 +39,10 @@ interface ProjectRow {
 export class ProjectsService {
   private readonly logger = new Logger(ProjectsService.name);
 
-  constructor(
-    private supabase: SupabaseService,
-    private config: ConfigService,
-  ) {}
+  constructor(private supabase: SupabaseService) {}
 
-  private ensureAdminOrThrow(userEmail?: string): void {
-    const admins: string[] = this.config.get<string[]>('admin.emails') || [];
-    if (!userEmail || !admins.includes(userEmail)) {
+  private ensureAdminOrThrow(user?: UserProfile): void {
+    if (!user || user.role !== 'ADMIN') {
       throw new ForbiddenException('Admin privileges required');
     }
   }
@@ -85,14 +81,14 @@ export class ProjectsService {
   }
 
   async create(
-    userEmail: string | undefined,
+    user: UserProfile | undefined,
     dto: CreateProjectDto,
     files: {
       logo?: { buffer: Buffer; mimetype: string };
       cover?: { buffer: Buffer; mimetype: string };
     },
   ): Promise<ProjectResponseDto> {
-    this.ensureAdminOrThrow(userEmail);
+    this.ensureAdminOrThrow(user);
     this.validateDates(dto.startDate, dto.endDate);
 
     // Upload files first (optional)
@@ -151,7 +147,7 @@ export class ProjectsService {
   }
 
   async update(
-    userEmail: string | undefined,
+    user: UserProfile | undefined,
     id: string,
     dto: UpdateProjectDto,
     files: {
@@ -159,7 +155,7 @@ export class ProjectsService {
       cover?: { buffer: Buffer; mimetype: string };
     },
   ): Promise<ProjectResponseDto> {
-    this.ensureAdminOrThrow(userEmail);
+    this.ensureAdminOrThrow(user);
     if (dto.startDate || dto.endDate) {
       this.validateDates(dto.startDate, dto.endDate);
     }
@@ -215,8 +211,8 @@ export class ProjectsService {
     return this.toDto(data as ProjectRow);
   }
 
-  async delete(userEmail: string | undefined, id: string): Promise<void> {
-    this.ensureAdminOrThrow(userEmail);
+  async delete(user: UserProfile | undefined, id: string): Promise<void> {
+    this.ensureAdminOrThrow(user);
     const client: any = this.supabase as unknown as { [k: string]: any };
     const supa = client['supabase'] as { from: Function };
     if (!supa) throw new Error('Supabase client unavailable');
@@ -232,7 +228,7 @@ export class ProjectsService {
 
   async findAll(
     query: ProjectQueryDto,
-    userEmail?: string,
+    user?: UserProfile,
   ): Promise<{ data: ProjectResponseDto[]; total: number }> {
     const client: any = this.supabase as unknown as { [k: string]: any };
     const supa = client['supabase'] as { from: Function };
@@ -245,8 +241,7 @@ export class ProjectsService {
 
     let req = (supa.from('projects') as any).select('*', { count: 'exact' });
 
-    const admins: string[] = this.config.get<string[]>('admin.emails') || [];
-    const isAdmin = !!userEmail && admins.includes(userEmail);
+    const isAdmin = !!user && user.role === 'ADMIN';
     if (!isAdmin || !query.includePrivate) {
       req = req.eq('is_public', true);
     }
@@ -274,7 +269,7 @@ export class ProjectsService {
     };
   }
 
-  async findOne(id: string, userEmail?: string): Promise<ProjectResponseDto> {
+  async findOne(id: string, user?: UserProfile): Promise<ProjectResponseDto> {
     const client: any = this.supabase as unknown as { [k: string]: any };
     const supa = client['supabase'] as { from: Function };
     if (!supa) throw new Error('Supabase client unavailable');
@@ -286,8 +281,7 @@ export class ProjectsService {
       throw new BadRequestException('Failed to fetch project');
     }
     const dto = this.toDto(data as ProjectRow);
-    const admins: string[] = this.config.get<string[]>('admin.emails') || [];
-    const isAdmin = !!userEmail && admins.includes(userEmail);
+    const isAdmin = !!user && user.role === 'ADMIN';
     if (!dto.isPublic && !isAdmin) {
       throw new ForbiddenException('This project is not public');
     }

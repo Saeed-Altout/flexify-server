@@ -1,7 +1,10 @@
+export type UserRole = 'ADMIN' | 'USER';
+
 export interface UserProfile {
   id: string;
   email: string;
   name?: string;
+  role: UserRole;
   created_at: string;
   updated_at: string;
 }
@@ -28,6 +31,7 @@ export interface JwtPayload {
   sub: string;
   email: string;
   name?: string;
+  role?: UserRole;
   iat?: number;
   exp?: number;
 }
