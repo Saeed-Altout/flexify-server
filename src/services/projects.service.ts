@@ -318,8 +318,9 @@ export class ProjectsService {
     }
 
     if (query.isFeatured !== undefined) {
-      // Filter by featured status
-      req = req.eq('is_featured', query.isFeatured);
+      // Convert string "true"/"false" to boolean for database query
+      const isFeatured = query.isFeatured === 'true';
+      req = req.eq('is_featured', isFeatured);
     }
 
     req = req.order('created_at', { ascending: false }).range(from, to);
@@ -348,10 +349,7 @@ export class ProjectsService {
   // Admin-only method to get all projects (including private ones)
   async findAllForAdmin(
     query: ProjectQueryDto,
-    user: UserProfile,
   ): Promise<{ data: ProjectResponseDto[]; total: number }> {
-    this.ensureAdminOrThrow(user);
-
     const supa = this.getSupabaseClient();
 
     const page = Math.max(1, Number(query.page ?? 1));
@@ -372,7 +370,9 @@ export class ProjectsService {
     }
 
     if (query.isFeatured !== undefined) {
-      req = req.eq('is_featured', query.isFeatured);
+      // Convert string "true"/"false" to boolean for database query
+      const isFeatured = query.isFeatured === 'true';
+      req = req.eq('is_featured', isFeatured);
     }
 
     req = req.order('created_at', { ascending: false }).range(from, to);
@@ -398,7 +398,7 @@ export class ProjectsService {
     };
   }
 
-  async findOne(id: string, user?: UserProfile): Promise<ProjectResponseDto> {
+  async findOne(id: string): Promise<ProjectResponseDto> {
     const supa = this.getSupabaseClient();
 
     const { data, error } = await supa

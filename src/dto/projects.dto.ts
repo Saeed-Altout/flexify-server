@@ -11,6 +11,7 @@ import {
   MaxLength,
   ArrayNotEmpty,
   ArrayMinSize,
+  IsIn,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { StandardResponseDto } from './auth.dto';
@@ -174,11 +175,14 @@ export class ProjectQueryDto {
 
   @ApiPropertyOptional({
     description: 'Filter by featured status',
-    type: Boolean,
+    type: String,
+    example: 'true',
+    enum: ['true', 'false'],
   })
   @IsOptional()
-  @IsBoolean()
-  isFeatured?: boolean;
+  @IsString()
+  @IsIn(['true', 'false'])
+  isFeatured?: string;
 }
 
 export class ProjectResponseDto {

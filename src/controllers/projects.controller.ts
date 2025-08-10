@@ -12,7 +12,7 @@ import {
   UploadedFiles,
   UseGuards,
   UseInterceptors,
-  Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -28,7 +28,6 @@ import { CurrentUser } from '../decorators/current-user.decorator';
 import type { UserProfile } from '../types/auth.types';
 import { ProjectsService } from '../services/projects.service';
 import { SupabaseService } from '../services/supabase.service';
-import type { Request } from 'express';
 import {
   CreateProjectDto,
   UpdateProjectDto,
@@ -193,9 +192,7 @@ export class ProjectsController {
   })
   async list(
     @Query() query: ProjectQueryDto,
-    @Req() req: Request,
   ): Promise<ProjectsListEnvelopeDto> {
-    const user = await this.getOptionalUserFromAuthHeader(req);
     const result = await this.projectsService.findAll(query);
 
     return {
@@ -215,16 +212,22 @@ export class ProjectsController {
 
   @Get('admin/all')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({
-    summary: 'Admin only: List all projects including private ones',
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all projects for admin (including private)' })
+  @ApiOkResponse({
+    description: 'All projects list',
+    type: ProjectsListEnvelopeDto,
   })
-  @ApiOkResponse({ description: 'All projects list (admin only)' })
   async listAllForAdmin(
-    @CurrentUser() user: UserProfile,
     @Query() query: ProjectQueryDto,
+    @CurrentUser() user: UserProfile,
   ): Promise<ProjectsListEnvelopeDto> {
-    const result = await this.projectsService.findAllForAdmin(query, user);
+    // Ensure user is admin
+    if (user.role !== 'ADMIN') {
+      throw new ForbiddenException('Admin privileges required');
+    }
+
+    const result = await this.projectsService.findAllForAdmin(query);
     const page = Number(query.page ?? 1);
     const limit = Number(query.limit ?? 10);
     const total = result.total;
@@ -247,31 +250,8 @@ export class ProjectsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get project by ID' })
-  @ApiOkResponse({ description: 'Project details' })
-  async getById(
-    @Param('id') id: string,
-    @Req() req: Request,
-  ): Promise<{ data: ProjectResponseDto; status: string; message: string }> {
-    const userFromToken = await this.getOptionalUserFromAuthHeader(req);
-    const project = await this.projectsService.findOne(
-      id,
-      userFromToken ?? undefined,
-    );
-    return {
-      data: project,
-      status: 'success',
-      message: 'Project fetched successfully',
-    };
-  }
-
-  private async getOptionalUserFromAuthHeader(
-    req: Request,
-  ): Promise<UserProfile | null> {
-    const [type, token] = req.headers.authorization?.split(' ') ?? [];
-    if (type === 'Bearer' && token) {
-      const user = await this.supabaseService.verifySession(token);
-      return user;
-    }
-    return null;
+  @ApiOkResponse({ description: 'Project details', type: ProjectResponseDto })
+  async getOne(@Param('id') id: string): Promise<ProjectResponseDto> {
+    return this.projectsService.findOne(id);
   }
 }
