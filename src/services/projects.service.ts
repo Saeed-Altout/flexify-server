@@ -393,22 +393,12 @@ export class ProjectsService {
   async findOne(id: string, user?: UserProfile): Promise<ProjectResponseDto> {
     const supa = this.getSupabaseClient();
 
-    // Join with user_profiles to get creator information
-    let req = supa
+    const { data, error } = await supa
       .from('projects')
-      .select(
-        `
-        *,
-        user_profiles!projects_user_id_fkey(
-          avatar_url,
-          name
-        )
-      `,
-      )
+      .select('*')
       .eq('id', id)
       .single();
 
-    const { data, error } = await req;
     if (error) {
       this.logger.error(
         `Get project error: ${(error as { message: string }).message}`,
@@ -416,23 +406,49 @@ export class ProjectsService {
       throw new BadRequestException('Failed to fetch project');
     }
 
-    // Transform the joined data
+    if (!data) {
+      throw new BadRequestException('Project not found');
+    }
+
+    // Transform the data (without user profile info for now)
     const transformedData = {
       ...(data as Record<string, unknown>),
-      creator_avatar_url:
-        (data as { user_profiles?: { avatar_url?: string | null } })
-          ?.user_profiles?.avatar_url || null,
-      creator_name:
-        (data as { user_profiles?: { name?: string | null } })?.user_profiles
-          ?.name || null,
+      creator_avatar_url: null,
+      creator_name: null,
     };
 
-    const dto = this.toDto(transformedData as ProjectRow);
-    const isAdmin = !!user && user.role === 'ADMIN';
-    if (!dto.isPublic && !isAdmin) {
-      throw new ForbiddenException('This project is not public');
+    return this.toDto(transformedData as ProjectRow);
+  }
+
+  async getAllTechnologies(): Promise<string[]> {
+    const supa = this.getSupabaseClient();
+
+    // Get all projects and extract technologies
+    const { data, error } = await supa
+      .from('projects')
+      .select('technologies');
+
+    if (error) {
+      this.logger.error(
+        `Get technologies error: ${(error as { message: string }).message}`,
+      );
+      throw new BadRequestException('Failed to fetch technologies');
     }
-    return dto;
+
+    if (!data) {
+      return [];
+    }
+
+    // Extract all technologies from all projects and flatten
+    const allTechnologies = (data as unknown[]).flatMap((row: unknown) => {
+      const project = row as { technologies: string[] };
+      return project.technologies || [];
+    });
+
+    // Remove duplicates and sort alphabetically
+    const uniqueTechnologies = [...new Set(allTechnologies)].sort();
+
+    return uniqueTechnologies;
   }
 
   private assertImage(mime: string, bytes: number) {

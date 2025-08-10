@@ -130,6 +130,35 @@ export class ProjectsController {
     await this.projectsService.delete(user, id);
   }
 
+  @Get('technologies')
+  @ApiOperation({ summary: 'Get all unique technologies from all projects' })
+  @ApiOkResponse({ 
+    description: 'List of all technologies used in projects',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: { type: 'string' }
+        },
+        status: { type: 'string' },
+        message: { type: 'string' }
+      }
+    }
+  })
+  async getTechnologies(): Promise<{ 
+    data: string[]; 
+    status: string; 
+    message: string 
+  }> {
+    const technologies = await this.projectsService.getAllTechnologies();
+    return {
+      data: technologies,
+      status: 'success',
+      message: 'Technologies retrieved successfully',
+    };
+  }
+
   @Get()
   @ApiOperation({
     summary: 'List all projects with pagination, search, and filtering',
