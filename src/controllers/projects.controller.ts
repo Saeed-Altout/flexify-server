@@ -132,30 +132,56 @@ export class ProjectsController {
 
   @Get('technologies')
   @ApiOperation({ summary: 'Get all unique technologies from all projects' })
-  @ApiOkResponse({ 
+  @ApiOkResponse({
     description: 'List of all technologies used in projects',
     schema: {
       type: 'object',
       properties: {
         data: {
           type: 'array',
-          items: { type: 'string' }
+          items: { type: 'string' },
         },
         status: { type: 'string' },
-        message: { type: 'string' }
-      }
-    }
+        message: { type: 'string' },
+      },
+    },
   })
-  async getTechnologies(): Promise<{ 
-    data: string[]; 
-    status: string; 
-    message: string 
+  async getTechnologies(): Promise<{
+    data: string[];
+    status: string;
+    message: string;
   }> {
     const technologies = await this.projectsService.getAllTechnologies();
     return {
       data: technologies,
       status: 'success',
       message: 'Technologies retrieved successfully',
+    };
+  }
+
+  @Get('public')
+  @ApiOperation({ summary: 'Get all projects (public access for guests)' })
+  @ApiOkResponse({
+    description: 'List of all projects accessible to guests',
+    type: ProjectsListEnvelopeDto,
+  })
+  async getPublicProjects(
+    @Query() query: ProjectQueryDto,
+  ): Promise<ProjectsListEnvelopeDto> {
+    const result = await this.projectsService.findAll(query);
+
+    return {
+      data: {
+        projects: result.data,
+        limit: Number(query.limit ?? 10),
+        page: Number(query.page ?? 1),
+        total: result.total,
+        next:
+          result.total > Number(query.page ?? 1) * Number(query.limit ?? 10),
+        prev: Number(query.page ?? 1) > 1,
+      },
+      status: 'success',
+      message: 'Projects retrieved successfully',
     };
   }
 
