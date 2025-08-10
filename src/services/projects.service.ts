@@ -294,7 +294,6 @@ export class ProjectsService {
 
   async findAll(
     query: ProjectQueryDto,
-    user?: UserProfile,
   ): Promise<{ data: ProjectResponseDto[]; total: number }> {
     const supa = this.getSupabaseClient();
 
@@ -316,6 +315,11 @@ export class ProjectsService {
     if (query.technology) {
       // technology is now a single string; use contains operator
       req = req.contains('technologies', [query.technology]);
+    }
+
+    if (query.isFeatured !== undefined) {
+      // Filter by featured status
+      req = req.eq('is_featured', query.isFeatured);
     }
 
     req = req.order('created_at', { ascending: false }).range(from, to);
@@ -365,6 +369,10 @@ export class ProjectsService {
 
     if (query.technology) {
       req = req.contains('technologies', [query.technology]);
+    }
+
+    if (query.isFeatured !== undefined) {
+      req = req.eq('is_featured', query.isFeatured);
     }
 
     req = req.order('created_at', { ascending: false }).range(from, to);
@@ -424,9 +432,7 @@ export class ProjectsService {
     const supa = this.getSupabaseClient();
 
     // Get all projects and extract technologies
-    const { data, error } = await supa
-      .from('projects')
-      .select('technologies');
+    const { data, error } = await supa.from('projects').select('technologies');
 
     if (error) {
       this.logger.error(

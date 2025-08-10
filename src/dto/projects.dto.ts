@@ -171,6 +171,14 @@ export class ProjectQueryDto {
   @IsOptional()
   @IsString()
   technology?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter by featured status',
+    type: Boolean,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isFeatured?: boolean;
 }
 
 export class ProjectResponseDto {

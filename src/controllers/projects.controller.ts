@@ -186,36 +186,30 @@ export class ProjectsController {
   }
 
   @Get()
-  @ApiOperation({
-    summary: 'List all projects with pagination, search, and filtering',
+  @ApiOperation({ summary: 'List all projects' })
+  @ApiOkResponse({
+    description: 'Projects list',
+    type: ProjectsListEnvelopeDto,
   })
-  @ApiOkResponse({ description: 'Projects list' })
   async list(
     @Query() query: ProjectQueryDto,
     @Req() req: Request,
   ): Promise<ProjectsListEnvelopeDto> {
-    const userFromToken = await this.getOptionalUserFromAuthHeader(req);
-    const result = await this.projectsService.findAll(
-      query,
-      userFromToken ?? undefined,
-    );
-    const page = Number(query.page ?? 1);
-    const limit = Number(query.limit ?? 10);
-    const total = result.total;
-    const totalPages = Math.ceil(total / (limit || 1)) || 1;
-    const next = page < totalPages;
-    const prev = page > 1;
+    const user = await this.getOptionalUserFromAuthHeader(req);
+    const result = await this.projectsService.findAll(query);
+
     return {
       data: {
         projects: result.data,
-        limit,
-        page,
-        total,
-        next,
-        prev,
+        limit: Number(query.limit ?? 10),
+        page: Number(query.page ?? 1),
+        total: result.total,
+        next:
+          result.total > Number(query.page ?? 1) * Number(query.limit ?? 10),
+        prev: Number(query.page ?? 1) > 1,
       },
       status: 'success',
-      message: 'All projects fetched successfully',
+      message: 'Projects retrieved successfully',
     };
   }
 
