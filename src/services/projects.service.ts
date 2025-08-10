@@ -313,9 +313,9 @@ export class ProjectsService {
       req = req.or(`name.ilike.${term},description.ilike.${term}`);
     }
 
-    if (query.technology && query.technology.length > 0) {
-      // technologies is an array<string>; use contains operator
-      req = req.contains('technologies', query.technology);
+    if (query.technology) {
+      // technology is now a single string; use contains operator
+      req = req.contains('technologies', [query.technology]);
     }
 
     req = req.order('created_at', { ascending: false }).range(from, to);
@@ -363,8 +363,8 @@ export class ProjectsService {
       req = req.or(`name.ilike.${term},description.ilike.${term}`);
     }
 
-    if (query.technology && query.technology.length > 0) {
-      req = req.contains('technologies', query.technology);
+    if (query.technology) {
+      req = req.contains('technologies', [query.technology]);
     }
 
     req = req.order('created_at', { ascending: false }).range(from, to);

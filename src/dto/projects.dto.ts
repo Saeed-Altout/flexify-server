@@ -166,13 +166,11 @@ export class ProjectQueryDto {
 
   @ApiPropertyOptional({
     description: 'Filter by technology',
-    isArray: true,
-    type: [String],
+    type: String,
   })
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  technology?: string[];
+  @IsString()
+  technology?: string;
 }
 
 export class ProjectResponseDto {
