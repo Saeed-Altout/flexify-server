@@ -141,17 +141,17 @@ BEGIN
         -- Make user_id NOT NULL after setting default values
         ALTER TABLE public.projects ALTER COLUMN user_id SET NOT NULL;
         
-        -- Add foreign key constraint
+        -- Add foreign key constraint to user_profiles instead of auth.users
         ALTER TABLE public.projects 
         ADD CONSTRAINT projects_user_id_fkey 
-        FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+        FOREIGN KEY (user_id) REFERENCES public.user_profiles(id) ON DELETE CASCADE;
     END IF;
 END$$;
 
 -- Projects table
 CREATE TABLE IF NOT EXISTS public.projects (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE NOT NULL,
     name TEXT NOT NULL,
     logo_url TEXT,
     cover_url TEXT,

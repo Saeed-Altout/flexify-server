@@ -14,6 +14,38 @@ import {
   ProjectStatusEnum,
 } from '../dto/projects.dto';
 
+// Define proper types for Supabase client operations
+interface SupabaseClient {
+  from: (table: string) => SupabaseQueryBuilder;
+}
+
+interface SupabaseQueryBuilder {
+  select: (
+    columns?: string | string[],
+    options?: { count: string },
+  ) => SupabaseQueryBuilder;
+  insert: (data: Record<string, unknown>) => SupabaseQueryBuilder;
+  update: (data: Record<string, unknown>) => SupabaseQueryBuilder;
+  delete: () => SupabaseQueryBuilder;
+  eq: (column: string, value: unknown) => SupabaseQueryBuilder;
+  or: (filter: string) => SupabaseQueryBuilder;
+  contains: (column: string, value: unknown) => SupabaseQueryBuilder;
+  in: (column: string, values: unknown[]) => SupabaseQueryBuilder;
+  order: (
+    column: string,
+    options: { ascending: boolean },
+  ) => SupabaseQueryBuilder;
+  range: (from: number, to: number) => SupabaseQueryBuilder;
+  single: () => Promise<{ data: unknown; error: unknown }>;
+  // When awaited, the query builder returns the result
+  then: (
+    onfulfilled?:
+      | ((value: { data: unknown; error: unknown; count?: unknown }) => unknown)
+      | null,
+    onrejected?: ((reason: unknown) => unknown) | null,
+  ) => Promise<{ data: unknown; error: unknown; count?: unknown }>;
+}
+
 interface ProjectRow {
   id: string;
   user_id: string;
@@ -86,6 +118,15 @@ export class ProjectsService {
     }
   }
 
+  private getSupabaseClient(): SupabaseClient {
+    // Access the internal Supabase client through a type-safe wrapper
+    const client = this.supabase as unknown as { supabase: SupabaseClient };
+    if (!client.supabase) {
+      throw new Error('Supabase client unavailable');
+    }
+    return client.supabase;
+  }
+
   async create(
     user: UserProfile | undefined,
     dto: CreateProjectDto,
@@ -122,12 +163,8 @@ export class ProjectsService {
       );
     }
 
-    // Insert into DB via Supabase REST (use service role)
-    // We use the Supabase JS client accessible via SupabaseService using any table insert through RPC
-    // Since SupabaseService does not expose generic query, we'll access the internal client through a minimal wrapper pattern using any.
-    const client: any = this.supabase as unknown as { [k: string]: any };
-    const supa = client['supabase'] as { from: Function };
-    if (!supa) throw new Error('Supabase client unavailable');
+    // Insert into DB via Supabase REST
+    const supa = this.getSupabaseClient();
 
     const payload = {
       user_id: user.id,
@@ -147,14 +184,19 @@ export class ProjectsService {
       likes: dto.likes ?? 0,
     };
 
-    const { data, error } = await (supa.from('projects') as any)
+    const { data, error } = await supa
+      .from('projects')
       .insert(payload)
       .select()
       .single();
+
     if (error) {
-      this.logger.error(`Create project error: ${error.message}`);
+      this.logger.error(
+        `Create project error: ${(error as { message: string }).message}`,
+      );
       throw new BadRequestException('Failed to create project');
     }
+
     return this.toDto(data as ProjectRow);
   }
 
@@ -196,9 +238,7 @@ export class ProjectsService {
       );
     }
 
-    const client: any = this.supabase as unknown as { [k: string]: any };
-    const supa = client['supabase'] as { from: Function };
-    if (!supa) throw new Error('Supabase client unavailable');
+    const supa = this.getSupabaseClient();
 
     const updates: Record<string, unknown> = {};
     if (dto.name !== undefined) updates.name = dto.name;
@@ -216,15 +256,20 @@ export class ProjectsService {
     if (logoUrl !== undefined) updates.logo_url = logoUrl;
     if (coverUrl !== undefined) updates.cover_url = coverUrl;
 
-    const { data, error } = await (supa.from('projects') as any)
+    const { data, error } = await supa
+      .from('projects')
       .update(updates)
       .eq('id', id)
       .select()
       .single();
+
     if (error) {
-      this.logger.error(`Update project error: ${error.message}`);
+      this.logger.error(
+        `Update project error: ${(error as { message: string }).message}`,
+      );
       throw new BadRequestException('Failed to update project');
     }
+
     return this.toDto(data as ProjectRow);
   }
 
@@ -235,15 +280,14 @@ export class ProjectsService {
       throw new ForbiddenException('Admin privileges required');
     }
 
-    const client: any = this.supabase as unknown as { [k: string]: any };
-    const supa = client['supabase'] as { from: Function };
-    if (!supa) throw new Error('Supabase client unavailable');
+    const supa = this.getSupabaseClient();
 
-    const { error } = await (supa.from('projects') as any)
-      .delete()
-      .eq('id', id);
+    const { error } = await supa.from('projects').delete().eq('id', id);
+
     if (error) {
-      this.logger.error(`Delete project error: ${error.message}`);
+      this.logger.error(
+        `Delete project error: ${(error as { message: string }).message}`,
+      );
       throw new BadRequestException('Failed to delete project');
     }
   }
@@ -252,26 +296,15 @@ export class ProjectsService {
     query: ProjectQueryDto,
     user?: UserProfile,
   ): Promise<{ data: ProjectResponseDto[]; total: number }> {
-    const client: any = this.supabase as unknown as { [k: string]: any };
-    const supa = client['supabase'] as { from: Function };
-    if (!supa) throw new Error('Supabase client unavailable');
+    const supa = this.getSupabaseClient();
 
     const page = Math.max(1, Number(query.page ?? 1));
     const limit = Math.min(100, Math.max(1, Number(query.limit ?? 10)));
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    // Join with user_profiles to get creator information
-    let req = (supa.from('projects') as any).select(
-      `
-        *,
-        user_profiles!projects_user_id_fkey(
-          avatar_url,
-          name
-        )
-      `,
-      { count: 'exact' },
-    );
+    // Get projects with pagination and filters
+    let req = supa.from('projects').select('*', { count: 'exact' });
 
     // Return all projects (both public and private)
 
@@ -289,20 +322,22 @@ export class ProjectsService {
 
     const { data, error, count } = await req;
     if (error) {
-      this.logger.error(`List projects error: ${error.message}`);
+      this.logger.error(
+        `List projects error: ${(error as { message: string }).message}`,
+      );
       throw new BadRequestException('Failed to fetch projects');
     }
 
-    // Transform the joined data
-    const transformedData = (data as any[]).map((row) => ({
-      ...row,
-      creator_avatar_url: row.user_profiles?.avatar_url || null,
-      creator_name: row.user_profiles?.name || null,
+    // Transform the data (without user profile info for now)
+    const transformedData = (data as unknown[]).map((row: unknown) => ({
+      ...(row as Record<string, unknown>),
+      creator_avatar_url: null,
+      creator_name: null,
     }));
 
     return {
       data: transformedData.map((r) => this.toDto(r as ProjectRow)),
-      total: count ?? 0,
+      total: (count as number) ?? 0,
     };
   }
 
@@ -313,26 +348,15 @@ export class ProjectsService {
   ): Promise<{ data: ProjectResponseDto[]; total: number }> {
     this.ensureAdminOrThrow(user);
 
-    const client: any = this.supabase as unknown as { [k: string]: any };
-    const supa = client['supabase'] as { from: Function };
-    if (!supa) throw new Error('Supabase client unavailable');
+    const supa = this.getSupabaseClient();
 
     const page = Math.max(1, Number(query.page ?? 1));
     const limit = Math.min(100, Math.max(1, Number(query.limit ?? 10)));
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    // Join with user_profiles to get creator information
-    let req = (supa.from('projects') as any).select(
-      `
-        *,
-        user_profiles!projects_user_id_fkey(
-          avatar_url,
-          name
-        )
-      `,
-      { count: 'exact' },
-    );
+    // Get projects with pagination and filters
+    let req = supa.from('projects').select('*', { count: 'exact' });
 
     if (query.q) {
       const term = `%${query.q}%`;
@@ -347,30 +371,31 @@ export class ProjectsService {
 
     const { data, error, count } = await req;
     if (error) {
-      this.logger.error(`Admin list projects error: ${error.message}`);
+      this.logger.error(
+        `List projects error: ${(error as { message: string }).message}`,
+      );
       throw new BadRequestException('Failed to fetch projects');
     }
 
-    // Transform the joined data
-    const transformedData = (data as any[]).map((row) => ({
-      ...row,
-      creator_avatar_url: row.user_profiles?.avatar_url || null,
-      creator_name: row.user_profiles?.name || null,
+    // Transform the data (without user profile info for now)
+    const transformedData = (data as unknown[]).map((row: unknown) => ({
+      ...(row as Record<string, unknown>),
+      creator_avatar_url: null,
+      creator_name: null,
     }));
 
     return {
       data: transformedData.map((r) => this.toDto(r as ProjectRow)),
-      total: count ?? 0,
+      total: (count as number) ?? 0,
     };
   }
 
   async findOne(id: string, user?: UserProfile): Promise<ProjectResponseDto> {
-    const client: any = this.supabase as unknown as { [k: string]: any };
-    const supa = client['supabase'] as { from: Function };
-    if (!supa) throw new Error('Supabase client unavailable');
+    const supa = this.getSupabaseClient();
 
     // Join with user_profiles to get creator information
-    let req = (supa.from('projects') as any)
+    let req = supa
+      .from('projects')
       .select(
         `
         *,
@@ -385,15 +410,21 @@ export class ProjectsService {
 
     const { data, error } = await req;
     if (error) {
-      this.logger.error(`Get project error: ${error.message}`);
+      this.logger.error(
+        `Get project error: ${(error as { message: string }).message}`,
+      );
       throw new BadRequestException('Failed to fetch project');
     }
 
     // Transform the joined data
     const transformedData = {
-      ...data,
-      creator_avatar_url: data.user_profiles?.avatar_url || null,
-      creator_name: data.user_profiles?.name || null,
+      ...(data as Record<string, unknown>),
+      creator_avatar_url:
+        (data as { user_profiles?: { avatar_url?: string | null } })
+          ?.user_profiles?.avatar_url || null,
+      creator_name:
+        (data as { user_profiles?: { name?: string | null } })?.user_profiles
+          ?.name || null,
     };
 
     const dto = this.toDto(transformedData as ProjectRow);
