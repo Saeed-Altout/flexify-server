@@ -440,4 +440,94 @@ export class SupabaseService {
       return null;
     }
   }
+
+  // Public methods for database operations
+  async insert(table: string, data: Record<string, any>) {
+    if (
+      this.isDevelopmentMode ||
+      !this.configService.get<string>('supabase.url')
+    ) {
+      this.logger.warn(`insert called in development mode for table: ${table}`);
+      return { data: { id: 'dev-id', ...data }, error: null };
+    }
+    return await this.supabase.from(table).insert(data).select().single();
+  }
+
+  async select(
+    table: string,
+    query?: {
+      eq?: Record<string, any>;
+      order?: { column: string; options: any };
+    },
+  ) {
+    if (
+      this.isDevelopmentMode ||
+      !this.configService.get<string>('supabase.url')
+    ) {
+      this.logger.warn(`select called in development mode for table: ${table}`);
+      return { data: [], error: null };
+    }
+
+    let queryBuilder = this.supabase.from(table).select('*');
+
+    if (query) {
+      if (query.eq) {
+        Object.entries(query.eq).forEach(([key, value]) => {
+          queryBuilder = queryBuilder.eq(key, value);
+        });
+      }
+      if (query.order) {
+        queryBuilder = queryBuilder.order(
+          query.order.column,
+          query.order.options,
+        );
+      }
+    }
+
+    return await queryBuilder;
+  }
+
+  async update(
+    table: string,
+    data: Record<string, any>,
+    eq: Record<string, any>,
+  ) {
+    if (
+      this.isDevelopmentMode ||
+      !this.configService.get<string>('supabase.url')
+    ) {
+      this.logger.warn(`update called in development mode for table: ${table}`);
+      return { data: { id: 'dev-id', ...data }, error: null };
+    }
+
+    let queryBuilder = this.supabase.from(table).update(data);
+
+    if (eq) {
+      Object.entries(eq).forEach(([key, value]) => {
+        queryBuilder = queryBuilder.eq(key, value);
+      });
+    }
+
+    return await queryBuilder.select().single();
+  }
+
+  async delete(table: string, eq: Record<string, any>) {
+    if (
+      this.isDevelopmentMode ||
+      !this.configService.get<string>('supabase.url')
+    ) {
+      this.logger.warn(`delete called in development mode for table: ${table}`);
+      return { error: null };
+    }
+
+    let queryBuilder = this.supabase.from(table).delete();
+
+    if (eq) {
+      Object.entries(eq).forEach(([key, value]) => {
+        queryBuilder = queryBuilder.eq(key, value);
+      });
+    }
+
+    return await queryBuilder;
+  }
 }
