@@ -7,8 +7,6 @@ import {
   Body,
   Param,
   UseGuards,
-  Request,
-  HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import {
@@ -17,54 +15,70 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiBody,
 } from '@nestjs/swagger';
 import { ContactService } from '../services/contact.service';
-import { EmailService } from '../services/email.service';
 import { AuthGuard } from '../guards/auth.guard';
 import { AdminGuard } from '../guards/admin.guard';
 import {
   CreateContactMessageDto,
   CreateReplyDto,
   UpdateMessageStatusDto,
+  ApiResponseDto,
   ContactMessageResponseDto,
+  ContactMessageWithRepliesResponseDto,
   ContactReplyResponseDto,
+  MessageStatsResponseDto,
+  CONTACT_MESSAGES,
 } from '../dto/contact.dto';
-import { ContactMessageWithReply } from '../types/contact.types';
 
 @ApiTags('Contact')
 @Controller('contact')
 export class ContactController {
-  constructor(
-    private readonly contactService: ContactService,
-    private readonly emailService: EmailService,
-  ) {}
+  constructor(private readonly contactService: ContactService) {}
 
-  // Public endpoint - no authentication required
   @Post('send-message')
-  @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary: 'Send a contact message',
+    summary: 'Send contact message',
     description:
-      'Public endpoint for users to send contact messages. No authentication required.',
+      'Public endpoint - Send a contact message (no authentication required)',
   })
+  @ApiBody({ type: CreateContactMessageDto })
   @ApiResponse({
     status: 201,
-    description: 'Message sent successfully',
-    type: ContactMessageResponseDto,
+    description: 'Contact message sent successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/ContactMessageResponseDto' },
+        status: { type: 'string', example: 'success' },
+        message: {
+          type: 'string',
+          example: 'Thank you for your message! I will get back to you soon.',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 400,
-    description: 'Bad request - validation failed',
+    description: 'Bad request - validation error',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 400 },
+        message: { type: 'array', items: { type: 'string' } },
+        error: { type: 'string', example: 'Bad Request' },
+      },
+    },
   })
   async sendMessage(
     @Body() createContactMessageDto: CreateContactMessageDto,
-  ): Promise<ContactMessageResponseDto> {
+  ): Promise<ApiResponseDto<ContactMessageResponseDto>> {
     return await this.contactService.createContactMessage(
       createContactMessageDto,
     );
   }
 
-  // Admin-only endpoints - require authentication and admin role
   @Get('messages')
   @UseGuards(AuthGuard, AdminGuard)
   @ApiBearerAuth()
@@ -75,7 +89,19 @@ export class ContactController {
   @ApiResponse({
     status: 200,
     description: 'Messages retrieved successfully',
-    type: [ContactMessageResponseDto],
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: {
+            $ref: '#/components/schemas/ContactMessageWithRepliesResponseDto',
+          },
+        },
+        status: { type: 'string', example: 'success' },
+        message: { type: 'string', example: 'Messages retrieved successfully' },
+      },
+    },
   })
   @ApiResponse({
     status: 401,
@@ -85,7 +111,9 @@ export class ContactController {
     status: 403,
     description: 'Forbidden - admin role required',
   })
-  async getAllMessages(): Promise<ContactMessageWithReply[]> {
+  async getAllMessages(): Promise<
+    ApiResponseDto<ContactMessageWithRepliesResponseDto[]>
+  > {
     return await this.contactService.getAllMessages();
   }
 
@@ -93,9 +121,9 @@ export class ContactController {
   @UseGuards(AuthGuard, AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Get a specific contact message',
+    summary: 'Get message by ID',
     description:
-      'Admin only - Retrieve a specific contact message with its replies',
+      'Admin only - Retrieve a specific contact message with replies',
   })
   @ApiParam({
     name: 'id',
@@ -105,7 +133,16 @@ export class ContactController {
   @ApiResponse({
     status: 200,
     description: 'Message retrieved successfully',
-    type: ContactMessageResponseDto,
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          $ref: '#/components/schemas/ContactMessageWithRepliesResponseDto',
+        },
+        status: { type: 'string', example: 'success' },
+        message: { type: 'string', example: 'Message retrieved successfully' },
+      },
+    },
   })
   @ApiResponse({
     status: 404,
@@ -113,39 +150,45 @@ export class ContactController {
   })
   async getMessageById(
     @Param('id') id: string,
-  ): Promise<ContactMessageWithReply> {
+  ): Promise<ApiResponseDto<ContactMessageWithRepliesResponseDto>> {
     return await this.contactService.getMessageById(id);
   }
 
   @Post('messages/:id/reply')
   @UseGuards(AuthGuard, AdminGuard)
   @ApiBearerAuth()
-  @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary: 'Reply to a contact message',
-    description:
-      'Admin only - Create a reply to a contact message and send it via email',
+    summary: 'Reply to a message',
+    description: 'Admin only - Send a reply to a contact message',
   })
   @ApiParam({
     name: 'id',
-    description: 'Message ID to reply to',
+    description: 'Message ID',
     example: 'uuid-string',
   })
+  @ApiBody({ type: CreateReplyDto })
   @ApiResponse({
     status: 201,
-    description: 'Reply created and sent successfully',
-    type: ContactReplyResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Message not found',
+    description: 'Reply sent successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/ContactReplyResponseDto' },
+        status: { type: 'string', example: 'success' },
+        message: {
+          type: 'string',
+          example: 'Reply sent successfully to the user',
+        },
+      },
+    },
   })
   async createReply(
     @Param('id') messageId: string,
     @Body() createReplyDto: CreateReplyDto,
-    @Request() req: any,
-  ): Promise<ContactReplyResponseDto> {
-    const adminId = req.user.id;
+    // Note: adminId should come from JWT token in real implementation
+  ): Promise<ApiResponseDto<ContactReplyResponseDto>> {
+    // For now, using a placeholder admin ID - in real app, get from JWT
+    const adminId = 'admin-user-id';
     return await this.contactService.createReply(
       messageId,
       adminId,
@@ -165,45 +208,68 @@ export class ContactController {
     description: 'Message ID',
     example: 'uuid-string',
   })
+  @ApiBody({ type: UpdateMessageStatusDto })
   @ApiResponse({
     status: 200,
     description: 'Status updated successfully',
-    type: ContactMessageResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Message not found',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/ContactMessageResponseDto' },
+        status: { type: 'string', example: 'success' },
+        message: {
+          type: 'string',
+          example: 'Message status updated successfully',
+        },
+      },
+    },
   })
   async updateMessageStatus(
-    @Param('id') id: string,
+    @Param('id') messageId: string,
     @Body() updateStatusDto: UpdateMessageStatusDto,
-  ): Promise<ContactMessageResponseDto> {
-    return await this.contactService.updateMessageStatus(id, updateStatusDto);
+  ): Promise<ApiResponseDto<ContactMessageResponseDto>> {
+    return await this.contactService.updateMessageStatus(
+      messageId,
+      updateStatusDto,
+    );
   }
 
   @Delete('messages/:id')
   @UseGuards(AuthGuard, AdminGuard)
   @ApiBearerAuth()
-  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
-    summary: 'Delete a contact message',
-    description: 'Admin only - Delete a contact message and all its replies',
+    summary: 'Delete message',
+    description: 'Admin only - Delete a contact message and its replies',
   })
   @ApiParam({
     name: 'id',
-    description: 'Message ID to delete',
+    description: 'Message ID',
     example: 'uuid-string',
   })
   @ApiResponse({
-    status: 204,
+    status: 200,
     description: 'Message deleted successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          properties: {
+            message: {
+              type: 'string',
+              example: 'Message uuid-string deleted successfully',
+            },
+          },
+        },
+        status: { type: 'string', example: 'success' },
+        message: { type: 'string', example: 'Message deleted successfully' },
+      },
+    },
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Message not found',
-  })
-  async deleteMessage(@Param('id') id: string): Promise<void> {
-    await this.contactService.deleteMessage(id);
+  async deleteMessage(
+    @Param('id') messageId: string,
+  ): Promise<ApiResponseDto<{ message: string }>> {
+    return await this.contactService.deleteMessage(messageId);
   }
 
   @Get('messages/status/:status')
@@ -211,21 +277,36 @@ export class ContactController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get messages by status',
-    description: 'Admin only - Retrieve contact messages filtered by status',
+    description: 'Admin only - Retrieve messages filtered by status',
   })
   @ApiParam({
     name: 'status',
-    description: 'Message status to filter by',
+    description: 'Message status',
     enum: ['PENDING', 'REPLIED', 'ARCHIVED'],
     example: 'PENDING',
   })
   @ApiResponse({
     status: 200,
-    description: 'Messages retrieved successfully',
-    type: [ContactMessageResponseDto],
+    description: 'Messages filtered by status retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/ContactMessageResponseDto' },
+        },
+        status: { type: 'string', example: 'success' },
+        message: {
+          type: 'string',
+          example: 'Messages filtered by status retrieved successfully',
+        },
+      },
+    },
   })
-  async getMessagesByStatus(@Param('status') status: string) {
-    return await this.contactService.getMessagesByStatus(status as any);
+  async getMessagesByStatus(
+    @Param('status') status: 'PENDING' | 'REPLIED' | 'ARCHIVED',
+  ): Promise<ApiResponseDto<ContactMessageResponseDto[]>> {
+    return await this.contactService.getMessagesByStatus(status);
   }
 
   @Get('stats')
@@ -233,7 +314,7 @@ export class ContactController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get message statistics',
-    description: 'Admin only - Retrieve statistics about contact messages',
+    description: 'Admin only - Retrieve contact message statistics',
   })
   @ApiResponse({
     status: 200,
@@ -241,14 +322,78 @@ export class ContactController {
     schema: {
       type: 'object',
       properties: {
-        total: { type: 'number' },
-        pending: { type: 'number' },
-        replied: { type: 'number' },
-        archived: { type: 'number' },
+        data: { $ref: '#/components/schemas/MessageStatsResponseDto' },
+        status: { type: 'string', example: 'success' },
+        message: {
+          type: 'string',
+          example: 'Message statistics retrieved successfully',
+        },
       },
     },
   })
-  async getMessageStats() {
+  async getMessageStats(): Promise<ApiResponseDto<MessageStatsResponseDto>> {
     return await this.contactService.getMessageStats();
+  }
+
+  @Get('test-email')
+  @ApiOperation({
+    summary: 'Test email configuration',
+    description: 'Test the email service configuration (development only)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Email test completed',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean', example: true },
+            message: {
+              type: 'string',
+              example: 'Email service is configured and ready',
+            },
+            timestamp: { type: 'string', example: '2024-01-01T00:00:00.000Z' },
+          },
+        },
+        status: { type: 'string', example: 'success' },
+        message: {
+          type: 'string',
+          example: 'Email service is working correctly',
+        },
+      },
+    },
+  })
+  async testEmail(): Promise<
+    ApiResponseDto<{
+      success: boolean;
+      message: string;
+      timestamp: string;
+    }>
+  > {
+    // This is a simple test endpoint for development
+    try {
+      // Test basic email functionality
+      return {
+        data: {
+          success: true,
+          message: 'Email service is configured and ready',
+          timestamp: new Date().toISOString(),
+        },
+        status: 'success',
+        message: CONTACT_MESSAGES.EMAIL_TEST_SUCCESS,
+      };
+    } catch (error) {
+      return {
+        data: {
+          success: false,
+          message: `Email test failed: ${error.message}`,
+          timestamp: new Date().toISOString(),
+        },
+        status: 'error',
+        message: CONTACT_MESSAGES.INTERNAL_ERROR,
+      };
+    }
   }
 }

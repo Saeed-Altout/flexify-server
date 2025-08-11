@@ -16,6 +16,8 @@ import {
   CreateContactMessageDto,
   CreateReplyDto,
   UpdateMessageStatusDto,
+  ApiResponseDto,
+  CONTACT_MESSAGES,
 } from '../dto/contact.dto';
 
 @Injectable()
@@ -29,7 +31,7 @@ export class ContactService {
 
   async createContactMessage(
     createContactMessageDto: CreateContactMessageDto,
-  ): Promise<ContactMessage> {
+  ): Promise<ApiResponseDto<ContactMessage>> {
     try {
       const { data, error } = await this.supabaseService.insert(
         'contact_messages',
@@ -39,6 +41,7 @@ export class ContactService {
           subject: createContactMessageDto.subject,
           message: createContactMessageDto.message,
           status: 'PENDING' as MessageStatus,
+          source: createContactMessageDto.source || 'portfolio',
         },
       );
 
@@ -48,19 +51,36 @@ export class ContactService {
       }
 
       // Send notification email to admin
-      await this.emailService.sendContactNotification(createContactMessageDto);
+      try {
+        await this.emailService.sendContactNotification(
+          createContactMessageDto,
+        );
+        this.logger.log(
+          `Contact notification sent to admin for message from ${createContactMessageDto.email}`,
+        );
+      } catch (emailError) {
+        this.logger.error(
+          `Failed to send contact notification: ${emailError.message}`,
+        );
+        // Don't fail the whole operation if email fails
+      }
 
       this.logger.log(
         `Contact message created from ${createContactMessageDto.email}`,
       );
-      return data;
+
+      return {
+        data,
+        status: 'success',
+        message: CONTACT_MESSAGES.MESSAGE_CREATED,
+      };
     } catch (error) {
       this.logger.error(`Error creating contact message: ${error.message}`);
       throw error;
     }
   }
 
-  async getAllMessages(): Promise<ContactMessageWithReply[]> {
+  async getAllMessages(): Promise<ApiResponseDto<ContactMessageWithReply[]>> {
     try {
       const { data: messages, error: messagesError } =
         await this.supabaseService.select('contact_messages', {
@@ -90,14 +110,20 @@ export class ContactService {
         }),
       );
 
-      return messagesWithReplies;
+      return {
+        data: messagesWithReplies,
+        status: 'success',
+        message: CONTACT_MESSAGES.MESSAGES_RETRIEVED,
+      };
     } catch (error) {
       this.logger.error(`Error fetching messages: ${error.message}`);
       throw error;
     }
   }
 
-  async getMessageById(messageId: string): Promise<ContactMessageWithReply> {
+  async getMessageById(
+    messageId: string,
+  ): Promise<ApiResponseDto<ContactMessageWithReply>> {
     try {
       const { data: message, error: messageError } =
         await this.supabaseService.select('contact_messages', {
@@ -117,9 +143,15 @@ export class ContactService {
         },
       );
 
-      return {
+      const messageWithReplies = {
         ...(message as ContactMessage[])[0],
         replies: replies || [],
+      };
+
+      return {
+        data: messageWithReplies,
+        status: 'success',
+        message: CONTACT_MESSAGES.MESSAGE_RETRIEVED,
       };
     } catch (error) {
       this.logger.error(
@@ -133,13 +165,11 @@ export class ContactService {
     messageId: string,
     adminId: string,
     createReplyDto: CreateReplyDto,
-  ): Promise<ContactReply> {
+  ): Promise<ApiResponseDto<ContactReply>> {
     try {
       // Verify message exists
-      const message = await this.getMessageById(messageId);
-      if (!message) {
-        throw new NotFoundException('Message not found');
-      }
+      const messageResponse = await this.getMessageById(messageId);
+      const message = messageResponse.data;
 
       // Create reply
       const { data: reply, error: replyError } =
@@ -158,17 +188,28 @@ export class ContactService {
       await this.updateMessageStatus(messageId, { status: 'REPLIED' });
 
       // Send reply email to user
-      await this.emailService.sendReplyToUser(
-        message.email,
-        message.name,
-        message.subject,
-        createReplyDto.reply_content,
-      );
+      try {
+        await this.emailService.sendReplyToUser(
+          message.email,
+          message.name,
+          message.subject,
+          createReplyDto.reply_content,
+        );
+        this.logger.log(`Reply email sent to user ${message.email}`);
+      } catch (emailError) {
+        this.logger.error(`Failed to send reply email: ${emailError.message}`);
+        // Don't fail the whole operation if email fails
+      }
 
       this.logger.log(
         `Reply created for message ${messageId} by admin ${adminId}`,
       );
-      return reply;
+
+      return {
+        data: reply,
+        status: 'success',
+        message: CONTACT_MESSAGES.REPLY_CREATED,
+      };
     } catch (error) {
       this.logger.error(`Error creating reply: ${error.message}`);
       throw error;
@@ -178,7 +219,7 @@ export class ContactService {
   async updateMessageStatus(
     messageId: string,
     updateStatusDto: UpdateMessageStatusDto,
-  ): Promise<ContactMessage> {
+  ): Promise<ApiResponseDto<ContactMessage>> {
     try {
       const { data, error } = await this.supabaseService.update(
         'contact_messages',
@@ -196,14 +237,21 @@ export class ContactService {
       this.logger.log(
         `Message ${messageId} status updated to ${updateStatusDto.status}`,
       );
-      return data;
+
+      return {
+        data,
+        status: 'success',
+        message: CONTACT_MESSAGES.STATUS_UPDATED,
+      };
     } catch (error) {
       this.logger.error(`Error updating message status: ${error.message}`);
       throw error;
     }
   }
 
-  async deleteMessage(messageId: string): Promise<void> {
+  async deleteMessage(
+    messageId: string,
+  ): Promise<ApiResponseDto<{ message: string }>> {
     try {
       // Delete replies first (due to foreign key constraint)
       const { error: repliesError } = await this.supabaseService.delete(
@@ -230,13 +278,21 @@ export class ContactService {
       this.logger.log(
         `Message ${messageId} and its replies deleted successfully`,
       );
+
+      return {
+        data: { message: `Message ${messageId} deleted successfully` },
+        status: 'success',
+        message: CONTACT_MESSAGES.MESSAGE_DELETED,
+      };
     } catch (error) {
       this.logger.error(`Error deleting message: ${error.message}`);
       throw error;
     }
   }
 
-  async getMessagesByStatus(status: MessageStatus): Promise<ContactMessage[]> {
+  async getMessagesByStatus(
+    status: MessageStatus,
+  ): Promise<ApiResponseDto<ContactMessage[]>> {
     try {
       const { data, error } = await this.supabaseService.select(
         'contact_messages',
@@ -253,19 +309,25 @@ export class ContactService {
         throw new BadRequestException('Failed to fetch messages');
       }
 
-      return (data as ContactMessage[]) || [];
+      return {
+        data: (data as ContactMessage[]) || [],
+        status: 'success',
+        message: CONTACT_MESSAGES.MESSAGES_BY_STATUS,
+      };
     } catch (error) {
       this.logger.error(`Error fetching messages by status: ${error.message}`);
       throw error;
     }
   }
 
-  async getMessageStats(): Promise<{
-    total: number;
-    pending: number;
-    replied: number;
-    archived: number;
-  }> {
+  async getMessageStats(): Promise<
+    ApiResponseDto<{
+      total: number;
+      pending: number;
+      replied: number;
+      archived: number;
+    }>
+  > {
     try {
       const { data, error } =
         await this.supabaseService.select('contact_messages');
@@ -283,7 +345,11 @@ export class ContactService {
         archived: messages.filter((msg) => msg.status === 'ARCHIVED').length,
       };
 
-      return stats;
+      return {
+        data: stats,
+        status: 'success',
+        message: CONTACT_MESSAGES.STATS_RETRIEVED,
+      };
     } catch (error) {
       this.logger.error(`Error fetching message stats: ${error.message}`);
       throw error;

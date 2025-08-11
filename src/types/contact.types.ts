@@ -5,6 +5,7 @@ export interface ContactMessage {
   subject: string;
   message: string;
   status: MessageStatus;
+  source: string;
   created_at: string;
   updated_at: string;
 }
@@ -21,7 +22,7 @@ export interface ContactReply {
 export type MessageStatus = 'PENDING' | 'REPLIED' | 'ARCHIVED';
 
 export interface ContactMessageWithReply extends ContactMessage {
-  replies?: ContactReply[];
+  replies: ContactReply[];
 }
 
 export interface EmailTemplate {
