@@ -264,6 +264,8 @@ export class PagedProjectsResponseDto {
 export class ProjectItemResponseDto extends StandardResponseDto<ProjectResponseDto> {}
 export class ProjectsListResponseDto extends StandardResponseDto<PagedProjectsResponseDto> {}
 
+export class SingleProjectResponseDto extends StandardResponseDto<ProjectResponseDto> {}
+
 export class ProjectsListDataDto {
   @ApiProperty({ type: [ProjectResponseDto], name: 'projects' })
   projects: ProjectResponseDto[];

@@ -34,6 +34,7 @@ import {
   ProjectQueryDto,
   ProjectResponseDto,
   ProjectsListEnvelopeDto,
+  SingleProjectResponseDto,
 } from '../dto/projects.dto';
 
 @ApiTags('projects')
@@ -250,8 +251,16 @@ export class ProjectsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get project by ID' })
-  @ApiOkResponse({ description: 'Project details', type: ProjectResponseDto })
-  async getOne(@Param('id') id: string): Promise<ProjectResponseDto> {
-    return this.projectsService.findOne(id);
+  @ApiOkResponse({
+    description: 'Project details',
+    type: SingleProjectResponseDto,
+  })
+  async getOne(@Param('id') id: string): Promise<SingleProjectResponseDto> {
+    const project = await this.projectsService.findOne(id);
+    return {
+      data: project,
+      message: 'Project retrieved successfully',
+      status: 'success',
+    };
   }
 }
