@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './modules/auth.module';
 import { ProjectsModule } from './modules/projects.module';
 import { ContactModule } from './modules/contact.module';
+import { TechnologiesModule } from './modules/technologies.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -16,6 +17,7 @@ import configuration from './config/configuration';
     AuthModule,
     ProjectsModule,
     ContactModule,
+    TechnologiesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

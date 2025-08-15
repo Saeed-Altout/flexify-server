@@ -5,6 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { SupabaseService } from './supabase.service';
+import { TechnologiesService } from './technologies.service';
 import type { UserProfile } from '../types/auth.types';
 import {
   CreateProjectDto,
@@ -75,7 +76,10 @@ interface ProjectRow {
 export class ProjectsService {
   private readonly logger = new Logger(ProjectsService.name);
 
-  constructor(private supabase: SupabaseService) {}
+  constructor(
+    private supabase: SupabaseService,
+    private technologiesService: TechnologiesService,
+  ) {}
 
   private ensureAdminOrThrow(user?: UserProfile): void {
     if (!user || user.role !== 'ADMIN') {
@@ -118,6 +122,27 @@ export class ProjectsService {
     }
   }
 
+  private async validateTechnologies(technologies: string[]): Promise<void> {
+    if (!technologies || technologies.length === 0) {
+      throw new BadRequestException('At least one technology is required');
+    }
+
+    // Get all valid technology values from the technologies table
+    const validTechnologies =
+      await this.technologiesService.getTechnologiesForProjects();
+
+    // Check if all provided technologies exist in the valid technologies list
+    const invalidTechnologies = technologies.filter(
+      (tech) => !validTechnologies.includes(tech.toLowerCase()),
+    );
+
+    if (invalidTechnologies.length > 0) {
+      throw new BadRequestException(
+        `Invalid technologies: ${invalidTechnologies.join(', ')}. Please use only predefined technologies.`,
+      );
+    }
+  }
+
   private getSupabaseClient(): SupabaseClient {
     // Access the internal Supabase client through a type-safe wrapper
     const client = this.supabase as unknown as { supabase: SupabaseClient };
@@ -142,6 +167,9 @@ export class ProjectsService {
     }
 
     this.validateDates(dto.startDate, dto.endDate);
+
+    // Validate that all technologies exist in the predefined list
+    await this.validateTechnologies(dto.technologies);
 
     // Upload files first (optional)
     let logoUrl: string | null = null;
@@ -217,6 +245,11 @@ export class ProjectsService {
 
     if (dto.startDate || dto.endDate) {
       this.validateDates(dto.startDate, dto.endDate);
+    }
+
+    // Validate technologies if they are being updated
+    if (dto.technologies) {
+      await this.validateTechnologies(dto.technologies);
     }
 
     let logoUrl: string | undefined;
@@ -429,32 +462,8 @@ export class ProjectsService {
   }
 
   async getAllTechnologies(): Promise<string[]> {
-    const supa = this.getSupabaseClient();
-
-    // Get all projects and extract technologies
-    const { data, error } = await supa.from('projects').select('technologies');
-
-    if (error) {
-      this.logger.error(
-        `Get technologies error: ${(error as { message: string }).message}`,
-      );
-      throw new BadRequestException('Failed to fetch technologies');
-    }
-
-    if (!data) {
-      return [];
-    }
-
-    // Extract all technologies from all projects and flatten
-    const allTechnologies = (data as unknown[]).flatMap((row: unknown) => {
-      const project = row as { technologies: string[] };
-      return project.technologies || [];
-    });
-
-    // Remove duplicates and sort alphabetically
-    const uniqueTechnologies = [...new Set(allTechnologies)].sort();
-
-    return uniqueTechnologies;
+    // Use the technologies service to get all predefined technologies
+    return this.technologiesService.getTechnologiesForProjects();
   }
 
   private assertImage(mime: string, bytes: number) {
