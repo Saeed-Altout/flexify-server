@@ -172,7 +172,7 @@ export class CVBuilderService {
     const supa = this.getSupabaseClient();
 
     // Check if personal info already exists
-    const existing = await this.getPersonalInfo(user.id);
+    const existing = await this.getPersonalInfo(user);
 
     if (existing) {
       // Update existing
@@ -235,14 +235,18 @@ export class CVBuilderService {
   }
 
   async getPersonalInfo(
-    userId: string,
+    user: UserProfile | undefined,
   ): Promise<CVPersonalInfoResponse | null> {
+    if (!user?.id) {
+      throw new BadRequestException('User ID is required');
+    }
+
     const supa = this.getSupabaseClient();
 
     const { data, error } = await supa
       .from('cv_personal_info')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .single();
 
     if (error) {
@@ -728,7 +732,13 @@ export class CVBuilderService {
   }
 
   // Complete CV Generation
-  async getCompleteCV(userId: string): Promise<CompleteCVResponse> {
+  async getCompleteCV(
+    user: UserProfile | undefined,
+  ): Promise<CompleteCVResponse> {
+    if (!user?.id) {
+      throw new BadRequestException('User ID is required');
+    }
+
     const [
       sections,
       personalInfo,
@@ -741,14 +751,14 @@ export class CVBuilderService {
       references,
     ] = await Promise.all([
       this.getCVSections(),
-      this.getPersonalInfo(userId),
-      this.getSkills(userId, { page: 1, limit: 1000 }),
-      this.getExperiences(userId, { page: 1, limit: 1000 }),
-      this.getEducation(userId, { page: 1, limit: 1000 }),
-      this.getCertifications(userId, { page: 1, limit: 1000 }),
-      this.getAwards(userId, { page: 1, limit: 1000 }),
-      this.getInterests(userId, { page: 1, limit: 1000 }),
-      this.getReferences(userId, { page: 1, limit: 1000 }),
+      this.getPersonalInfo(user),
+      this.getSkills(user.id, { page: 1, limit: 1000 }),
+      this.getExperiences(user.id, { page: 1, limit: 1000 }),
+      this.getEducation(user.id, { page: 1, limit: 1000 }),
+      this.getCertifications(user.id, { page: 1, limit: 1000 }),
+      this.getAwards(user.id, { page: 1, limit: 1000 }),
+      this.getInterests(user.id, { page: 1, limit: 1000 }),
+      this.getReferences(user.id, { page: 1, limit: 1000 }),
     ]);
 
     return {

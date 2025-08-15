@@ -62,13 +62,13 @@ import type { CompleteCVResponse } from '../types/cv-builder.types';
 
 @ApiTags('CV Builder')
 @Controller('cv-builder')
-@UseGuards(AuthGuard)
-@ApiBearerAuth()
 export class CVBuilderController {
   constructor(private readonly cvBuilderService: CVBuilderService) {}
 
   // CV Sections Management (Admin only)
   @Put('sections/:name')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update CV section configuration (Admin only)' })
   @ApiResponse({
     status: 200,
@@ -89,7 +89,7 @@ export class CVBuilderController {
   }
 
   @Get('sections')
-  @ApiOperation({ summary: 'Get all CV sections configuration' })
+  @ApiOperation({ summary: 'Get all CV sections configuration (Public)' })
   @ApiResponse({
     status: 200,
     description: 'CV sections retrieved successfully',
@@ -109,6 +109,8 @@ export class CVBuilderController {
 
   // Personal Info Management
   @Post('personal-info')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create or update personal information' })
   @ApiResponse({
@@ -124,8 +126,10 @@ export class CVBuilderController {
     return this.cvBuilderService.createOrUpdatePersonalInfo(req.user, dto);
   }
 
-  @Get('personal-info/:userId')
-  @ApiOperation({ summary: 'Get personal information by user ID' })
+  @Get('personal-info')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get personal information for current user' })
   @ApiResponse({
     status: 200,
     description: 'Personal information retrieved successfully',
@@ -133,13 +137,15 @@ export class CVBuilderController {
   })
   @ApiResponse({ status: 404, description: 'Personal information not found' })
   async getPersonalInfo(
-    @Param('userId') userId: string,
+    @Request() req: { user: UserProfile },
   ): Promise<CVPersonalInfoResponseDto | null> {
-    return this.cvBuilderService.getPersonalInfo(userId);
+    return this.cvBuilderService.getPersonalInfo(req.user);
   }
 
   // Skills Management
   @Post('skills')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new skill' })
   @ApiResponse({
@@ -156,6 +162,8 @@ export class CVBuilderController {
   }
 
   @Put('skills/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a skill' })
   @ApiResponse({
     status: 200,
@@ -174,6 +182,8 @@ export class CVBuilderController {
   }
 
   @Delete('skills/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a skill' })
   @ApiResponse({ status: 204, description: 'Skill deleted successfully' })
@@ -187,6 +197,8 @@ export class CVBuilderController {
   }
 
   @Get('skills/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a skill by ID' })
   @ApiResponse({
     status: 200,
@@ -201,6 +213,8 @@ export class CVBuilderController {
   }
 
   @Get('skills')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get skills with pagination and filtering' })
   @ApiResponse({
     status: 200,
@@ -230,6 +244,8 @@ export class CVBuilderController {
 
   // Experience Management
   @Post('experience')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new experience entry' })
   @ApiResponse({
@@ -246,6 +262,8 @@ export class CVBuilderController {
   }
 
   @Put('experience/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update an experience entry' })
   @ApiResponse({
     status: 200,
@@ -264,6 +282,8 @@ export class CVBuilderController {
   }
 
   @Delete('experience/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete an experience entry' })
   @ApiResponse({ status: 204, description: 'Experience deleted successfully' })
@@ -277,6 +297,8 @@ export class CVBuilderController {
   }
 
   @Get('experience/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get an experience entry by ID' })
   @ApiResponse({
     status: 200,
@@ -291,6 +313,8 @@ export class CVBuilderController {
   }
 
   @Get('experience')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get experiences with pagination and filtering' })
   @ApiResponse({
     status: 200,
@@ -320,6 +344,8 @@ export class CVBuilderController {
 
   // Education Management
   @Post('education')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new education entry' })
   @ApiResponse({
@@ -336,6 +362,8 @@ export class CVBuilderController {
   }
 
   @Put('education/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update an education entry' })
   @ApiResponse({
     status: 200,
@@ -354,6 +382,8 @@ export class CVBuilderController {
   }
 
   @Delete('education/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete an education entry' })
   @ApiResponse({ status: 204, description: 'Education deleted successfully' })
@@ -367,6 +397,8 @@ export class CVBuilderController {
   }
 
   @Get('education/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get an education entry by ID' })
   @ApiResponse({
     status: 200,
@@ -381,6 +413,8 @@ export class CVBuilderController {
   }
 
   @Get('education')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get education entries with pagination and filtering',
   })
@@ -784,15 +818,17 @@ export class CVBuilderController {
   }
 
   // Complete CV Generation
-  @Get('complete/:userId')
-  @ApiOperation({ summary: 'Get complete CV for a user' })
+  @Get('complete')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get complete CV for current user' })
   @ApiResponse({
     status: 200,
     description: 'Complete CV retrieved successfully',
   })
   async getCompleteCV(
-    @Param('userId') userId: string,
+    @Request() req: { user: UserProfile },
   ): Promise<CompleteCVResponse> {
-    return this.cvBuilderService.getCompleteCV(userId);
+    return this.cvBuilderService.getCompleteCV(req.user);
   }
 }
