@@ -6,6 +6,7 @@ import { AuthModule } from './modules/auth.module';
 import { ProjectsModule } from './modules/projects.module';
 import { ContactModule } from './modules/contact.module';
 import { TechnologiesModule } from './modules/technologies.module';
+import { CVBuilderModule } from './modules/cv-builder.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -18,6 +19,7 @@ import configuration from './config/configuration';
     ProjectsModule,
     ContactModule,
     TechnologiesModule,
+    CVBuilderModule,
   ],
   controllers: [AppController],
   providers: [AppService],
