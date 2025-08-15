@@ -24,7 +24,6 @@ import type { UserProfile } from '../types/auth.types';
 import {
   UpdateCVSectionDto,
   CreateCVPersonalInfoDto,
-  UpdateCVPersonalInfoDto,
   CreateCVSkillDto,
   UpdateCVSkillDto,
   CreateCVExperienceDto,
@@ -84,8 +83,17 @@ export class CVBuilderController {
     @Request() req: { user: UserProfile },
     @Param('name') sectionName: string,
     @Body() dto: UpdateCVSectionDto,
-  ): Promise<CVSectionResponseDto> {
-    return this.cvBuilderService.updateCVSection(req.user, sectionName, dto);
+  ): Promise<{ data: CVSectionResponseDto; message: string; status: string }> {
+    const result = await this.cvBuilderService.updateCVSection(
+      req.user,
+      sectionName,
+      dto,
+    );
+    return {
+      data: result,
+      message: 'CV section updated successfully',
+      status: 'success',
+    };
   }
 
   @Get('sections')
@@ -95,15 +103,24 @@ export class CVBuilderController {
     description: 'CV sections retrieved successfully',
     type: CVSectionsListDto,
   })
-  async getCVSections(): Promise<CVSectionsListDto> {
+  async getCVSections(): Promise<{
+    data: CVSectionsListDto;
+    message: string;
+    status: string;
+  }> {
     const sections = await this.cvBuilderService.getCVSections();
-    return {
+    const result = {
       data: sections,
       total: sections.length,
       page: 1,
       limit: sections.length,
       next: null,
       prev: null,
+    };
+    return {
+      data: result,
+      message: 'CV sections retrieved successfully',
+      status: 'success',
     };
   }
 
@@ -122,8 +139,20 @@ export class CVBuilderController {
   async createOrUpdatePersonalInfo(
     @Request() req: { user: UserProfile },
     @Body() dto: CreateCVPersonalInfoDto,
-  ): Promise<CVPersonalInfoResponseDto> {
-    return this.cvBuilderService.createOrUpdatePersonalInfo(req.user, dto);
+  ): Promise<{
+    data: CVPersonalInfoResponseDto;
+    message: string;
+    status: string;
+  }> {
+    const result = await this.cvBuilderService.createOrUpdatePersonalInfo(
+      req.user,
+      dto,
+    );
+    return {
+      data: result,
+      message: 'Personal information created/updated successfully',
+      status: 'success',
+    };
   }
 
   @Get('personal-info')
@@ -136,10 +165,19 @@ export class CVBuilderController {
     type: CVPersonalInfoResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Personal information not found' })
-  async getPersonalInfo(
-    @Request() req: { user: UserProfile },
-  ): Promise<CVPersonalInfoResponseDto | null> {
-    return this.cvBuilderService.getPersonalInfo(req.user);
+  async getPersonalInfo(@Request() req: { user: UserProfile }): Promise<{
+    data: CVPersonalInfoResponseDto | null;
+    message: string;
+    status: string;
+  }> {
+    const result = await this.cvBuilderService.getPersonalInfo(req.user);
+    return {
+      data: result,
+      message: result
+        ? 'Personal information retrieved successfully'
+        : 'Personal information not found',
+      status: 'success',
+    };
   }
 
   // Skills Management
@@ -157,8 +195,13 @@ export class CVBuilderController {
   async createSkill(
     @Request() req: { user: UserProfile },
     @Body() dto: CreateCVSkillDto,
-  ): Promise<CVSkillResponseDto> {
-    return this.cvBuilderService.createSkill(req.user, dto);
+  ): Promise<{ data: CVSkillResponseDto; message: string; status: string }> {
+    const result = await this.cvBuilderService.createSkill(req.user, dto);
+    return {
+      data: result,
+      message: 'Skill created successfully',
+      status: 'success',
+    };
   }
 
   @Put('skills/:id')
@@ -177,8 +220,17 @@ export class CVBuilderController {
     @Request() req: { user: UserProfile },
     @Param('id') skillId: string,
     @Body() dto: UpdateCVSkillDto,
-  ): Promise<CVSkillResponseDto> {
-    return this.cvBuilderService.updateSkill(req.user, skillId, dto);
+  ): Promise<{ data: CVSkillResponseDto; message: string; status: string }> {
+    const result = await this.cvBuilderService.updateSkill(
+      req.user,
+      skillId,
+      dto,
+    );
+    return {
+      data: result,
+      message: 'Skill updated successfully',
+      status: 'success',
+    };
   }
 
   @Delete('skills/:id')
@@ -206,10 +258,17 @@ export class CVBuilderController {
     type: CVSkillResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Skill not found' })
-  async getSkill(
-    @Param('id') skillId: string,
-  ): Promise<CVSkillResponseDto | null> {
-    return this.cvBuilderService.getSkill(skillId);
+  async getSkill(@Param('id') skillId: string): Promise<{
+    data: CVSkillResponseDto | null;
+    message: string;
+    status: string;
+  }> {
+    const result = await this.cvBuilderService.getSkill(skillId);
+    return {
+      data: result,
+      message: result ? 'Skill retrieved successfully' : 'Skill not found',
+      status: 'success',
+    };
   }
 
   @Get('skills')
@@ -224,7 +283,7 @@ export class CVBuilderController {
   async getSkills(
     @Query() query: CVQueryDto,
     @Request() req: { user: UserProfile },
-  ): Promise<CVSkillsListDto> {
+  ): Promise<{ data: CVSkillsListDto; message: string; status: string }> {
     const { data, total } = await this.cvBuilderService.getSkills(
       req.user.id,
       query,
@@ -232,13 +291,18 @@ export class CVBuilderController {
     const page = query.page || 1;
     const limit = query.limit || 10;
 
-    return {
+    const result = {
       data,
       total,
       page,
       limit,
       next: total > page * limit ? page + 1 : null,
       prev: page > 1 ? page - 1 : null,
+    };
+    return {
+      data: result,
+      message: 'Skills retrieved successfully',
+      status: 'success',
     };
   }
 
@@ -257,8 +321,17 @@ export class CVBuilderController {
   async createExperience(
     @Request() req: { user: UserProfile },
     @Body() dto: CreateCVExperienceDto,
-  ): Promise<CVExperienceResponseDto> {
-    return this.cvBuilderService.createExperience(req.user, dto);
+  ): Promise<{
+    data: CVExperienceResponseDto;
+    message: string;
+    status: string;
+  }> {
+    const result = await this.cvBuilderService.createExperience(req.user, dto);
+    return {
+      data: result,
+      message: 'Experience created successfully',
+      status: 'success',
+    };
   }
 
   @Put('experience/:id')
@@ -277,8 +350,21 @@ export class CVBuilderController {
     @Request() req: { user: UserProfile },
     @Param('id') experienceId: string,
     @Body() dto: UpdateCVExperienceDto,
-  ): Promise<CVExperienceResponseDto> {
-    return this.cvBuilderService.updateExperience(req.user, experienceId, dto);
+  ): Promise<{
+    data: CVExperienceResponseDto;
+    message: string;
+    status: string;
+  }> {
+    const result = await this.cvBuilderService.updateExperience(
+      req.user,
+      experienceId,
+      dto,
+    );
+    return {
+      data: result,
+      message: 'Experience updated successfully',
+      status: 'success',
+    };
   }
 
   @Delete('experience/:id')
@@ -306,10 +392,19 @@ export class CVBuilderController {
     type: CVExperienceResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Experience not found' })
-  async getExperience(
-    @Param('id') experienceId: string,
-  ): Promise<CVExperienceResponseDto | null> {
-    return this.cvBuilderService.getExperience(experienceId);
+  async getExperience(@Param('id') experienceId: string): Promise<{
+    data: CVExperienceResponseDto | null;
+    message: string;
+    status: string;
+  }> {
+    const result = await this.cvBuilderService.getExperience(experienceId);
+    return {
+      data: result,
+      message: result
+        ? 'Experience retrieved successfully'
+        : 'Experience not found',
+      status: 'success',
+    };
   }
 
   @Get('experience')
@@ -324,7 +419,7 @@ export class CVBuilderController {
   async getExperiences(
     @Query() query: CVQueryDto,
     @Request() req: { user: UserProfile },
-  ): Promise<CVExperienceListDto> {
+  ): Promise<{ data: CVExperienceListDto; message: string; status: string }> {
     const { data, total } = await this.cvBuilderService.getExperiences(
       req.user.id,
       query,
@@ -332,13 +427,18 @@ export class CVBuilderController {
     const page = query.page || 1;
     const limit = query.limit || 10;
 
-    return {
+    const result = {
       data,
       total,
       page,
       limit,
       next: total > page * limit ? page + 1 : null,
       prev: page > 1 ? page - 1 : null,
+    };
+    return {
+      data: result,
+      message: 'Experiences retrieved successfully',
+      status: 'success',
     };
   }
 
@@ -357,8 +457,17 @@ export class CVBuilderController {
   async createEducation(
     @Request() req: { user: UserProfile },
     @Body() dto: CreateCVEducationDto,
-  ): Promise<CVEducationResponseDto> {
-    return this.cvBuilderService.createEducation(req.user, dto);
+  ): Promise<{
+    data: CVEducationResponseDto;
+    message: string;
+    status: string;
+  }> {
+    const result = await this.cvBuilderService.createEducation(req.user, dto);
+    return {
+      data: result,
+      message: 'Education created successfully',
+      status: 'success',
+    };
   }
 
   @Put('education/:id')
@@ -377,8 +486,21 @@ export class CVBuilderController {
     @Request() req: { user: UserProfile },
     @Param('id') educationId: string,
     @Body() dto: UpdateCVEducationDto,
-  ): Promise<CVEducationResponseDto> {
-    return this.cvBuilderService.updateEducation(req.user, educationId, dto);
+  ): Promise<{
+    data: CVEducationResponseDto;
+    message: string;
+    status: string;
+  }> {
+    const result = await this.cvBuilderService.updateEducation(
+      req.user,
+      educationId,
+      dto,
+    );
+    return {
+      data: result,
+      message: 'Education updated successfully',
+      status: 'success',
+    };
   }
 
   @Delete('education/:id')
@@ -406,10 +528,19 @@ export class CVBuilderController {
     type: CVEducationResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Education not found' })
-  async getEducation(
-    @Param('id') educationId: string,
-  ): Promise<CVEducationResponseDto | null> {
-    return this.cvBuilderService.getEducationById(educationId);
+  async getEducation(@Param('id') educationId: string): Promise<{
+    data: CVEducationResponseDto | null;
+    message: string;
+    status: string;
+  }> {
+    const result = await this.cvBuilderService.getEducationById(educationId);
+    return {
+      data: result,
+      message: result
+        ? 'Education retrieved successfully'
+        : 'Education not found',
+      status: 'success',
+    };
   }
 
   @Get('education')
@@ -426,7 +557,7 @@ export class CVBuilderController {
   async getEducationList(
     @Query() query: CVQueryDto,
     @Request() req: { user: UserProfile },
-  ): Promise<CVEducationListDto> {
+  ): Promise<{ data: CVEducationListDto; message: string; status: string }> {
     const { data, total } = await this.cvBuilderService.getEducation(
       req.user.id,
       query,
@@ -434,7 +565,7 @@ export class CVBuilderController {
     const page = query.page || 1;
     const limit = query.limit || 10;
 
-    return {
+    const result = {
       data,
       total,
       page,
@@ -442,10 +573,17 @@ export class CVBuilderController {
       next: total > page * limit ? page + 1 : null,
       prev: page > 1 ? page - 1 : null,
     };
+    return {
+      data: result,
+      message: 'Education entries retrieved successfully',
+      status: 'success',
+    };
   }
 
   // Certifications Management
   @Post('certifications')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new certification' })
   @ApiResponse({
@@ -457,11 +595,25 @@ export class CVBuilderController {
   async createCertification(
     @Request() req: { user: UserProfile },
     @Body() dto: CreateCVCertificationDto,
-  ): Promise<CVCertificationResponseDto> {
-    return this.cvBuilderService.createCertification(req.user, dto);
+  ): Promise<{
+    data: CVCertificationResponseDto;
+    message: string;
+    status: string;
+  }> {
+    const result = await this.cvBuilderService.createCertification(
+      req.user,
+      dto,
+    );
+    return {
+      data: result,
+      message: 'Certification created successfully',
+      status: 'success',
+    };
   }
 
   @Put('certifications/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a certification' })
   @ApiResponse({
     status: 200,
@@ -478,15 +630,26 @@ export class CVBuilderController {
     @Request() req: { user: UserProfile },
     @Param('id') certificationId: string,
     @Body() dto: UpdateCVCertificationDto,
-  ): Promise<CVCertificationResponseDto> {
-    return this.cvBuilderService.updateCertification(
+  ): Promise<{
+    data: CVCertificationResponseDto;
+    message: string;
+    status: string;
+  }> {
+    const result = await this.cvBuilderService.updateCertification(
       req.user,
       certificationId,
       dto,
     );
+    return {
+      data: result,
+      message: 'Certification updated successfully',
+      status: 'success',
+    };
   }
 
   @Delete('certifications/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a certification' })
   @ApiResponse({
@@ -506,6 +669,8 @@ export class CVBuilderController {
   }
 
   @Get('certifications/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a certification by ID' })
   @ApiResponse({
     status: 200,
@@ -513,13 +678,25 @@ export class CVBuilderController {
     type: CVCertificationResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Certification not found' })
-  async getCertification(
-    @Param('id') certificationId: string,
-  ): Promise<CVCertificationResponseDto | null> {
-    return this.cvBuilderService.getCertification(certificationId);
+  async getCertification(@Param('id') certificationId: string): Promise<{
+    data: CVCertificationResponseDto | null;
+    message: string;
+    status: string;
+  }> {
+    const result =
+      await this.cvBuilderService.getCertification(certificationId);
+    return {
+      data: result,
+      message: result
+        ? 'Certification retrieved successfully'
+        : 'Certification not found',
+      status: 'success',
+    };
   }
 
   @Get('certifications')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get certifications with pagination and filtering' })
   @ApiResponse({
     status: 200,
@@ -529,7 +706,11 @@ export class CVBuilderController {
   async getCertifications(
     @Query() query: CVQueryDto,
     @Request() req: { user: UserProfile },
-  ): Promise<CVCertificationsListDto> {
+  ): Promise<{
+    data: CVCertificationsListDto;
+    message: string;
+    status: string;
+  }> {
     const { data, total } = await this.cvBuilderService.getCertifications(
       req.user.id,
       query,
@@ -537,7 +718,7 @@ export class CVBuilderController {
     const page = query.page || 1;
     const limit = query.limit || 10;
 
-    return {
+    const result = {
       data,
       total,
       page,
@@ -545,10 +726,17 @@ export class CVBuilderController {
       next: total > page * limit ? page + 1 : null,
       prev: page > 1 ? page - 1 : null,
     };
+    return {
+      data: result,
+      message: 'Certifications retrieved successfully',
+      status: 'success',
+    };
   }
 
   // Awards Management
   @Post('awards')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new award' })
   @ApiResponse({
@@ -560,11 +748,18 @@ export class CVBuilderController {
   async createAward(
     @Request() req: { user: UserProfile },
     @Body() dto: CreateCVAwardDto,
-  ): Promise<CVAwardResponseDto> {
-    return this.cvBuilderService.createAward(req.user, dto);
+  ): Promise<{ data: CVAwardResponseDto; message: string; status: string }> {
+    const result = await this.cvBuilderService.createAward(req.user, dto);
+    return {
+      data: result,
+      message: 'Award created successfully',
+      status: 'success',
+    };
   }
 
   @Put('awards/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update an award' })
   @ApiResponse({
     status: 200,
@@ -578,11 +773,22 @@ export class CVBuilderController {
     @Request() req: { user: UserProfile },
     @Param('id') awardId: string,
     @Body() dto: UpdateCVAwardDto,
-  ): Promise<CVAwardResponseDto> {
-    return this.cvBuilderService.updateAward(req.user, awardId, dto);
+  ): Promise<{ data: CVAwardResponseDto; message: string; status: string }> {
+    const result = await this.cvBuilderService.updateAward(
+      req.user,
+      awardId,
+      dto,
+    );
+    return {
+      data: result,
+      message: 'Award updated successfully',
+      status: 'success',
+    };
   }
 
   @Delete('awards/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete an award' })
   @ApiResponse({ status: 204, description: 'Award deleted successfully' })
@@ -596,6 +802,8 @@ export class CVBuilderController {
   }
 
   @Get('awards/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get an award by ID' })
   @ApiResponse({
     status: 200,
@@ -603,13 +811,22 @@ export class CVBuilderController {
     type: CVAwardResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Award not found' })
-  async getAward(
-    @Param('id') awardId: string,
-  ): Promise<CVAwardResponseDto | null> {
-    return this.cvBuilderService.getAward(awardId);
+  async getAward(@Param('id') awardId: string): Promise<{
+    data: CVAwardResponseDto | null;
+    message: string;
+    status: string;
+  }> {
+    const result = await this.cvBuilderService.getAward(awardId);
+    return {
+      data: result,
+      message: result ? 'Award retrieved successfully' : 'Award not found',
+      status: 'success',
+    };
   }
 
   @Get('awards')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get awards with pagination and filtering' })
   @ApiResponse({
     status: 200,
@@ -619,7 +836,7 @@ export class CVBuilderController {
   async getAwards(
     @Query() query: CVQueryDto,
     @Request() req: { user: UserProfile },
-  ): Promise<CVAwardsListDto> {
+  ): Promise<{ data: CVAwardsListDto; message: string; status: string }> {
     const { data, total } = await this.cvBuilderService.getAwards(
       req.user.id,
       query,
@@ -627,7 +844,7 @@ export class CVBuilderController {
     const page = query.page || 1;
     const limit = query.limit || 10;
 
-    return {
+    const result = {
       data,
       total,
       page,
@@ -635,10 +852,17 @@ export class CVBuilderController {
       next: total > page * limit ? page + 1 : null,
       prev: page > 1 ? page - 1 : null,
     };
+    return {
+      data: result,
+      message: 'Awards retrieved successfully',
+      status: 'success',
+    };
   }
 
   // Interests Management
   @Post('interests')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new interest' })
   @ApiResponse({
@@ -650,11 +874,18 @@ export class CVBuilderController {
   async createInterest(
     @Request() req: { user: UserProfile },
     @Body() dto: CreateCVInterestDto,
-  ): Promise<CVInterestResponseDto> {
-    return this.cvBuilderService.createInterest(req.user, dto);
+  ): Promise<{ data: CVInterestResponseDto; message: string; status: string }> {
+    const result = await this.cvBuilderService.createInterest(req.user, dto);
+    return {
+      data: result,
+      message: 'Interest created successfully',
+      status: 'success',
+    };
   }
 
   @Put('interests/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update an interest' })
   @ApiResponse({
     status: 200,
@@ -668,11 +899,22 @@ export class CVBuilderController {
     @Request() req: { user: UserProfile },
     @Param('id') interestId: string,
     @Body() dto: UpdateCVInterestDto,
-  ): Promise<CVInterestResponseDto> {
-    return this.cvBuilderService.updateInterest(req.user, interestId, dto);
+  ): Promise<{ data: CVInterestResponseDto; message: string; status: string }> {
+    const result = await this.cvBuilderService.updateInterest(
+      req.user,
+      interestId,
+      dto,
+    );
+    return {
+      data: result,
+      message: 'Interest updated successfully',
+      status: 'success',
+    };
   }
 
   @Delete('interests/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete an interest' })
   @ApiResponse({ status: 204, description: 'Interest deleted successfully' })
@@ -686,6 +928,8 @@ export class CVBuilderController {
   }
 
   @Get('interests/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get an interest by ID' })
   @ApiResponse({
     status: 200,
@@ -693,13 +937,24 @@ export class CVBuilderController {
     type: CVInterestResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Interest not found' })
-  async getInterest(
-    @Param('id') interestId: string,
-  ): Promise<CVInterestResponseDto | null> {
-    return this.cvBuilderService.getInterest(interestId);
+  async getInterest(@Param('id') interestId: string): Promise<{
+    data: CVInterestResponseDto | null;
+    message: string;
+    status: string;
+  }> {
+    const result = await this.cvBuilderService.getInterest(interestId);
+    return {
+      data: result,
+      message: result
+        ? 'Interest retrieved successfully'
+        : 'Interest not found',
+      status: 'success',
+    };
   }
 
   @Get('interests')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get interests with pagination and filtering' })
   @ApiResponse({
     status: 200,
@@ -709,7 +964,7 @@ export class CVBuilderController {
   async getInterests(
     @Query() query: CVQueryDto,
     @Request() req: { user: UserProfile },
-  ): Promise<CVInterestsListDto> {
+  ): Promise<{ data: CVInterestsListDto; message: string; status: string }> {
     const { data, total } = await this.cvBuilderService.getInterests(
       req.user.id,
       query,
@@ -717,7 +972,7 @@ export class CVBuilderController {
     const page = query.page || 1;
     const limit = query.limit || 10;
 
-    return {
+    const result = {
       data,
       total,
       page,
@@ -725,10 +980,17 @@ export class CVBuilderController {
       next: total > page * limit ? page + 1 : null,
       prev: page > 1 ? page - 1 : null,
     };
+    return {
+      data: result,
+      message: 'Interests retrieved successfully',
+      status: 'success',
+    };
   }
 
   // References Management
   @Post('references')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new reference' })
   @ApiResponse({
@@ -740,11 +1002,22 @@ export class CVBuilderController {
   async createReference(
     @Request() req: { user: UserProfile },
     @Body() dto: CreateCVReferenceDto,
-  ): Promise<CVReferenceResponseDto> {
-    return this.cvBuilderService.createReference(req.user, dto);
+  ): Promise<{
+    data: CVReferenceResponseDto;
+    message: string;
+    status: string;
+  }> {
+    const result = await this.cvBuilderService.createReference(req.user, dto);
+    return {
+      data: result,
+      message: 'Reference created successfully',
+      status: 'success',
+    };
   }
 
   @Put('references/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a reference' })
   @ApiResponse({
     status: 200,
@@ -758,11 +1031,26 @@ export class CVBuilderController {
     @Request() req: { user: UserProfile },
     @Param('id') referenceId: string,
     @Body() dto: UpdateCVReferenceDto,
-  ): Promise<CVReferenceResponseDto> {
-    return this.cvBuilderService.updateReference(req.user, referenceId, dto);
+  ): Promise<{
+    data: CVReferenceResponseDto;
+    message: string;
+    status: string;
+  }> {
+    const result = await this.cvBuilderService.updateReference(
+      req.user,
+      referenceId,
+      dto,
+    );
+    return {
+      data: result,
+      message: 'Reference updated successfully',
+      status: 'success',
+    };
   }
 
   @Delete('references/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a reference' })
   @ApiResponse({ status: 204, description: 'Reference deleted successfully' })
@@ -776,6 +1064,8 @@ export class CVBuilderController {
   }
 
   @Get('references/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a reference by ID' })
   @ApiResponse({
     status: 200,
@@ -783,13 +1073,24 @@ export class CVBuilderController {
     type: CVReferenceResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Reference not found' })
-  async getReference(
-    @Param('id') referenceId: string,
-  ): Promise<CVReferenceResponseDto | null> {
-    return this.cvBuilderService.getReference(referenceId);
+  async getReference(@Param('id') referenceId: string): Promise<{
+    data: CVReferenceResponseDto | null;
+    message: string;
+    status: string;
+  }> {
+    const result = await this.cvBuilderService.getReference(referenceId);
+    return {
+      data: result,
+      message: result
+        ? 'Reference retrieved successfully'
+        : 'Reference not found',
+      status: 'success',
+    };
   }
 
   @Get('references')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get references with pagination and filtering' })
   @ApiResponse({
     status: 200,
@@ -799,7 +1100,7 @@ export class CVBuilderController {
   async getReferences(
     @Query() query: CVQueryDto,
     @Request() req: { user: UserProfile },
-  ): Promise<CVReferencesListDto> {
+  ): Promise<{ data: CVReferencesListDto; message: string; status: string }> {
     const { data, total } = await this.cvBuilderService.getReferences(
       req.user.id,
       query,
@@ -807,13 +1108,18 @@ export class CVBuilderController {
     const page = query.page || 1;
     const limit = query.limit || 10;
 
-    return {
+    const result = {
       data,
       total,
       page,
       limit,
       next: total > page * limit ? page + 1 : null,
       prev: page > 1 ? page - 1 : null,
+    };
+    return {
+      data: result,
+      message: 'References retrieved successfully',
+      status: 'success',
     };
   }
 
@@ -828,7 +1134,12 @@ export class CVBuilderController {
   })
   async getCompleteCV(
     @Request() req: { user: UserProfile },
-  ): Promise<CompleteCVResponse> {
-    return this.cvBuilderService.getCompleteCV(req.user);
+  ): Promise<{ data: CompleteCVResponse; message: string; status: string }> {
+    const result = await this.cvBuilderService.getCompleteCV(req.user);
+    return {
+      data: result,
+      message: 'Complete CV retrieved successfully',
+      status: 'success',
+    };
   }
 }
