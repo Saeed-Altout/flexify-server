@@ -1,0 +1,571 @@
+{
+  "info": {
+    "name": "Technologies Service API",
+    "description": "Complete API collection for managing technologies in Flexify backend. Includes all CRUD operations, public endpoints, and testing scenarios.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "flexify-technologies-api",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "technology_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Admin Operations",
+      "description": "Admin-only endpoints requiring JWT authentication",
+      "item": [
+        {
+          "name": "Create Technology",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Next.js\",\n  \"value\": \"nextjs\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/technologies",
+              "host": ["{{base_url}}"],
+              "path": ["technologies"]
+            },
+            "description": "Create a new technology. Admin privileges required."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set(\"technology_id\", response.data.id);",
+                  "    pm.test(\"Technology created successfully\", function () {",
+                  "        pm.expect(response.status).to.eql(\"success\");",
+                  "        pm.expect(response.data.label).to.eql(\"Next.js\");",
+                  "        pm.expect(response.data.value).to.eql(\"nextjs\");",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bulk Create Technologies",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"technologies\": [\n    {\n      \"label\": \"Svelte\",\n      \"value\": \"svelte\"\n    },\n    {\n      \"label\": \"Nuxt.js\",\n      \"value\": \"nuxt\"\n    },\n    {\n      \"label\": \"Gatsby\",\n      \"value\": \"gatsby\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/technologies/bulk",
+              "host": ["{{base_url}}"],
+              "path": ["technologies", "bulk"]
+            },
+            "description": "Create multiple technologies at once. Admin privileges required."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Technology",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Next.js v14\",\n  \"value\": \"nextjs\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/technologies/{{technology_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["technologies", "{{technology_id}}"]
+            },
+            "description": "Update an existing technology. Admin privileges required."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Technology",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/technologies/{{technology_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["technologies", "{{technology_id}}"]
+            },
+            "description": "Delete a technology. Cannot delete if used in projects. Admin privileges required."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Public Operations",
+      "description": "Public endpoints accessible without authentication",
+      "item": [
+        {
+          "name": "List Technologies (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/technologies?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["technologies"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Page size"
+                }
+              ]
+            },
+            "description": "Get paginated list of technologies. No authentication required."
+          },
+          "response": []
+        },
+        {
+          "name": "Search Technologies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/technologies?q=react",
+              "host": ["{{base_url}}"],
+              "path": ["technologies"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "react",
+                  "description": "Search query for label or value"
+                }
+              ]
+            },
+            "description": "Search technologies by label or value. No authentication required."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Technologies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/technologies/all",
+              "host": ["{{base_url}}"],
+              "path": ["technologies", "all"]
+            },
+            "description": "Get all technologies without pagination. Useful for dropdowns. No authentication required."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Technologies for Projects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/technologies/for-projects",
+              "host": ["{{base_url}}"],
+              "path": ["technologies", "for-projects"]
+            },
+            "description": "Get technology values for project creation forms. No authentication required."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Technology by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/technologies/{{technology_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["technologies", "{{technology_id}}"]
+            },
+            "description": "Get a specific technology by ID. No authentication required."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Technology by Value",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/technologies/by-value/react",
+              "host": ["{{base_url}}"],
+              "path": ["technologies", "by-value", "react"]
+            },
+            "description": "Get a technology by its value (slug). No authentication required."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Testing Scenarios",
+      "description": "Complete testing workflows and scenarios",
+      "item": [
+        {
+          "name": "Admin Workflow Test",
+          "description": "Complete admin workflow: create → update → delete",
+          "item": [
+            {
+              "name": "1. Create Technology",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"label\": \"Test Technology\",\n  \"value\": \"test-tech\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/technologies",
+                  "host": ["{{base_url}}"],
+                  "path": ["technologies"]
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    const response = pm.response.json();",
+                      "    pm.environment.set(\"technology_id\", response.data.id);",
+                      "    pm.test(\"Step 1: Technology created\", function () {",
+                      "        pm.expect(response.status).to.eql(\"success\");",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "2. Update Technology",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"label\": \"Updated Test Technology\",\n  \"value\": \"test-tech\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/technologies/{{technology_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["technologies", "{{technology_id}}"]
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    pm.test(\"Step 2: Technology updated\", function () {",
+                      "        const response = pm.response.json();",
+                      "        pm.expect(response.status).to.eql(\"success\");",
+                      "        pm.expect(response.data.label).to.eql(\"Updated Test Technology\");",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "3. Delete Technology",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/technologies/{{technology_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["technologies", "{{technology_id}}"]
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 204) {",
+                      "    pm.test(\"Step 3: Technology deleted\", function () {",
+                      "        pm.expect(pm.response.code).to.eql(204);",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Error Handling Test",
+          "description": "Test various error scenarios and edge cases",
+          "item": [
+            {
+              "name": "Create Duplicate Technology",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"label\": \"React.js\",\n  \"value\": \"react\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/technologies",
+                  "host": ["{{base_url}}"],
+                  "path": ["technologies"]
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Duplicate technology should return 409\", function () {",
+                      "    pm.expect(pm.response.code).to.eql(409);",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.error).to.eql(\"Conflict\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Unauthorized Access",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"label\": \"Test Tech\",\n  \"value\": \"test\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/technologies",
+                  "host": ["{{base_url}}"],
+                  "path": ["technologies"]
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "// Remove authorization header to test unauthorized access",
+                      "pm.request.headers.remove(\"Authorization\");"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Unauthorized access should return 401\", function () {",
+                      "    pm.expect(pm.response.code).to.eql(401);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sample Data",
+      "description": "Pre-configured sample data for testing",
+      "item": [
+        {
+          "name": "Frontend Technologies",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"technologies\": [\n    { \"label\": \"React.js\", \"value\": \"react\" },\n    { \"label\": \"Vue.js\", \"value\": \"vue\" },\n    { \"label\": \"Angular\", \"value\": \"angular\" },\n    { \"label\": \"Next.js\", \"value\": \"nextjs\" },\n    { \"label\": \"Nuxt.js\", \"value\": \"nuxt\" },\n    { \"label\": \"Svelte\", \"value\": \"svelte\" },\n    { \"label\": \"Gatsby\", \"value\": \"gatsby\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/technologies/bulk",
+              "host": ["{{base_url}}"],
+              "path": ["technologies", "bulk"]
+            },
+            "description": "Bulk create common frontend technologies for testing."
+          },
+          "response": []
+        },
+        {
+          "name": "Backend Technologies",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"technologies\": [\n    { \"label\": \"Node.js\", \"value\": \"nodejs\" },\n    { \"label\": \"Python\", \"value\": \"python\" },\n    { \"label\": \"Django\", \"value\": \"django\" },\n    { \"label\": \"FastAPI\", \"value\": \"fastapi\" },\n    { \"label\": \"Express.js\", \"value\": \"express\" },\n    { \"label\": \"Flask\", \"value\": \"flask\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/technologies/bulk",
+              "host": ["{{base_url}}"],
+              "path": ["technologies", "bulk"]
+            },
+            "description": "Bulk create common backend technologies for testing."
+          },
+          "response": []
+        },
+        {
+          "name": "Database Technologies",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"technologies\": [\n    { \"label\": \"PostgreSQL\", \"value\": \"postgresql\" },\n    { \"label\": \"MongoDB\", \"value\": \"mongodb\" },\n    { \"label\": \"Redis\", \"value\": \"redis\" },\n    { \"label\": \"MySQL\", \"value\": \"mysql\" },\n    { \"label\": \"SQLite\", \"value\": \"sqlite\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/technologies/bulk",
+              "host": ["{{base_url}}"],
+              "path": ["technologies", "bulk"]
+            },
+            "description": "Bulk create common database technologies for testing."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global pre-request script",
+          "// Set JWT token if not exists",
+          "if (!pm.environment.get(\"jwt_token\")) {",
+          "    console.log(\"Warning: JWT token not set. Admin endpoints will fail.\");",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test script",
+          "pm.test(\"Response time is less than 2000ms\", function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+          "});",
+          "",
+          "pm.test(\"Response has required structure\", function () {",
+          "    const response = pm.response.json();",
+          "    if (pm.response.code !== 204) { // Skip for DELETE responses",
+          "        pm.expect(response).to.have.property('status');",
+          "        pm.expect(response).to.have.property('message');",
+          "    }",
+          "});"
+        ]
+      }
+    }
+  ]
+}
