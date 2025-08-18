@@ -7,7 +7,6 @@ import {
   Request,
   ParseFilePipe,
   MaxFileSizeValidator,
-  FileTypeValidator,
   Body,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -49,7 +48,8 @@ export class FileUploadController {
         file: {
           type: 'string',
           format: 'binary',
-          description: 'Profile picture file (JPEG, PNG, WebP, max 5MB)',
+          description:
+            'Profile picture file (All common image formats: JPEG, PNG, WebP, GIF, BMP, TIFF, SVG, AVIF, HEIC, max 5MB)',
         },
       },
       required: ['file'],
@@ -85,7 +85,6 @@ export class FileUploadController {
       new ParseFilePipe({
         validators: [
           new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
-          new FileTypeValidator({ fileType: '.(jpg|jpeg|png|webp)' }),
         ],
       }),
     )
@@ -119,7 +118,8 @@ export class FileUploadController {
         file: {
           type: 'string',
           format: 'binary',
-          description: 'Project image file (JPEG, PNG, WebP, max 10MB)',
+          description:
+            'Project image file (All common image formats: JPEG, PNG, WebP, GIF, BMP, TIFF, SVG, AVIF, HEIC, max 10MB)',
         },
         projectId: {
           type: 'string',
@@ -159,7 +159,6 @@ export class FileUploadController {
       new ParseFilePipe({
         validators: [
           new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }), // 10MB
-          new FileTypeValidator({ fileType: '.(jpg|jpeg|png|webp)' }),
         ],
       }),
     )

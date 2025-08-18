@@ -18,21 +18,26 @@ export interface FileUploadResult {
 @Injectable()
 export class FileUploadService {
   private readonly logger = new Logger(FileUploadService.name);
-  private supabase: SupabaseClient;
+  private supabase: SupabaseClient | null = null;
 
-  constructor(private configService: ConfigService) {
-    const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
-    const supabaseKey = this.configService.get<string>(
-      'SUPABASE_SERVICE_ROLE_KEY',
-    );
+  constructor(private configService: ConfigService) {}
 
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error(
-        'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be configured',
+  private getSupabaseClient(): SupabaseClient {
+    if (!this.supabase) {
+      const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
+      const supabaseKey = this.configService.get<string>(
+        'SUPABASE_SERVICE_ROLE_KEY',
       );
-    }
 
-    this.supabase = createClient(supabaseUrl, supabaseKey);
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error(
+          'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be configured',
+        );
+      }
+
+      this.supabase = createClient(supabaseUrl, supabaseKey);
+    }
+    return this.supabase;
   }
 
   async uploadProfilePicture(
@@ -43,7 +48,19 @@ export class FileUploadService {
       file,
       'profile-pictures',
       `user-${userId}`,
-      ['image/jpeg', 'image/png', 'image/webp'],
+      [
+        'image/jpeg',
+        'image/jpg', 
+        'image/png',
+        'image/webp',
+        'image/gif',
+        'image/bmp',
+        'image/tiff',
+        'image/svg+xml',
+        'image/avif',
+        'image/heic',
+        'image/heif'
+      ],
       5 * 1024 * 1024, // 5MB limit
     );
   }
@@ -61,7 +78,19 @@ export class FileUploadService {
       file,
       'project-images',
       folder,
-      ['image/jpeg', 'image/png', 'image/webp'],
+      [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/webp',
+        'image/gif',
+        'image/bmp',
+        'image/tiff',
+        'image/svg+xml',
+        'image/avif',
+        'image/heic',
+        'image/heif'
+      ],
       10 * 1024 * 1024, // 10MB limit
     );
   }
@@ -94,7 +123,8 @@ export class FileUploadService {
     const filePath = `${folder}/${filename}`;
 
     try {
-      const { data, error } = await this.supabase.storage
+      const supabase = this.getSupabaseClient();
+      const { data, error } = await supabase.storage
         .from(bucket)
         .upload(filePath, file.buffer, {
           contentType: file.mimetype,
@@ -107,7 +137,7 @@ export class FileUploadService {
       }
 
       // Get public URL
-      const { data: urlData } = this.supabase.storage
+      const { data: urlData } = supabase.storage
         .from(bucket)
         .getPublicUrl(filePath);
 
@@ -124,7 +154,8 @@ export class FileUploadService {
 
   async deleteFile(bucket: string, filePath: string): Promise<void> {
     try {
-      const { error } = await this.supabase.storage
+      const supabase = this.getSupabaseClient();
+      const { error } = await supabase.storage
         .from(bucket)
         .remove([filePath]);
 
