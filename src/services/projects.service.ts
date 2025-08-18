@@ -467,7 +467,19 @@ export class ProjectsService {
   }
 
   private assertImage(mime: string, bytes: number) {
-    const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    const allowed = [
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
+      'image/webp',
+      'image/gif',
+      'image/bmp',
+      'image/tiff',
+      'image/svg+xml',
+      'image/avif',
+      'image/heic',
+      'image/heif',
+    ];
     if (!allowed.includes(mime)) {
       throw new BadRequestException('Invalid image type');
     }
