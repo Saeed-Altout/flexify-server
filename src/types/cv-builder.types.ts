@@ -22,14 +22,20 @@ export interface CVSection {
 export interface CVPersonalInfo {
   id: string;
   user_id: string;
+  name?: string;
   job_title?: string;
   summary?: string;
-  profile_picture?: string;
+  profile_picture?: string; // File path/reference instead of URL
   phone?: string;
+  email?: string;
   address?: string;
+  location?: string;
   website?: string;
   linkedin?: string;
   github?: string;
+  core_values?: Array<{ label: string; value: string }>; // Core values as array of objects
+  birthday?: string; // ISO date string
+  experience?: string;
   created_at: string;
   updated_at: string;
 }
@@ -144,14 +150,20 @@ export interface CVSectionResponse {
 export interface CVPersonalInfoResponse {
   id: string;
   user_id: string;
+  name?: string;
   job_title?: string;
   summary?: string;
-  profile_picture?: string;
+  profile_picture?: string; // File path/reference instead of URL
   phone?: string;
+  email?: string;
   address?: string;
+  location?: string;
   website?: string;
   linkedin?: string;
   github?: string;
+  core_values?: Array<{ label: string; value: string }>; // Core values as array of objects
+  birthday?: string; // ISO date string
+  experience?: string;
   created_at: string;
   updated_at: string;
 }
@@ -272,14 +284,20 @@ export interface CVSectionRow {
 export interface CVPersonalInfoRow {
   id: string;
   user_id: string;
+  name?: string;
   job_title?: string;
   summary?: string;
-  profile_picture?: string;
+  profile_picture?: string; // File path/reference instead of URL
   phone?: string;
+  email?: string;
   address?: string;
+  location?: string;
   website?: string;
   linkedin?: string;
   github?: string;
+  core_values?: Array<{ label: string; value: string }>; // Core values as array of objects
+  birthday?: string; // ISO date string
+  experience?: string;
   created_at: string;
   updated_at: string;
 }

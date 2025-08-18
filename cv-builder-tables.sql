@@ -18,14 +18,20 @@ CREATE TABLE IF NOT EXISTS public.cv_sections (
 CREATE TABLE IF NOT EXISTS public.cv_personal_info (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    name TEXT,
     job_title TEXT,
     summary TEXT,
-    profile_picture TEXT,
+    profile_picture TEXT, -- File path/reference instead of URL
     phone TEXT,
+    email TEXT,
     address TEXT,
+    location TEXT,
     website TEXT,
     linkedin TEXT,
     github TEXT,
+    core_values JSONB, -- Store as JSON array of {label, value} objects
+    birthday DATE,
+    experience TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     UNIQUE(user_id)

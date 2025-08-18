@@ -56,6 +56,7 @@ import {
   CVInterestsListDto,
   CVReferenceResponseDto,
   CVReferencesListDto,
+  UpdateCVPersonalInfoDto,
 } from '../dto/cv-builder.dto';
 import type { CompleteCVResponse } from '../types/cv-builder.types';
 
@@ -176,6 +177,36 @@ export class CVBuilderController {
       message: result
         ? 'Personal information retrieved successfully'
         : 'Personal information not found',
+      status: 'success',
+    };
+  }
+
+  @Put('personal-info')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update personal information' })
+  @ApiResponse({
+    status: 200,
+    description: 'Personal information updated successfully',
+    type: CVPersonalInfoResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 404, description: 'Personal information not found' })
+  async updatePersonalInfo(
+    @Request() req: { user: UserProfile },
+    @Body() dto: UpdateCVPersonalInfoDto,
+  ): Promise<{
+    data: CVPersonalInfoResponseDto;
+    message: string;
+    status: string;
+  }> {
+    const result = await this.cvBuilderService.updatePersonalInfo(
+      req.user,
+      dto,
+    );
+    return {
+      data: result,
+      message: 'Personal information updated successfully',
       status: 'success',
     };
   }

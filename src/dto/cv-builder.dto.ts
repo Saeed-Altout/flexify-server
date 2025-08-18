@@ -2,11 +2,8 @@ import {
   IsString,
   IsNotEmpty,
   IsOptional,
-  IsUUID,
   MaxLength,
   IsArray,
-  ArrayNotEmpty,
-  ArrayMinSize,
   IsNumber,
   Min,
   Max,
@@ -20,6 +17,29 @@ import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { StandardResponseDto } from './auth.dto';
 import type { SeniorityLevel } from '../types/cv-builder.types';
+
+// Core Value DTO for nested validation
+export class CoreValueDto {
+  @ApiProperty({
+    description: 'Core value label',
+    example: 'Innovation',
+    maxLength: 50,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  label: string;
+
+  @ApiProperty({
+    description: 'Core value description',
+    example: 'Always seeking new solutions',
+    maxLength: 200,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  value: string;
+}
 
 // CV Section DTOs
 export class UpdateCVSectionDto {
@@ -103,6 +123,16 @@ export class CVSectionResponseDto {
 // Personal Info DTOs
 export class CreateCVPersonalInfoDto {
   @ApiPropertyOptional({
+    description: 'Full name',
+    example: 'John Doe',
+    maxLength: 100,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  name?: string;
+
+  @ApiPropertyOptional({
     description: 'Job title',
     example: 'Senior Full Stack Developer',
     maxLength: 100,
@@ -123,12 +153,12 @@ export class CreateCVPersonalInfoDto {
   summary?: string;
 
   @ApiPropertyOptional({
-    description: 'Profile picture URL',
-    example: 'https://example.com/profile.jpg',
+    description: 'Profile picture file path/reference',
+    example: 'user-123/timestamp-filename.jpg',
     maxLength: 500,
   })
   @IsOptional()
-  @IsUrl()
+  @IsString()
   @MaxLength(500)
   profile_picture?: string;
 
@@ -143,6 +173,16 @@ export class CreateCVPersonalInfoDto {
   phone?: string;
 
   @ApiPropertyOptional({
+    description: 'Email address',
+    example: 'john.doe@example.com',
+    maxLength: 100,
+  })
+  @IsOptional()
+  @IsEmail()
+  @MaxLength(100)
+  email?: string;
+
+  @ApiPropertyOptional({
     description: 'Address',
     example: '123 Main St, City, State 12345',
     maxLength: 200,
@@ -151,6 +191,16 @@ export class CreateCVPersonalInfoDto {
   @IsString()
   @MaxLength(200)
   address?: string;
+
+  @ApiPropertyOptional({
+    description: 'Location',
+    example: 'San Francisco, CA',
+    maxLength: 100,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  location?: string;
 
   @ApiPropertyOptional({
     description: 'Personal website',
@@ -181,6 +231,47 @@ export class CreateCVPersonalInfoDto {
   @IsUrl()
   @MaxLength(500)
   github?: string;
+
+  @ApiPropertyOptional({
+    description: 'Core values as array of objects with label and value',
+    example: [
+      { label: 'Innovation', value: 'Always seeking new solutions' },
+      { label: 'Quality', value: 'Delivering excellence in everything' },
+    ],
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        label: { type: 'string' },
+        value: { type: 'string' },
+      },
+    },
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CoreValueDto)
+  core_values?: Array<{ label: string; value: string }>;
+
+  @ApiPropertyOptional({
+    description: 'Birthday in ISO date format',
+    example: '1990-01-01',
+    type: 'string',
+    format: 'date',
+  })
+  @IsOptional()
+  @IsDateString()
+  birthday?: string;
+
+  @ApiPropertyOptional({
+    description: 'Professional experience summary',
+    example: '5+ years in full-stack development',
+    maxLength: 500,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  experience?: string;
 }
 
 export class UpdateCVPersonalInfoDto extends CreateCVPersonalInfoDto {}
@@ -192,20 +283,29 @@ export class CVPersonalInfoResponseDto {
   @ApiProperty({ description: 'User ID' })
   user_id: string;
 
+  @ApiProperty({ description: 'Full name' })
+  name?: string;
+
   @ApiProperty({ description: 'Job title' })
   job_title?: string;
 
   @ApiProperty({ description: 'Professional summary' })
   summary?: string;
 
-  @ApiProperty({ description: 'Profile picture URL' })
+  @ApiProperty({ description: 'Profile picture file path/reference' })
   profile_picture?: string;
 
   @ApiProperty({ description: 'Phone number' })
   phone?: string;
 
+  @ApiProperty({ description: 'Email address' })
+  email?: string;
+
   @ApiProperty({ description: 'Address' })
   address?: string;
+
+  @ApiProperty({ description: 'Location' })
+  location?: string;
 
   @ApiProperty({ description: 'Personal website' })
   website?: string;
@@ -215,6 +315,29 @@ export class CVPersonalInfoResponseDto {
 
   @ApiProperty({ description: 'GitHub profile' })
   github?: string;
+
+  @ApiProperty({
+    description: 'Core values as array of objects with label and value',
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        label: { type: 'string' },
+        value: { type: 'string' },
+      },
+    },
+  })
+  core_values?: Array<{ label: string; value: string }>;
+
+  @ApiProperty({
+    description: 'Birthday in ISO date format',
+    type: 'string',
+    format: 'date',
+  })
+  birthday?: string;
+
+  @ApiProperty({ description: 'Professional experience summary' })
+  experience?: string;
 
   @ApiProperty({ description: 'Creation timestamp' })
   created_at: string;

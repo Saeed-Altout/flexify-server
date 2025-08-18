@@ -86,21 +86,44 @@ POST /cv-builder/personal-info
 
 ```json
 {
+  "name": "John Doe",
   "job_title": "Senior Full Stack Developer",
   "summary": "Experienced developer with expertise in React, Node.js, and cloud technologies",
-  "profile_picture": "https://example.com/profile.jpg",
+  "profile_picture": "uploads/profile-pictures/john-doe.jpg",
   "phone": "+1234567890",
+  "email": "john.doe@example.com",
   "address": "123 Developer St, Tech City, TC 12345",
+  "location": "San Francisco, CA",
   "website": "https://myportfolio.com",
   "linkedin": "https://linkedin.com/in/username",
-  "github": "https://github.com/username"
+  "github": "https://github.com/username",
+  "core_values": [
+    {
+      "label": "Innovation",
+      "value": "Always seeking new solutions"
+    },
+    {
+      "label": "Quality",
+      "value": "Delivering excellence in everything"
+    }
+  ],
+  "birthday": "1990-01-01",
+  "experience": "5+ years in full-stack development"
 }
 ```
+
+#### Update Personal Info
+
+```http
+PUT /cv-builder/personal-info
+```
+
+**Body:** Same as POST, but only include fields you want to update.
 
 #### Get Personal Info
 
 ```http
-GET /cv-builder/personal-info/:userId
+GET /cv-builder/personal-info
 ```
 
 ### Skills Management
@@ -612,3 +635,104 @@ When adding new features:
 ---
 
 **Note**: This service integrates seamlessly with your existing NestJS application and follows all established patterns for consistency and maintainability.
+
+# CV Builder API Documentation
+
+## File Upload Endpoints
+
+### Upload Profile Picture
+
+**POST** `/file-upload/profile-picture`
+
+Upload a profile picture for the authenticated user.
+
+**Headers:**
+
+- `Authorization: Bearer {token}`
+- `Content-Type: multipart/form-data`
+
+**Body (Form Data):**
+
+- `file`: Image file (JPEG, PNG, WebP, max 5MB)
+
+**Response:**
+
+```json
+{
+  "data": {
+    "url": "https://supabase.co/storage/v1/object/public/profile-pictures/user-123/timestamp-filename.jpg",
+    "path": "user-123/timestamp-filename.jpg",
+    "filename": "timestamp-filename.jpg"
+  },
+  "message": "Profile picture uploaded successfully",
+  "status": "success"
+}
+```
+
+### Upload Project Image
+
+**POST** `/file-upload/project-image`
+
+Upload a project image for the authenticated user.
+
+**Headers:**
+
+- `Authorization: Bearer {token}`
+- `Content-Type: multipart/form-data`
+
+**Body (Form Data):**
+
+- `file`: Image file (JPEG, PNG, WebP, max 10MB)
+- `projectId` (optional): Project ID for organizing images
+
+**Response:**
+
+```json
+{
+  "data": {
+    "url": "https://supabase.co/storage/v1/object/public/project-images/user-123/project-456/timestamp-filename.jpg",
+    "path": "user-123/project-456/timestamp-filename.jpg",
+    "filename": "timestamp-filename.jpg"
+  },
+  "message": "Project image uploaded successfully",
+  "status": "success"
+}
+```
+
+## Updated Personal Info Endpoints
+
+### Create/Update Personal Info
+
+**POST** `/cv-builder/personal-info`
+
+**Body:**
+
+```json
+{
+  "name": "John Doe",
+  "job_title": "Senior Full Stack Developer",
+  "summary": "Experienced developer with expertise in React, Node.js, and cloud technologies",
+  "profile_picture": "user-123/timestamp-filename.jpg",
+  "phone": "+1234567890",
+  "email": "john.doe@example.com",
+  "address": "123 Developer St, Tech City, TC 12345",
+  "location": "San Francisco, CA",
+  "website": "https://myportfolio.com",
+  "linkedin": "https://linkedin.com/in/username",
+  "github": "https://github.com/username",
+  "core_values": [
+    {
+      "label": "Innovation",
+      "value": "Always seeking new solutions"
+    },
+    {
+      "label": "Quality",
+      "value": "Delivering excellence in everything"
+    }
+  ],
+  "birthday": "1990-01-01",
+  "experience": "5+ years in full-stack development"
+}
+```
+
+**Note:** The `profile_picture` field now expects a file path (e.g., `user-123/timestamp-filename.jpg`) instead of a URL. Use the file upload endpoint first to get this path.

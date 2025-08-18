@@ -177,16 +177,23 @@ export class CVBuilderService {
     if (existing) {
       // Update existing
       const updates: Record<string, unknown> = {};
+      if (dto.name !== undefined) updates.name = dto.name?.trim();
       if (dto.job_title !== undefined)
         updates.job_title = dto.job_title?.trim();
       if (dto.summary !== undefined) updates.summary = dto.summary?.trim();
       if (dto.profile_picture !== undefined)
         updates.profile_picture = dto.profile_picture;
       if (dto.phone !== undefined) updates.phone = dto.phone?.trim();
+      if (dto.email !== undefined) updates.email = dto.email?.trim();
       if (dto.address !== undefined) updates.address = dto.address?.trim();
+      if (dto.location !== undefined) updates.location = dto.location?.trim();
       if (dto.website !== undefined) updates.website = dto.website;
       if (dto.linkedin !== undefined) updates.linkedin = dto.linkedin;
       if (dto.github !== undefined) updates.github = dto.github;
+      if (dto.core_values !== undefined) updates.core_values = dto.core_values;
+      if (dto.birthday !== undefined) updates.birthday = dto.birthday;
+      if (dto.experience !== undefined)
+        updates.experience = dto.experience?.trim();
 
       const { data, error } = await supa
         .from('cv_personal_info')
@@ -207,14 +214,20 @@ export class CVBuilderService {
       // Create new
       const payload = {
         user_id: user.id,
+        name: dto.name?.trim(),
         job_title: dto.job_title?.trim(),
         summary: dto.summary?.trim(),
         profile_picture: dto.profile_picture,
         phone: dto.phone?.trim(),
+        email: dto.email?.trim(),
         address: dto.address?.trim(),
+        location: dto.location?.trim(),
         website: dto.website,
         linkedin: dto.linkedin,
         github: dto.github,
+        core_values: dto.core_values,
+        birthday: dto.birthday,
+        experience: dto.experience?.trim(),
       };
 
       const { data, error } = await supa
@@ -232,6 +245,59 @@ export class CVBuilderService {
 
       return this.toPersonalInfoDto(data as CVPersonalInfoRow);
     }
+  }
+
+  // Update Personal Info (only for existing records)
+  async updatePersonalInfo(
+    user: UserProfile | undefined,
+    dto: UpdateCVPersonalInfoDto,
+  ): Promise<CVPersonalInfoResponse> {
+    if (!user) {
+      throw new ForbiddenException('Authentication required');
+    }
+
+    const supa = this.getSupabaseClient();
+
+    // Check if personal info exists
+    const existing = await this.getPersonalInfo(user);
+    if (!existing) {
+      throw new NotFoundException('Personal information not found');
+    }
+
+    // Update existing
+    const updates: Record<string, unknown> = {};
+    if (dto.name !== undefined) updates.name = dto.name?.trim();
+    if (dto.job_title !== undefined) updates.job_title = dto.job_title?.trim();
+    if (dto.summary !== undefined) updates.summary = dto.summary?.trim();
+    if (dto.profile_picture !== undefined)
+      updates.profile_picture = dto.profile_picture;
+    if (dto.phone !== undefined) updates.phone = dto.phone?.trim();
+    if (dto.email !== undefined) updates.email = dto.email?.trim();
+    if (dto.address !== undefined) updates.address = dto.address?.trim();
+    if (dto.location !== undefined) updates.location = dto.location?.trim();
+    if (dto.website !== undefined) updates.website = dto.website;
+    if (dto.linkedin !== undefined) updates.linkedin = dto.linkedin;
+    if (dto.github !== undefined) updates.github = dto.github;
+    if (dto.core_values !== undefined) updates.core_values = dto.core_values;
+    if (dto.birthday !== undefined) updates.birthday = dto.birthday;
+    if (dto.experience !== undefined)
+      updates.experience = dto.experience?.trim();
+
+    const { data, error } = await supa
+      .from('cv_personal_info')
+      .update(updates)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (error) {
+      this.logger.error(
+        `Update personal info error: ${(error as { message: string }).message}`,
+      );
+      throw new BadRequestException('Failed to update personal info');
+    }
+
+    return this.toPersonalInfoDto(data as CVPersonalInfoRow);
   }
 
   async getPersonalInfo(

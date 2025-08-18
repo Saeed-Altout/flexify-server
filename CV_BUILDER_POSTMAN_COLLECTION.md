@@ -116,6 +116,63 @@ Authorization: Bearer {{auth_token}}
 }
 ```
 
+## File Upload Endpoints
+
+### Upload Profile Picture
+
+**POST** `{{base_url}}/file-upload/profile-picture`
+
+**Headers:**
+
+- `Authorization`: `Bearer {{auth_token}}`
+- `Content-Type`: `multipart/form-data`
+
+**Body (form-data):**
+
+- `file`: [Select file] (JPEG, PNG, WebP, max 5MB)
+
+**Response Example:**
+
+```json
+{
+  "data": {
+    "url": "https://supabase.co/storage/v1/object/public/profile-pictures/user-123/timestamp-filename.jpg",
+    "path": "user-123/timestamp-filename.jpg",
+    "filename": "timestamp-filename.jpg"
+  },
+  "message": "Profile picture uploaded successfully",
+  "status": "success"
+}
+```
+
+### Upload Project Image
+
+**POST** `{{base_url}}/file-upload/project-image`
+
+**Headers:**
+
+- `Authorization`: `Bearer {{auth_token}}`
+- `Content-Type`: `multipart/form-data`
+
+**Body (form-data):**
+
+- `file`: [Select file] (JPEG, PNG, WebP, max 10MB)
+- `projectId`: `project-123` (optional)
+
+**Response Example:**
+
+```json
+{
+  "data": {
+    "url": "https://supabase.co/storage/v1/object/public/project-images/user-123/project-123/timestamp-filename.jpg",
+    "path": "user-123/project-123/timestamp-filename.jpg",
+    "filename": "timestamp-filename.jpg"
+  },
+  "message": "Project image uploaded successfully",
+  "status": "success"
+}
+```
+
 ## 👤 Personal Information Management
 
 ### Create/Update Personal Info
@@ -126,14 +183,29 @@ Authorization: Bearer {{auth_token}}
 Content-Type: application/json
 
 {
+  "name": "John Doe",
   "job_title": "Senior Full Stack Developer",
   "summary": "Experienced developer with 5+ years of expertise in React, Node.js, and cloud technologies. Passionate about creating scalable solutions and mentoring junior developers.",
-  "profile_picture": "https://example.com/profile.jpg",
+  "profile_picture": "uploads/profile-pictures/john-doe.jpg",
   "phone": "+1 (555) 123-4567",
+  "email": "john.doe@example.com",
   "address": "123 Developer Street, Tech City, TC 12345",
+  "location": "San Francisco, CA",
   "website": "https://myportfolio.com",
   "linkedin": "https://linkedin.com/in/username",
-  "github": "https://github.com/username"
+  "github": "https://github.com/username",
+  "core_values": [
+    {
+      "label": "Innovation",
+      "value": "Always seeking new solutions"
+    },
+    {
+      "label": "Quality",
+      "value": "Delivering excellence in everything"
+    }
+  ],
+  "birthday": "1990-01-01",
+  "experience": "5+ years in full-stack development"
 }
 ```
 
@@ -143,14 +215,29 @@ Content-Type: application/json
 {
   "id": "personal-info-uuid",
   "user_id": "user-uuid",
+  "name": "John Doe",
   "job_title": "Senior Full Stack Developer",
   "summary": "Experienced developer with 5+ years of expertise...",
-  "profile_picture": "https://example.com/profile.jpg",
+  "profile_picture": "uploads/profile-pictures/john-doe.jpg",
   "phone": "+1 (555) 123-4567",
+  "email": "john.doe@example.com",
   "address": "123 Developer Street, Tech City, TC 12345",
+  "location": "San Francisco, CA",
   "website": "https://myportfolio.com",
   "linkedin": "https://linkedin.com/in/username",
   "github": "https://github.com/username",
+  "core_values": [
+    {
+      "label": "Innovation",
+      "value": "Always seeking new solutions"
+    },
+    {
+      "label": "Quality",
+      "value": "Delivering excellence in everything"
+    }
+  ],
+  "birthday": "1990-01-01",
+  "experience": "5+ years in full-stack development",
   "created_at": "2024-01-01T00:00:00Z",
   "updated_at": "2024-01-01T00:00:00Z"
 }
@@ -159,20 +246,26 @@ Content-Type: application/json
 ### Get Personal Info
 
 ```http
-GET {{base_url}}/cv-builder/personal-info/{{user_id}}
+GET {{base_url}}/cv-builder/personal-info
 Authorization: Bearer {{auth_token}}
 ```
 
 ### Update Personal Info
 
 ```http
-PUT {{base_url}}/cv-builder/personal-info/{{personal_info_id}}
+PUT {{base_url}}/cv-builder/personal-info
 Authorization: Bearer {{auth_token}}
 Content-Type: application/json
 
 {
   "job_title": "Lead Full Stack Developer",
-  "summary": "Updated summary with new achievements..."
+  "summary": "Updated summary with new achievements...",
+  "core_values": [
+    {
+      "label": "Leadership",
+      "value": "Guiding teams to success"
+    }
+  ]
 }
 ```
 
