@@ -5,14 +5,14 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SupabaseService } from './supabase.service';
-import { UserProfile } from '../types/auth.types';
+import { SupabaseService } from '../services/supabase.service';
+import { UserProfile } from '../auth/types/auth.types';
 import {
   SignUpDto,
   SignInDto,
   StandardResponseDto,
   UserProfileDto,
-} from '../dto/auth.dto';
+} from '../auth/dto/auth.dto';
 
 @Injectable()
 export class AuthService {

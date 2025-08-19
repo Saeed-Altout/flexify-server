@@ -19,8 +19,8 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { CVBuilderService } from '../services/cv-builder.service';
-import { AuthGuard } from '../guards/auth.guard';
-import type { UserProfile } from '../types/auth.types';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import type { UserProfile } from '../auth/types/auth.types';
 import {
   UpdateCVSectionDto,
   CreateCVPersonalInfoDto,

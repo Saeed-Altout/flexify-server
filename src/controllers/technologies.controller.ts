@@ -20,9 +20,9 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
-import { AuthGuard } from '../guards/auth.guard';
-import { CurrentUser } from '../decorators/current-user.decorator';
-import type { UserProfile } from '../types/auth.types';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { UserProfile } from '../auth/types/auth.types';
 import { TechnologiesService } from '../services/technologies.service';
 import {
   CreateTechnologyDto,

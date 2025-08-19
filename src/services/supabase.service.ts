@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { UserProfile, AuthResponse, UserRole } from '../types/auth.types';
+import { UserProfile, AuthResponse, UserRole } from '../auth/types/auth.types';
 
 @Injectable()
 export class SupabaseService {

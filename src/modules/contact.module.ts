@@ -5,8 +5,8 @@ import { ContactController } from '../controllers/contact.controller';
 import { ContactService } from '../services/contact.service';
 import { EmailService } from '../services/email.service';
 import { SupabaseService } from '../services/supabase.service';
-import { AuthGuard } from '../guards/auth.guard';
-import { AdminGuard } from '../guards/admin.guard';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 
 @Module({
   imports: [

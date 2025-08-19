@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { AuthController } from '../controllers/auth.controller';
-import { AuthService } from '../services/auth.service';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
 import { SupabaseService } from '../services/supabase.service';
-import { AuthGuard } from '../guards/auth.guard';
+import { AuthGuard } from './guards/auth.guard';
 
 @Module({
   imports: [ConfigModule],

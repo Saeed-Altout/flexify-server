@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { SupabaseService } from './supabase.service';
 import { TechnologiesService } from './technologies.service';
-import type { UserProfile } from '../types/auth.types';
+import type { UserProfile } from '../auth/types/auth.types';
 import {
   CreateProjectDto,
   UpdateProjectDto,

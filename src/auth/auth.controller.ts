@@ -22,9 +22,9 @@ import {
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { AuthService } from '../services/auth.service';
-import { AuthGuard } from '../guards/auth.guard';
-import { CurrentUser } from '../decorators/current-user.decorator';
+import { AuthService } from './auth.service';
+import { AuthGuard } from './guards/auth.guard';
+import { CurrentUser } from './decorators/current-user.decorator';
 import {
   SignUpDto,
   SignInDto,
@@ -32,8 +32,8 @@ import {
   ErrorResponseDto,
   StandardResponseDto,
   UserProfileDto,
-} from '../dto/auth.dto';
-import type { UserProfile } from '../types/auth.types';
+} from './dto/auth.dto';
+import type { UserProfile } from './types/auth.types';
 
 @ApiTags('auth')
 @Controller('auth')

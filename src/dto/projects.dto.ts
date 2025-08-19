@@ -14,7 +14,7 @@ import {
   IsIn,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { StandardResponseDto } from './auth.dto';
+import { StandardResponseDto } from '../auth/dto/auth.dto';
 
 export enum ProjectStatusEnum {
   InProgress = 'inprogress',

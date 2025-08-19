@@ -7,7 +7,6 @@ import {
   Body,
   Param,
   UseGuards,
-  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,8 +17,8 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { ContactService } from '../services/contact.service';
-import { AuthGuard } from '../guards/auth.guard';
-import { AdminGuard } from '../guards/admin.guard';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import {
   CreateContactMessageDto,
   CreateReplyDto,

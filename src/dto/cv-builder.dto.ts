@@ -15,7 +15,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { StandardResponseDto } from './auth.dto';
+import { StandardResponseDto } from '../auth/dto/auth.dto';
 import type { SeniorityLevel } from '../types/cv-builder.types';
 
 // Core Value DTO for nested validation

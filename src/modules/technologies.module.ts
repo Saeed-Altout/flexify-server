@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TechnologiesService } from '../services/technologies.service';
 import { TechnologiesController } from '../controllers/technologies.controller';
 import { SupabaseService } from '../services/supabase.service';
-import { AuthGuard } from '../guards/auth.guard';
+import { AuthGuard } from '../auth/guards/auth.guard';
 
 @Module({
   imports: [],

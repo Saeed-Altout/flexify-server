@@ -18,9 +18,9 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { AuthGuard } from '../guards/auth.guard';
+import { AuthGuard } from '../auth/guards/auth.guard';
 import { FileUploadService } from '../services/file-upload.service';
-import type { UserProfile } from '../types/auth.types';
+import type { UserProfile } from '../auth/types/auth.types';
 
 // File interface for multer
 interface MulterFile {
