@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SupabaseService } from '../services/supabase.service';
+import { SupabaseService } from '../supabase/supabase.service';
 import { UserProfile } from '../auth/types/auth.types';
 import {
   SignUpDto,

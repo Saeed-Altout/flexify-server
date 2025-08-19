@@ -4,21 +4,24 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { SupabaseService } from './supabase.service';
-import { EmailService } from './email.service';
+
 import {
   ContactMessage,
   ContactReply,
   ContactMessageWithReply,
   MessageStatus,
-} from '../types/contact.types';
+} from './types/contact.types';
 import {
   CreateContactMessageDto,
   CreateReplyDto,
   UpdateMessageStatusDto,
   ApiResponseDto,
   CONTACT_MESSAGES,
-} from '../dto/contact.dto';
+} from './dto/contact.dto';
+
+import { EmailService } from './email.service';
+
+import { SupabaseService } from '../supabase/supabase.service';
 
 @Injectable()
 export class ContactService {

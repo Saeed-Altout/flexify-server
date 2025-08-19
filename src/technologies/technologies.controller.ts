@@ -23,7 +23,7 @@ import {
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { UserProfile } from '../auth/types/auth.types';
-import { TechnologiesService } from '../services/technologies.service';
+import { TechnologiesService } from './technologies.service';
 import {
   CreateTechnologyDto,
   UpdateTechnologyDto,
@@ -33,7 +33,7 @@ import {
   TechnologiesListEnvelopeDto,
   SingleTechnologyResponseDto,
   BulkCreateTechnologiesResponseDto,
-} from '../dto/technologies.dto';
+} from './dto/technologies.dto';
 
 @ApiTags('technologies')
 @Controller('technologies')

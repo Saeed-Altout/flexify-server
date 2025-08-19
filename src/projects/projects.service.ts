@@ -4,8 +4,8 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
-import { SupabaseService } from './supabase.service';
-import { TechnologiesService } from './technologies.service';
+import { SupabaseService } from '../supabase/supabase.service';
+import { TechnologiesService } from '../technologies/technologies.service';
 import type { UserProfile } from '../auth/types/auth.types';
 import {
   CreateProjectDto,
@@ -13,7 +13,7 @@ import {
   ProjectQueryDto,
   ProjectResponseDto,
   ProjectStatusEnum,
-} from '../dto/projects.dto';
+} from './dto/projects.dto';
 
 // Define proper types for Supabase client operations
 interface SupabaseClient {

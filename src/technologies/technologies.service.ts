@@ -6,7 +6,7 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
-import { SupabaseService } from './supabase.service';
+import { SupabaseService } from '../supabase/supabase.service';
 import type { UserProfile } from '../auth/types/auth.types';
 import {
   CreateTechnologyDto,
@@ -14,7 +14,7 @@ import {
   TechnologyQueryDto,
   TechnologyResponseDto,
   BulkCreateTechnologiesDto,
-} from '../dto/technologies.dto';
+} from './dto/technologies.dto';
 
 // Define proper types for Supabase client operations
 interface SupabaseClient {

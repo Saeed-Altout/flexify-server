@@ -5,9 +5,6 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { SupabaseService } from './supabase.service';
-import { TechnologiesService } from './technologies.service';
-import type { UserProfile } from '../auth/types/auth.types';
 import {
   CVSectionRow,
   CVPersonalInfoRow,
@@ -28,7 +25,7 @@ import {
   CVInterestResponse,
   CVReferenceResponse,
   CompleteCVResponse,
-} from '../types/cv-builder.types';
+} from './types/cv-builder.types';
 import {
   CreateCVPersonalInfoDto,
   UpdateCVPersonalInfoDto,
@@ -48,9 +45,12 @@ import {
   UpdateCVReferenceDto,
   UpdateCVSectionDto,
   CVQueryDto,
-} from '../dto/cv-builder.dto';
+} from './dto/cv-builder.dto';
 
-// Define proper types for Supabase client operations
+import type { UserProfile } from '../auth/types/auth.types';
+import { SupabaseService } from '../supabase/supabase.service';
+import { TechnologiesService } from '../technologies/technologies.service';
+
 interface SupabaseClient {
   from: (table: string) => SupabaseQueryBuilder;
 }

@@ -26,8 +26,8 @@ import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { UserProfile } from '../auth/types/auth.types';
-import { ProjectsService } from '../services/projects.service';
-import { SupabaseService } from '../services/supabase.service';
+import { ProjectsService } from './projects.service';
+import { SupabaseService } from '../supabase/supabase.service';
 import {
   CreateProjectDto,
   UpdateProjectDto,
@@ -35,7 +35,7 @@ import {
   ProjectResponseDto,
   ProjectsListEnvelopeDto,
   SingleProjectResponseDto,
-} from '../dto/projects.dto';
+} from './dto/projects.dto';
 
 @ApiTags('projects')
 @Controller('projects')

@@ -50,7 +50,7 @@ export class FileUploadService {
       `user-${userId}`,
       [
         'image/jpeg',
-        'image/jpg', 
+        'image/jpg',
         'image/png',
         'image/webp',
         'image/gif',
@@ -59,7 +59,7 @@ export class FileUploadService {
         'image/svg+xml',
         'image/avif',
         'image/heic',
-        'image/heif'
+        'image/heif',
       ],
       5 * 1024 * 1024, // 5MB limit
     );
@@ -89,7 +89,7 @@ export class FileUploadService {
         'image/svg+xml',
         'image/avif',
         'image/heic',
-        'image/heif'
+        'image/heif',
       ],
       10 * 1024 * 1024, // 10MB limit
     );
@@ -124,7 +124,7 @@ export class FileUploadService {
 
     try {
       const supabase = this.getSupabaseClient();
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from(bucket)
         .upload(filePath, file.buffer, {
           contentType: file.mimetype,
@@ -155,9 +155,7 @@ export class FileUploadService {
   async deleteFile(bucket: string, filePath: string): Promise<void> {
     try {
       const supabase = this.getSupabaseClient();
-      const { error } = await supabase.storage
-        .from(bucket)
-        .remove([filePath]);
+      const { error } = await supabase.storage.from(bucket).remove([filePath]);
 
       if (error) {
         this.logger.error(`Delete error: ${error.message}`);

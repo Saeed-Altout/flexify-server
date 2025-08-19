@@ -12,15 +12,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
-import { CVBuilderService } from '../services/cv-builder.service';
-import { AuthGuard } from '../auth/guards/auth.guard';
-import type { UserProfile } from '../auth/types/auth.types';
+
 import {
   UpdateCVSectionDto,
   CreateCVPersonalInfoDto,
@@ -57,29 +49,20 @@ import {
   CVReferenceResponseDto,
   CVReferencesListDto,
   UpdateCVPersonalInfoDto,
-} from '../dto/cv-builder.dto';
-import type { CompleteCVResponse } from '../types/cv-builder.types';
+} from './dto/cv-builder.dto';
 
-@ApiTags('CV Builder')
+import { AuthGuard } from '../auth/guards/auth.guard';
+import type { UserProfile } from '../auth/types/auth.types';
+
+import { CompleteCVResponse } from './types/cv-builder.types';
+import { CVBuilderService } from './cv-builder.service';
+
 @Controller('cv-builder')
 export class CVBuilderController {
   constructor(private readonly cvBuilderService: CVBuilderService) {}
 
-  // CV Sections Management (Admin only)
   @Put('sections/:name')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update CV section configuration (Admin only)' })
-  @ApiResponse({
-    status: 200,
-    description: 'CV section updated successfully',
-    type: CVSectionResponseDto,
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Admin access required',
-  })
-  @ApiResponse({ status: 404, description: 'CV section not found' })
   async updateCVSection(
     @Request() req: { user: UserProfile },
     @Param('name') sectionName: string,
@@ -98,12 +81,6 @@ export class CVBuilderController {
   }
 
   @Get('sections')
-  @ApiOperation({ summary: 'Get all CV sections configuration (Public)' })
-  @ApiResponse({
-    status: 200,
-    description: 'CV sections retrieved successfully',
-    type: CVSectionsListDto,
-  })
   async getCVSections(): Promise<{
     data: CVSectionsListDto;
     message: string;
@@ -128,15 +105,7 @@ export class CVBuilderController {
   // Personal Info Management
   @Post('personal-info')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create or update personal information' })
-  @ApiResponse({
-    status: 201,
-    description: 'Personal information created/updated successfully',
-    type: CVPersonalInfoResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Bad request' })
   async createOrUpdatePersonalInfo(
     @Request() req: { user: UserProfile },
     @Body() dto: CreateCVPersonalInfoDto,
@@ -158,14 +127,6 @@ export class CVBuilderController {
 
   @Get('personal-info')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get personal information for current user' })
-  @ApiResponse({
-    status: 200,
-    description: 'Personal information retrieved successfully',
-    type: CVPersonalInfoResponseDto,
-  })
-  @ApiResponse({ status: 404, description: 'Personal information not found' })
   async getPersonalInfo(@Request() req: { user: UserProfile }): Promise<{
     data: CVPersonalInfoResponseDto | null;
     message: string;
@@ -183,15 +144,6 @@ export class CVBuilderController {
 
   @Put('personal-info')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update personal information' })
-  @ApiResponse({
-    status: 200,
-    description: 'Personal information updated successfully',
-    type: CVPersonalInfoResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 404, description: 'Personal information not found' })
   async updatePersonalInfo(
     @Request() req: { user: UserProfile },
     @Body() dto: UpdateCVPersonalInfoDto,
@@ -214,15 +166,7 @@ export class CVBuilderController {
   // Skills Management
   @Post('skills')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new skill' })
-  @ApiResponse({
-    status: 201,
-    description: 'Skill created successfully',
-    type: CVSkillResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Bad request' })
   async createSkill(
     @Request() req: { user: UserProfile },
     @Body() dto: CreateCVSkillDto,
@@ -237,16 +181,6 @@ export class CVBuilderController {
 
   @Put('skills/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update a skill' })
-  @ApiResponse({
-    status: 200,
-    description: 'Skill updated successfully',
-    type: CVSkillResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Not your skill' })
-  @ApiResponse({ status: 404, description: 'Skill not found' })
   async updateSkill(
     @Request() req: { user: UserProfile },
     @Param('id') skillId: string,
@@ -266,12 +200,7 @@ export class CVBuilderController {
 
   @Delete('skills/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a skill' })
-  @ApiResponse({ status: 204, description: 'Skill deleted successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Not your skill' })
-  @ApiResponse({ status: 404, description: 'Skill not found' })
   async deleteSkill(
     @Request() req: { user: UserProfile },
     @Param('id') skillId: string,
@@ -281,14 +210,6 @@ export class CVBuilderController {
 
   @Get('skills/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get a skill by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Skill retrieved successfully',
-    type: CVSkillResponseDto,
-  })
-  @ApiResponse({ status: 404, description: 'Skill not found' })
   async getSkill(@Param('id') skillId: string): Promise<{
     data: CVSkillResponseDto | null;
     message: string;
@@ -304,13 +225,6 @@ export class CVBuilderController {
 
   @Get('skills')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get skills with pagination and filtering' })
-  @ApiResponse({
-    status: 200,
-    description: 'Skills retrieved successfully',
-    type: CVSkillsListDto,
-  })
   async getSkills(
     @Query() query: CVQueryDto,
     @Request() req: { user: UserProfile },
@@ -340,15 +254,7 @@ export class CVBuilderController {
   // Experience Management
   @Post('experience')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new experience entry' })
-  @ApiResponse({
-    status: 201,
-    description: 'Experience created successfully',
-    type: CVExperienceResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Bad request' })
   async createExperience(
     @Request() req: { user: UserProfile },
     @Body() dto: CreateCVExperienceDto,
@@ -367,16 +273,6 @@ export class CVBuilderController {
 
   @Put('experience/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update an experience entry' })
-  @ApiResponse({
-    status: 200,
-    description: 'Experience updated successfully',
-    type: CVExperienceResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Not your experience' })
-  @ApiResponse({ status: 404, description: 'Experience not found' })
   async updateExperience(
     @Request() req: { user: UserProfile },
     @Param('id') experienceId: string,
@@ -400,12 +296,7 @@ export class CVBuilderController {
 
   @Delete('experience/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete an experience entry' })
-  @ApiResponse({ status: 204, description: 'Experience deleted successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Not your experience' })
-  @ApiResponse({ status: 404, description: 'Experience not found' })
   async deleteExperience(
     @Request() req: { user: UserProfile },
     @Param('id') experienceId: string,
@@ -415,14 +306,6 @@ export class CVBuilderController {
 
   @Get('experience/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get an experience entry by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Experience retrieved successfully',
-    type: CVExperienceResponseDto,
-  })
-  @ApiResponse({ status: 404, description: 'Experience not found' })
   async getExperience(@Param('id') experienceId: string): Promise<{
     data: CVExperienceResponseDto | null;
     message: string;
@@ -440,13 +323,6 @@ export class CVBuilderController {
 
   @Get('experience')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get experiences with pagination and filtering' })
-  @ApiResponse({
-    status: 200,
-    description: 'Experiences retrieved successfully',
-    type: CVExperienceListDto,
-  })
   async getExperiences(
     @Query() query: CVQueryDto,
     @Request() req: { user: UserProfile },
@@ -476,15 +352,7 @@ export class CVBuilderController {
   // Education Management
   @Post('education')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new education entry' })
-  @ApiResponse({
-    status: 201,
-    description: 'Education created successfully',
-    type: CVEducationResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Bad request' })
   async createEducation(
     @Request() req: { user: UserProfile },
     @Body() dto: CreateCVEducationDto,
@@ -503,16 +371,6 @@ export class CVBuilderController {
 
   @Put('education/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update an education entry' })
-  @ApiResponse({
-    status: 200,
-    description: 'Education updated successfully',
-    type: CVEducationResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Not your education' })
-  @ApiResponse({ status: 404, description: 'Education not found' })
   async updateEducation(
     @Request() req: { user: UserProfile },
     @Param('id') educationId: string,
@@ -536,12 +394,7 @@ export class CVBuilderController {
 
   @Delete('education/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete an education entry' })
-  @ApiResponse({ status: 204, description: 'Education deleted successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Not your education' })
-  @ApiResponse({ status: 404, description: 'Education not found' })
   async deleteEducation(
     @Request() req: { user: UserProfile },
     @Param('id') educationId: string,
@@ -551,14 +404,6 @@ export class CVBuilderController {
 
   @Get('education/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get an education entry by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Education retrieved successfully',
-    type: CVEducationResponseDto,
-  })
-  @ApiResponse({ status: 404, description: 'Education not found' })
   async getEducation(@Param('id') educationId: string): Promise<{
     data: CVEducationResponseDto | null;
     message: string;
@@ -576,15 +421,6 @@ export class CVBuilderController {
 
   @Get('education')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Get education entries with pagination and filtering',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Education entries retrieved successfully',
-    type: CVEducationListDto,
-  })
   async getEducationList(
     @Query() query: CVQueryDto,
     @Request() req: { user: UserProfile },
@@ -614,15 +450,7 @@ export class CVBuilderController {
   // Certifications Management
   @Post('certifications')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new certification' })
-  @ApiResponse({
-    status: 201,
-    description: 'Certification created successfully',
-    type: CVCertificationResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Bad request' })
   async createCertification(
     @Request() req: { user: UserProfile },
     @Body() dto: CreateCVCertificationDto,
@@ -644,19 +472,6 @@ export class CVBuilderController {
 
   @Put('certifications/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update a certification' })
-  @ApiResponse({
-    status: 200,
-    description: 'Certification updated successfully',
-    type: CVCertificationResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Not your certification',
-  })
-  @ApiResponse({ status: 404, description: 'Certification not found' })
   async updateCertification(
     @Request() req: { user: UserProfile },
     @Param('id') certificationId: string,
@@ -680,18 +495,7 @@ export class CVBuilderController {
 
   @Delete('certifications/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a certification' })
-  @ApiResponse({
-    status: 204,
-    description: 'Certification deleted successfully',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Not your certification',
-  })
-  @ApiResponse({ status: 404, description: 'Certification not found' })
   async deleteCertification(
     @Request() req: { user: UserProfile },
     @Param('id') certificationId: string,
@@ -701,14 +505,6 @@ export class CVBuilderController {
 
   @Get('certifications/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get a certification by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Certification retrieved successfully',
-    type: CVCertificationResponseDto,
-  })
-  @ApiResponse({ status: 404, description: 'Certification not found' })
   async getCertification(@Param('id') certificationId: string): Promise<{
     data: CVCertificationResponseDto | null;
     message: string;
@@ -727,13 +523,6 @@ export class CVBuilderController {
 
   @Get('certifications')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get certifications with pagination and filtering' })
-  @ApiResponse({
-    status: 200,
-    description: 'Certifications retrieved successfully',
-    type: CVCertificationsListDto,
-  })
   async getCertifications(
     @Query() query: CVQueryDto,
     @Request() req: { user: UserProfile },
@@ -767,15 +556,7 @@ export class CVBuilderController {
   // Awards Management
   @Post('awards')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new award' })
-  @ApiResponse({
-    status: 201,
-    description: 'Award created successfully',
-    type: CVAwardResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Bad request' })
   async createAward(
     @Request() req: { user: UserProfile },
     @Body() dto: CreateCVAwardDto,
@@ -790,16 +571,6 @@ export class CVBuilderController {
 
   @Put('awards/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update an award' })
-  @ApiResponse({
-    status: 200,
-    description: 'Award updated successfully',
-    type: CVAwardResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Not your award' })
-  @ApiResponse({ status: 404, description: 'Award not found' })
   async updateAward(
     @Request() req: { user: UserProfile },
     @Param('id') awardId: string,
@@ -819,12 +590,7 @@ export class CVBuilderController {
 
   @Delete('awards/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete an award' })
-  @ApiResponse({ status: 204, description: 'Award deleted successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Not your award' })
-  @ApiResponse({ status: 404, description: 'Award not found' })
   async deleteAward(
     @Request() req: { user: UserProfile },
     @Param('id') awardId: string,
@@ -834,14 +600,6 @@ export class CVBuilderController {
 
   @Get('awards/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get an award by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Award retrieved successfully',
-    type: CVAwardResponseDto,
-  })
-  @ApiResponse({ status: 404, description: 'Award not found' })
   async getAward(@Param('id') awardId: string): Promise<{
     data: CVAwardResponseDto | null;
     message: string;
@@ -857,13 +615,6 @@ export class CVBuilderController {
 
   @Get('awards')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get awards with pagination and filtering' })
-  @ApiResponse({
-    status: 200,
-    description: 'Awards retrieved successfully',
-    type: CVAwardsListDto,
-  })
   async getAwards(
     @Query() query: CVQueryDto,
     @Request() req: { user: UserProfile },
@@ -893,15 +644,7 @@ export class CVBuilderController {
   // Interests Management
   @Post('interests')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new interest' })
-  @ApiResponse({
-    status: 201,
-    description: 'Interest created successfully',
-    type: CVInterestResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Bad request' })
   async createInterest(
     @Request() req: { user: UserProfile },
     @Body() dto: CreateCVInterestDto,
@@ -916,16 +659,6 @@ export class CVBuilderController {
 
   @Put('interests/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update an interest' })
-  @ApiResponse({
-    status: 200,
-    description: 'Interest updated successfully',
-    type: CVInterestResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Not your interest' })
-  @ApiResponse({ status: 404, description: 'Interest not found' })
   async updateInterest(
     @Request() req: { user: UserProfile },
     @Param('id') interestId: string,
@@ -945,12 +678,7 @@ export class CVBuilderController {
 
   @Delete('interests/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete an interest' })
-  @ApiResponse({ status: 204, description: 'Interest deleted successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Not your interest' })
-  @ApiResponse({ status: 404, description: 'Interest not found' })
   async deleteInterest(
     @Request() req: { user: UserProfile },
     @Param('id') interestId: string,
@@ -960,14 +688,6 @@ export class CVBuilderController {
 
   @Get('interests/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get an interest by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Interest retrieved successfully',
-    type: CVInterestResponseDto,
-  })
-  @ApiResponse({ status: 404, description: 'Interest not found' })
   async getInterest(@Param('id') interestId: string): Promise<{
     data: CVInterestResponseDto | null;
     message: string;
@@ -985,13 +705,6 @@ export class CVBuilderController {
 
   @Get('interests')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get interests with pagination and filtering' })
-  @ApiResponse({
-    status: 200,
-    description: 'Interests retrieved successfully',
-    type: CVInterestsListDto,
-  })
   async getInterests(
     @Query() query: CVQueryDto,
     @Request() req: { user: UserProfile },
@@ -1021,15 +734,7 @@ export class CVBuilderController {
   // References Management
   @Post('references')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new reference' })
-  @ApiResponse({
-    status: 201,
-    description: 'Reference created successfully',
-    type: CVReferenceResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Bad request' })
   async createReference(
     @Request() req: { user: UserProfile },
     @Body() dto: CreateCVReferenceDto,
@@ -1048,16 +753,6 @@ export class CVBuilderController {
 
   @Put('references/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update a reference' })
-  @ApiResponse({
-    status: 200,
-    description: 'Reference updated successfully',
-    type: CVReferenceResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Not your reference' })
-  @ApiResponse({ status: 404, description: 'Reference not found' })
   async updateReference(
     @Request() req: { user: UserProfile },
     @Param('id') referenceId: string,
@@ -1081,12 +776,7 @@ export class CVBuilderController {
 
   @Delete('references/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a reference' })
-  @ApiResponse({ status: 204, description: 'Reference deleted successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Not your reference' })
-  @ApiResponse({ status: 404, description: 'Reference not found' })
   async deleteReference(
     @Request() req: { user: UserProfile },
     @Param('id') referenceId: string,
@@ -1096,14 +786,6 @@ export class CVBuilderController {
 
   @Get('references/:id')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get a reference by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Reference retrieved successfully',
-    type: CVReferenceResponseDto,
-  })
-  @ApiResponse({ status: 404, description: 'Reference not found' })
   async getReference(@Param('id') referenceId: string): Promise<{
     data: CVReferenceResponseDto | null;
     message: string;
@@ -1121,13 +803,6 @@ export class CVBuilderController {
 
   @Get('references')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get references with pagination and filtering' })
-  @ApiResponse({
-    status: 200,
-    description: 'References retrieved successfully',
-    type: CVReferencesListDto,
-  })
   async getReferences(
     @Query() query: CVQueryDto,
     @Request() req: { user: UserProfile },
@@ -1157,12 +832,6 @@ export class CVBuilderController {
   // Complete CV Generation
   @Get('complete')
   @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get complete CV for current user' })
-  @ApiResponse({
-    status: 200,
-    description: 'Complete CV retrieved successfully',
-  })
   async getCompleteCV(
     @Request() req: { user: UserProfile },
   ): Promise<{ data: CompleteCVResponse; message: string; status: string }> {

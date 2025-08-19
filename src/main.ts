@@ -1,6 +1,5 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { Request, Response } from 'express';
 import { INestApplication } from '@nestjs/common';
@@ -61,48 +60,11 @@ async function bootstrap(): Promise<INestApplication> {
     // Global prefix
     app.setGlobalPrefix('api/v1');
 
-    // Swagger documentation setup
-    const config = new DocumentBuilder()
-      .setTitle('Flexify Auth Service API')
-      .setDescription(
-        'A comprehensive authentication service built with NestJS and Supabase. This API provides user registration, login, logout, and session management functionality.',
-      )
-      .setVersion('1.0.0')
-      .addTag('auth', 'Authentication endpoints')
-      .addTag('health', 'Health check endpoints')
-      .addBearerAuth(
-        {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-          name: 'JWT',
-          description: 'Enter JWT token',
-          in: 'header',
-        },
-        'JWT-auth',
-      )
-      .build();
-
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api/docs', app, document, {
-      swaggerOptions: {
-        persistAuthorization: true,
-        docExpansion: 'list',
-        filter: true,
-        showRequestDuration: true,
-      },
-      customSiteTitle: 'Flexify Auth Service API Documentation',
-    });
-
     // Only listen on port if not in Vercel environment
     if (!process.env.VERCEL) {
       const port = process.env.PORT || 3000;
       await app.listen(port);
-      console.log(`🚀 Auth service is running on: http://localhost:${port}`);
-      console.log(`📚 API Documentation: http://localhost:${port}/api/v1`);
-      console.log(
-        `📖 Swagger Documentation: http://localhost:${port}/api/docs`,
-      );
+      console.log(`🚀 Flexify API is running on: http://localhost:${port}`);
     }
 
     await app.init();

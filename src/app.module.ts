@@ -3,10 +3,10 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
-import { ProjectsModule } from './modules/projects.module';
-import { ContactModule } from './modules/contact.module';
-import { TechnologiesModule } from './modules/technologies.module';
-import { CVBuilderModule } from './modules/cv-builder.module';
+import { ProjectsModule } from './projects/projects.module';
+import { ContactModule } from './contact/contact.module';
+import { TechnologiesModule } from './technologies/technologies.module';
+import { CVBuilderModule } from './cv-builder/cv-builder.module';
 import configuration from './config/configuration';
 
 @Module({

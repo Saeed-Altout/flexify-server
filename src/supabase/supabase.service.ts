@@ -85,7 +85,10 @@ export class SupabaseService {
         this.logger.error(`Error creating user: ${error.message}`);
 
         // Handle specific Supabase errors
-        if (error.message.includes('User not allowed')) {
+        if (
+          typeof error.message === 'string' &&
+          error.message.includes('User not allowed')
+        ) {
           throw new Error(
             'Supabase configuration error: "User not allowed". Please check:\n' +
               '1. You are using the SERVICE_ROLE key (not anon key)\n' +
@@ -95,7 +98,10 @@ export class SupabaseService {
           );
         }
 
-        if (error.message.includes('Invalid API key')) {
+        if (
+          typeof error.message === 'string' &&
+          error.message.includes('Invalid API key')
+        ) {
           throw new Error(
             'Invalid Supabase API key. Please check:\n' +
               '1. SUPABASE_SERVICE_KEY is correct\n' +
@@ -104,7 +110,11 @@ export class SupabaseService {
           );
         }
 
-        throw new Error(error.message);
+        throw new Error(
+          typeof error.message === 'string'
+            ? error.message
+            : JSON.stringify(error),
+        );
       }
 
       if (!user) {
@@ -120,11 +130,15 @@ export class SupabaseService {
         created_at: user.created_at,
         updated_at: user.updated_at!,
       };
-    } catch (error) {
+    } catch (error: any) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+        error instanceof Error
+          ? error.message
+          : typeof error === 'string'
+            ? error
+            : JSON.stringify(error);
       this.logger.error(`Error in createUser: ${errorMessage}`);
-      throw error;
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 
@@ -159,7 +173,11 @@ export class SupabaseService {
 
       if (error) {
         this.logger.error(`Error signing in user: ${error.message}`);
-        throw new Error(error.message);
+        throw new Error(
+          typeof error.message === 'string'
+            ? error.message
+            : JSON.stringify(error),
+        );
       }
 
       if (!data.user) {
@@ -183,11 +201,15 @@ export class SupabaseService {
         session: data.session,
         access_token: data.session?.access_token,
       };
-    } catch (error) {
+    } catch (error: any) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+        error instanceof Error
+          ? error.message
+          : typeof error === 'string'
+            ? error
+            : JSON.stringify(error);
       this.logger.error(`Error in signInUser: ${errorMessage}`);
-      throw error;
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 
@@ -227,9 +249,13 @@ export class SupabaseService {
         created_at: user.created_at,
         updated_at: user.updated_at!,
       };
-    } catch (error) {
+    } catch (error: any) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+        error instanceof Error
+          ? error.message
+          : typeof error === 'string'
+            ? error
+            : JSON.stringify(error);
       this.logger.error(`Error in getUserById: ${errorMessage}`);
       return null;
     }
@@ -258,7 +284,7 @@ export class SupabaseService {
         return null;
       }
 
-      const user = users.find((u) => u.email === email);
+      const user = users.find((u: { email: string }) => u.email === email);
       if (!user) {
         return null;
       }
@@ -272,9 +298,13 @@ export class SupabaseService {
         created_at: user.created_at,
         updated_at: user.updated_at!,
       };
-    } catch (error) {
+    } catch (error: any) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+        error instanceof Error
+          ? error.message
+          : typeof error === 'string'
+            ? error
+            : JSON.stringify(error);
       this.logger.error(`Error in getUserByEmail: ${errorMessage}`);
       return null;
     }
@@ -296,13 +326,21 @@ export class SupabaseService {
       const { error } = await this.supabase.auth.admin.signOut(sessionToken);
       if (error) {
         this.logger.error(`Error signing out user: ${error.message}`);
-        throw new Error(error.message);
+        throw new Error(
+          typeof error.message === 'string'
+            ? error.message
+            : JSON.stringify(error),
+        );
       }
-    } catch (error) {
+    } catch (error: any) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+        error instanceof Error
+          ? error.message
+          : typeof error === 'string'
+            ? error
+            : JSON.stringify(error);
       this.logger.error(`Error in signOutUser: ${errorMessage}`);
-      throw error;
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 
@@ -348,9 +386,13 @@ export class SupabaseService {
         created_at: user.created_at,
         updated_at: user.updated_at!,
       };
-    } catch (error) {
+    } catch (error: any) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+        error instanceof Error
+          ? error.message
+          : typeof error === 'string'
+            ? error
+            : JSON.stringify(error);
       this.logger.error(`Error in verifySession: ${errorMessage}`);
       return null;
     }
@@ -385,7 +427,9 @@ export class SupabaseService {
       });
     if (error) {
       this.logger.error(`Storage upload error: ${error.message}`);
-      throw new Error(`Failed to upload file: ${error.message}`);
+      throw new Error(
+        `Failed to upload file: ${typeof error.message === 'string' ? error.message : JSON.stringify(error)}`,
+      );
     }
 
     const { data } = this.supabase.storage
@@ -421,21 +465,27 @@ export class SupabaseService {
       ) {
         return { name: 'Development User', role: 'USER' };
       }
-      const { data, error } = await (this.supabase as any)
+      const { data, error } = await this.supabase
         .from('user_profiles')
         .select('name, role')
         .eq('id', userId)
         .single();
+
       if (error) {
         this.logger.warn(`fetchUserProfile error: ${error.message}`);
         return null;
       }
       return {
-        name: data?.name ?? undefined,
+        name: data?.name as string,
         role: (data?.role as UserRole) ?? 'USER',
       };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
+    } catch (err: any) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : typeof err === 'string'
+            ? err
+            : JSON.stringify(err);
       this.logger.warn(`fetchUserProfile exception: ${msg}`);
       return null;
     }
