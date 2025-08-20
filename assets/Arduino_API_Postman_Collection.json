@@ -1,0 +1,209 @@
+{
+  "info": {
+    "name": "Arduino Control API",
+    "description": "Collection for testing Arduino control endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Run Device",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"command\": \"on\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/arduino/run",
+          "host": ["{{base_url}}"],
+          "path": ["arduino", "run"]
+        },
+        "description": "Turns on the Arduino device and sets it to online status"
+      },
+      "response": []
+    },
+    {
+      "name": "Send Command",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"command\": \"off\",\n  \"time\": 5\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/arduino/send-command",
+          "host": ["{{base_url}}"],
+          "path": ["arduino", "send-command"]
+        },
+        "description": "Sends a specific command to the Arduino device with timing"
+      },
+      "response": []
+    },
+    {
+      "name": "Stop Device",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"command\": \"off\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/arduino/stop",
+          "host": ["{{base_url}}"],
+          "path": ["arduino", "stop"]
+        },
+        "description": "Turns off the Arduino device and sets it to offline status"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Device Status",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/arduino/status",
+          "host": ["{{base_url}}"],
+          "path": ["arduino", "status"]
+        },
+        "description": "Retrieves the current status and connection information of the Arduino device"
+      },
+      "response": []
+    },
+    {
+      "name": "Check Connection",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/arduino/connected",
+          "host": ["{{base_url}}"],
+          "path": ["arduino", "connected"]
+        },
+        "description": "Quick check to see if the Arduino device is connected"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Command History",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/arduino/history?limit=10",
+          "host": ["{{base_url}}"],
+          "path": ["arduino", "history"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "10",
+              "description": "Number of commands to retrieve"
+            }
+          ]
+        },
+        "description": "Retrieves the command history for the Arduino device"
+      },
+      "response": []
+    },
+    {
+      "name": "Update Connection Status (Admin)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"connected\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/arduino/heartbeat",
+          "host": ["{{base_url}}"],
+          "path": ["arduino", "heartbeat"]
+        },
+        "description": "Updates the Arduino device connection status (Admin only)"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "your_auth_token_here",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "your_admin_token_here",
+      "type": "string"
+    }
+  ]
+}
