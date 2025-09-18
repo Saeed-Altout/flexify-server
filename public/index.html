@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flexify Server - Status</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #ffffff;
+            color: #000000;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .header {
+            position: absolute;
+            top: 40px;
+            left: 40px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            width: 32px;
+            height: 32px;
+            background-color: #000000;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .logo::after {
+            content: '⚡';
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .brand {
+            font-size: 24px;
+            font-weight: 600;
+            color: #000000;
+        }
+
+        .container {
+            max-width: 400px;
+            width: 100%;
+            margin-top: 60px;
+        }
+
+        .status-card {
+            background-color: #ffffff;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            padding: 32px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: 600;
+            color: #000000;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #666666;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        .status-item {
+            margin-bottom: 24px;
+        }
+
+        .status-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #000000;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .status-value {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            background-color: #ffffff;
+            font-size: 14px;
+            color: #000000;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            word-break: break-all;
+        }
+
+        .status-value.url {
+            background-color: #f8f9fa;
+            color: #0066cc;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #00cc66;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.error {
+            background-color: #ff4444;
+        }
+
+        .status-text {
+            font-size: 14px;
+            color: #666666;
+        }
+
+        .status-text.online {
+            color: #00cc66;
+        }
+
+        .status-text.error {
+            color: #ff4444;
+        }
+
+        .refresh-btn {
+            width: 100%;
+            padding: 12px 16px;
+            background-color: #000000;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            margin-top: 16px;
+        }
+
+        .refresh-btn:hover {
+            background-color: #333333;
+        }
+
+        .refresh-btn:active {
+            background-color: #666666;
+        }
+
+        .api-info {
+            margin-top: 32px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e5e5e5;
+        }
+
+        .api-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #000000;
+            margin-bottom: 12px;
+        }
+
+        .api-list {
+            list-style: none;
+        }
+
+        .api-item {
+            font-size: 14px;
+            color: #666666;
+            margin-bottom: 6px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+
+        .api-method {
+            display: inline-block;
+            width: 60px;
+            font-weight: 600;
+        }
+
+        .api-method.get {
+            color: #00cc66;
+        }
+
+        .api-method.post {
+            color: #0066cc;
+        }
+
+        .api-method.put {
+            color: #ff9900;
+        }
+
+        .api-method.delete {
+            color: #ff4444;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                top: 20px;
+                left: 20px;
+            }
+
+            .container {
+                margin-top: 40px;
+            }
+
+            .status-card {
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo"></div>
+        <div class="brand">Flexify</div>
+    </div>
+
+    <div class="container">
+        <div class="status-card">
+            <h1 class="title">Server Status</h1>
+            <p class="subtitle">Backend API Health Monitor</p>
+
+            <div class="status-item">
+                <label class="status-label">Base URL</label>
+                <div class="status-value url" id="baseUrl">https://flexify-server.vercel.app</div>
+            </div>
+
+            <div class="status-item">
+                <label class="status-label">Server Status</label>
+                <div class="status-value" id="serverStatus">Checking...</div>
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span class="status-text" id="statusText">Checking server status...</span>
+                </div>
+            </div>
+
+            <button class="refresh-btn" onclick="checkServerStatus()">Refresh Status</button>
+
+            <div class="api-info">
+                <div class="api-title">Available API Endpoints</div>
+                <ul class="api-list">
+                    <li class="api-item">
+                        <span class="api-method get">GET</span> /api/health
+                    </li>
+                    <li class="api-item">
+                        <span class="api-method get">GET</span> /api/technologies
+                    </li>
+                    <li class="api-item">
+                        <span class="api-method post">POST</span> /api/auth/signup
+                    </li>
+                    <li class="api-item">
+                        <span class="api-method post">POST</span> /api/auth/signin
+                    </li>
+                    <li class="api-item">
+                        <span class="api-method get">GET</span> /api/projects
+                    </li>
+                    <li class="api-item">
+                        <span class="api-method post">POST</span> /api/messages
+                    </li>
+                    <li class="api-item">
+                        <span class="api-method get">GET</span> /api/docs
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = 'https://flexify-server.vercel.app';
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const serverStatus = document.getElementById('serverStatus');
+
+        async function checkServerStatus() {
+            try {
+                statusText.textContent = 'Checking server status...';
+                statusDot.className = 'status-dot';
+                serverStatus.textContent = 'Checking...';
+
+                // Try to fetch from the health endpoint
+                const response = await fetch(`${baseUrl}/api/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (response.ok) {
+                    statusDot.className = 'status-dot';
+                    statusText.textContent = 'Server is online';
+                    statusText.className = 'status-text online';
+                    serverStatus.textContent = `✅ Online (${response.status} ${response.statusText})`;
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                statusDot.className = 'status-dot error';
+                statusText.textContent = 'Server is offline';
+                statusText.className = 'status-text error';
+                serverStatus.textContent = `❌ Offline (${error.message})`;
+            }
+        }
+
+        // Check status on page load
+        checkServerStatus();
+
+        // Auto-refresh every 30 seconds
+        setInterval(checkServerStatus, 30000);
+    </script>
+</body>
+</html>
