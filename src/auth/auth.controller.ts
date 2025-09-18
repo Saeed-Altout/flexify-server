@@ -4,12 +4,14 @@ import {
   Get,
   Body,
   Req,
+  Res,
   UseGuards,
   HttpStatus,
   HttpCode,
   ValidationPipe,
   UsePipes,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -46,7 +48,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Sign up a new user',
     description:
-      'Creates a new user account with email and name. Password is optional for Supabase magic links.',
+      'Creates a new user account with email and name. Password is optional for Supabase magic links. Session token is automatically set as HTTP-only cookie with 7-day expiry. Returns only success message, no user data.',
   })
   @ApiBody({
     type: SignUpDto,
@@ -70,26 +72,14 @@ export class AuthController {
     },
   })
   @ApiCreatedResponse({
-    description: 'User successfully signed up',
-    type: AuthResponseDto,
-    examples: {
-      success: {
-        summary: 'Sign up successful',
-        value: {
-          data: {
-            user: {
-              id: '123e4567-e89b-12d3-a456-426614174000',
-              email: 'john.doe@example.com',
-              name: 'John Doe',
-              role: 'USER',
-              created_at: '2023-01-01T00:00:00.000Z',
-              updated_at: '2023-01-01T00:00:00.000Z',
-            },
-            token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-          },
-          message: 'User signed up successfully',
-          status: 'success',
-        },
+    description:
+      'User successfully signed up. Session token is set as HTTP-only cookie.',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'null', example: null },
+        message: { type: 'string', example: 'User signed up successfully' },
+        status: { type: 'string', example: 'success' },
       },
     },
   })
@@ -103,14 +93,23 @@ export class AuthController {
   })
   async signUp(
     @Body() signUpDto: SignUpDto,
-  ): Promise<StandardResponseDto<{ user: UserProfileDto; token: string }>> {
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StandardResponseDto<null>> {
     const authResponse = await this.authService.signUp(signUpDto);
 
+    // Set HTTP-only cookie with 7-day expiry
+    if (authResponse.access_token) {
+      res.cookie('session_token', authResponse.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+        path: '/',
+      });
+    }
+
     return {
-      data: {
-        user: authResponse.data,
-        token: authResponse.access_token || '',
-      },
+      data: null,
       message: authResponse.message,
       status: authResponse.status,
     };
@@ -121,7 +120,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'User sign in',
     description:
-      'Authenticates a user with email and password. Returns user profile and token in response body.',
+      'Authenticates a user with email and password. Session token is automatically set as HTTP-only cookie with 7-day expiry. Returns only success message, no user data.',
   })
   @ApiBody({
     type: SignInDto,
@@ -143,26 +142,14 @@ export class AuthController {
     },
   })
   @ApiOkResponse({
-    description: 'User successfully signed in',
-    type: AuthResponseDto,
-    examples: {
-      success: {
-        summary: 'Sign in successful',
-        value: {
-          data: {
-            user: {
-              id: '123e4567-e89b-12d3-a456-426614174000',
-              email: 'john.doe@example.com',
-              name: 'John Doe',
-              role: 'USER',
-              created_at: '2023-01-01T00:00:00.000Z',
-              updated_at: '2023-01-01T00:00:00.000Z',
-            },
-            token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-          },
-          message: 'User signed in successfully',
-          status: 'success',
-        },
+    description:
+      'User successfully signed in. Session token is set as HTTP-only cookie.',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'null', example: null },
+        message: { type: 'string', example: 'User signed in successfully' },
+        status: { type: 'string', example: 'success' },
       },
     },
   })
@@ -176,14 +163,23 @@ export class AuthController {
   })
   async signIn(
     @Body() signInDto: SignInDto,
-  ): Promise<StandardResponseDto<{ user: UserProfileDto; token: string }>> {
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StandardResponseDto<null>> {
     const authResponse = await this.authService.signIn(signInDto);
 
+    // Set HTTP-only cookie with 7-day expiry
+    if (authResponse.access_token) {
+      res.cookie('session_token', authResponse.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+        path: '/',
+      });
+    }
+
     return {
-      data: {
-        user: authResponse.data,
-        token: authResponse.access_token || '',
-      },
+      data: null,
       message: authResponse.message,
       status: authResponse.status,
     };
@@ -194,7 +190,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'User sign out',
-    description: 'Signs out the current user.',
+    description: 'Signs out the current user and clears the session cookie.',
   })
   @ApiBearerAuth('JWT-auth')
   @ApiOkResponse({
@@ -214,12 +210,23 @@ export class AuthController {
     description: 'User not authenticated',
     type: ErrorResponseDto,
   })
-  async signOut(@Req() req: Request): Promise<StandardResponseDto<null>> {
+  async signOut(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StandardResponseDto<null>> {
     const token = this.extractTokenFromRequest(req);
 
     if (token) {
       await this.authService.signOut(token);
     }
+
+    // Clear the session cookie
+    res.clearCookie('session_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+    });
 
     return {
       data: null,
@@ -272,7 +279,13 @@ export class AuthController {
   }
 
   private extractTokenFromRequest(req: Request): string | undefined {
-    // Get from Authorization header
+    // First try to get from cookie (preferred for session-based auth)
+    const cookieToken = req.cookies?.session_token;
+    if (cookieToken) {
+      return cookieToken;
+    }
+
+    // Fallback to Authorization header for backward compatibility
     const [type, token] = req.headers.authorization?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
   }

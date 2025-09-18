@@ -34,7 +34,13 @@ export class AuthGuard implements CanActivate {
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {
-    // Get from Authorization header
+    // First try to get from cookie (preferred for session-based auth)
+    const cookieToken = request.cookies?.session_token;
+    if (cookieToken) {
+      return cookieToken;
+    }
+
+    // Fallback to Authorization header for backward compatibility
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
   }

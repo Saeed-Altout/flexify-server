@@ -5,6 +5,7 @@ import { Request, Response } from 'express';
 import { INestApplication } from '@nestjs/common';
 import { HttpExceptionFilter } from './filters/http-exception.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 
 let app: INestApplication | null = null;
 
@@ -58,6 +59,9 @@ async function bootstrap(): Promise<INestApplication> {
     // Global error filter for standardized error envelopes
     app.useGlobalFilters(new HttpExceptionFilter());
 
+    // Cookie parser middleware for session management
+    app.use(cookieParser());
+
     // Global prefix
     app.setGlobalPrefix('api/v1');
 
@@ -79,11 +83,18 @@ async function bootstrap(): Promise<INestApplication> {
           scheme: 'bearer',
           bearerFormat: 'JWT',
           name: 'JWT',
-          description: 'Enter JWT token',
+          description: 'Enter JWT token (or use session cookie)',
           in: 'header',
         },
         'JWT-auth',
       )
+      .addCookieAuth('session_token', {
+        type: 'apiKey',
+        in: 'cookie',
+        name: 'session_token',
+        description:
+          'HTTP-only session cookie (automatically set on login/signup)',
+      })
       .addServer('http://localhost:3000', 'Development server')
       .addServer('https://flexify-api.vercel.app', 'Production server')
       .build();
