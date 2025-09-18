@@ -5,11 +5,11 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { SupabaseService } from '../../supabase/supabase.service';
+import { CustomAuthService } from '../../supabase/custom-auth.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private supabaseService: SupabaseService) {}
+  constructor(private customAuthService: CustomAuthService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -20,7 +20,7 @@ export class AuthGuard implements CanActivate {
     }
 
     try {
-      const user = await this.supabaseService.verifySession(token);
+      const user = await this.customAuthService.verifySession(token);
       if (!user) {
         throw new UnauthorizedException('Invalid token');
       }

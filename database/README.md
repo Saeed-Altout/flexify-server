@@ -37,32 +37,32 @@ Complete database setup for the Flexify Server project.
 
 ## 🔐 Authentication System
 
-The database uses a **hybrid authentication approach** that combines Supabase Auth with a custom users table:
+The database uses a **custom authentication system** that manages users directly in the `users` table:
 
 ### **How It Works:**
 
-1. **Supabase Auth (`auth.users`)**:
-   - Handles user authentication, passwords, and sessions
-   - Built-in Supabase table (read-only)
-   - Contains core auth data: `id`, `email`, `password`, `created_at`, etc.
+1. **Custom Users Table (`public.users`)**:
+   - Stores all user data including authentication
+   - Contains: `id`, `email`, `name`, `password_hash`, `avatar_url`, `role`, `created_at`, `updated_at`
+   - **Self-contained** - no external dependencies
 
-2. **Custom Users Table (`public.users`)**:
-   - Stores additional user profile data
-   - Contains: `id`, `email`, `name`, `avatar_url`, `role`, `created_at`, `updated_at`
-   - **Foreign key relationship** with `auth.users(id)`
+2. **Password Security**:
+   - Passwords are hashed using bcrypt with salt rounds
+   - Secure password storage and verification
+   - No plain text passwords in database
 
-3. **Automatic Synchronization**:
-   - **Database triggers** automatically create user profiles when new users sign up
-   - **Real-time sync** between `auth.users` and `public.users`
-   - **No manual intervention** required
+3. **JWT Token Management**:
+   - JWT tokens generated for session management
+   - 7-day token expiration
+   - HTTP-only cookies for secure token storage
 
 ### **Key Benefits:**
 
-- ✅ **Complete user data** (including `avatar_url`, `role`, etc.)
-- ✅ **Automatic sync** - no manual data management
-- ✅ **Supabase Auth integration** - secure authentication
+- ✅ **Complete control** - no external auth dependencies
+- ✅ **Secure authentication** - bcrypt password hashing
+- ✅ **Session management** - JWT tokens with HTTP-only cookies
 - ✅ **Custom fields** - extend user profiles as needed
-- ✅ **Data consistency** - foreign key constraints ensure integrity
+- ✅ **Simple architecture** - single users table for everything
 
 ## 🏗️ Database Schema
 
@@ -70,10 +70,10 @@ The database uses a **hybrid authentication approach** that combines Supabase Au
 
 #### `users`
 
-- **Purpose**: User profiles and extended data (synced with Supabase Auth)
-- **Key Fields**: `id`, `email`, `name`, `avatar_url`, `role`
-- **Relationship**: Foreign key to `auth.users(id)`
-- **Auto-sync**: Automatically created when users sign up via Supabase Auth
+- **Purpose**: User accounts and authentication (custom auth system)
+- **Key Fields**: `id`, `email`, `name`, `password_hash`, `avatar_url`, `role`
+- **Authentication**: Self-contained with bcrypt password hashing
+- **Sessions**: JWT tokens with HTTP-only cookies
 
 #### `technologies`
 

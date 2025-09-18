@@ -1,8 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { SupabaseService } from './supabase.service';
+import { CustomAuthService } from './custom-auth.service';
 
+@Global()
 @Module({
-  providers: [SupabaseService],
-  exports: [SupabaseService],
+  providers: [SupabaseService, CustomAuthService],
+  exports: [SupabaseService, CustomAuthService],
 })
 export class SupabaseModule {}

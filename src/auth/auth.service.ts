@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SupabaseService } from '../supabase/supabase.service';
+import { CustomAuthService } from '../supabase/custom-auth.service';
 import { UserProfile } from '../auth/types/auth.types';
 import {
   SignUpDto,
@@ -19,7 +19,7 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    private supabaseService: SupabaseService,
+    private customAuthService: CustomAuthService,
     private configService: ConfigService,
   ) {}
 
@@ -35,18 +35,18 @@ export class AuthService {
       );
 
       // Check if user already exists
-      const existingUser = await this.supabaseService.getUserByEmail(
+      const existingUser = await this.customAuthService.getUserByEmail(
         signUpDto.email,
       );
       if (existingUser) {
         throw new BadRequestException('User already exists with this email');
       }
 
-      // Create user in Supabase
-      const user = await this.supabaseService.createUser(
+      // Create user with custom authentication
+      const user = await this.customAuthService.createUser(
         signUpDto.email,
         signUpDto.name,
-        signUpDto.password,
+        signUpDto.password || 'defaultPassword123',
       );
 
       this.logger.log(`Successfully signed up user: ${user.id}`);
@@ -54,9 +54,9 @@ export class AuthService {
       // For sign up, we need to sign in the user to get a token
       let access_token: string | undefined;
       try {
-        const signInResponse = await this.supabaseService.signInUser(
+        const signInResponse = await this.customAuthService.signInUser(
           signUpDto.email,
-          signUpDto.password,
+          signUpDto.password || 'defaultPassword123',
         );
         access_token = signInResponse.access_token;
       } catch {
@@ -98,9 +98,9 @@ export class AuthService {
         `Attempting to sign in user with email: ${signInDto.email}`,
       );
 
-      const authResponse = await this.supabaseService.signInUser(
+      const authResponse = await this.customAuthService.signInUser(
         signInDto.email,
-        signInDto.password,
+        signInDto.password || '',
       );
 
       this.logger.log(`Successfully signed in user: ${authResponse.user.id}`);
@@ -123,7 +123,7 @@ export class AuthService {
     try {
       this.logger.log('Attempting to sign out user');
 
-      await this.supabaseService.signOutUser(token);
+      await this.customAuthService.signOutUser(token);
 
       this.logger.log('Successfully signed out user');
 
@@ -152,7 +152,7 @@ export class AuthService {
 
   async getCurrentUser(token: string): Promise<UserProfile> {
     try {
-      const user = await this.supabaseService.verifySession(token);
+      const user = await this.customAuthService.verifySession(token);
       if (!user) {
         throw new UnauthorizedException('Invalid or expired token');
       }
@@ -178,7 +178,7 @@ export class AuthService {
 
   async validateToken(token: string): Promise<UserProfile | null> {
     try {
-      return await this.supabaseService.verifySession(token);
+      return await this.customAuthService.verifySession(token);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';

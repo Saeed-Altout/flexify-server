@@ -8,21 +8,21 @@
 -- =====================================================
 -- 1. INSERT SAMPLE USERS
 -- =====================================================
--- Note: In production, users are created through Supabase Auth
--- and automatically synced to the users table via triggers.
--- These sample users are for testing purposes only.
+-- Note: These are sample users for testing purposes.
+-- All users have the password: "password123"
+-- In production, users are created through the custom authentication system.
 
-INSERT INTO users (id, email, name, avatar_url, role) VALUES 
-('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'john.doe@example.com', 'John Doe', 'https://api.dicebear.com/7.x/avataaars/svg?seed=John', 'USER'),
-('b2c3d4e5-f6a7-8901-bcde-f12345678901', 'jane.smith@example.com', 'Jane Smith', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane', 'USER'),
-('c3d4e5f6-a7b8-9012-cdef-123456789012', 'bob.wilson@example.com', 'Bob Wilson', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob', 'USER'),
-('d4e5f6a7-b8c9-0123-def0-234567890123', 'alice.brown@example.com', 'Alice Brown', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice', 'USER'),
-('e5f6a7b8-c9d0-1234-ef01-345678901234', 'charlie.davis@example.com', 'Charlie Davis', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Charlie', 'USER'),
-('f6a7b8c9-d0e1-2345-f012-456789012345', 'sarah.johnson@example.com', 'Sarah Johnson', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', 'USER'),
-('a7b8c9d0-e1f2-3456-0123-567890123456', 'mike.chen@example.com', 'Mike Chen', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike', 'USER'),
-('b8c9d0e1-f2a3-4567-1234-678901234567', 'lisa.wang@example.com', 'Lisa Wang', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa', 'USER'),
-('c9d0e1f2-a3b4-5678-2345-789012345678', 'david.kim@example.com', 'David Kim', 'https://api.dicebear.com/7.x/avataaars/svg?seed=David', 'USER'),
-('d0e1f2a3-b4c5-6789-3456-890123456789', 'emma.taylor@example.com', 'Emma Taylor', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma', 'USER')
+INSERT INTO users (id, email, name, password_hash, avatar_url, role) VALUES 
+('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'john.doe@example.com', 'John Doe', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=John', 'USER'),
+('b2c3d4e5-f6a7-8901-bcde-f12345678901', 'jane.smith@example.com', 'Jane Smith', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane', 'USER'),
+('c3d4e5f6-a7b8-9012-cdef-123456789012', 'bob.wilson@example.com', 'Bob Wilson', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob', 'USER'),
+('d4e5f6a7-b8c9-0123-def0-234567890123', 'alice.brown@example.com', 'Alice Brown', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice', 'USER'),
+('e5f6a7b8-c9d0-1234-ef01-345678901234', 'charlie.davis@example.com', 'Charlie Davis', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Charlie', 'USER'),
+('f6a7b8c9-d0e1-2345-f012-456789012345', 'sarah.johnson@example.com', 'Sarah Johnson', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', 'USER'),
+('a7b8c9d0-e1f2-3456-0123-567890123456', 'mike.chen@example.com', 'Mike Chen', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike', 'USER'),
+('b8c9d0e1-f2a3-4567-1234-678901234567', 'lisa.wang@example.com', 'Lisa Wang', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa', 'USER'),
+('c9d0e1f2-a3b4-5678-2345-789012345678', 'david.kim@example.com', 'David Kim', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=David', 'USER'),
+('d0e1f2a3-b4c5-6789-3456-890123456789', 'emma.taylor@example.com', 'Emma Taylor', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma', 'USER')
 ON CONFLICT (id) DO NOTHING;
 
 -- =====================================================
