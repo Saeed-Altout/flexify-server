@@ -1,13 +1,12 @@
 import { Module } from '@nestjs/common';
-import { TechnologiesService } from './technologies.service';
 import { TechnologiesController } from './technologies.controller';
-import { SupabaseService } from '../supabase/supabase.service';
-import { AuthGuard } from '../auth/guards/auth.guard';
+import { TechnologiesService } from './technologies.service';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [],
+  imports: [AuthModule],
   controllers: [TechnologiesController],
-  providers: [TechnologiesService, SupabaseService, AuthGuard],
+  providers: [TechnologiesService],
   exports: [TechnologiesService],
 })
 export class TechnologiesModule {}

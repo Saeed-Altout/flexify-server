@@ -1,140 +1,44 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Flexify Server - Microservices API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
-
-```bash
-$ npm install
-```
-
-## Compile and run the project
-
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
-
-# Flexify Auth Service
-
-A NestJS microservice for user authentication using Supabase as the authentication provider.
-
-## 🎯 Features
-
-- **Supabase Integration**: Full integration with Supabase Auth for user management
-- **JWT Token Management**: Secure token handling with HTTP-only cookies
-- **User Registration**: Email and name-based registration (password optional)
-- **User Authentication**: Login, logout, and session management
-- **Protected Routes**: Route protection with AuthGuard
-- **Microservice Ready**: Designed for microservices architecture
-- **TypeScript**: Full TypeScript support with proper typing
+A comprehensive microservices API built with NestJS, featuring authentication, project management, technology stack management, and contact messaging.
 
 ## 🏗️ Architecture
 
-```
-src/
-├── config/
-│   └── configuration.ts          # Environment configuration
-├── controllers/
-│   └── auth.controller.ts        # Auth endpoints
-├── dto/
-│   └── auth.dto.ts              # Data transfer objects
-├── guards/
-│   └── auth.guard.ts            # Authentication guard
-├── middleware/
-│   └── cookie-parser.middleware.ts # Cookie parsing middleware
-├── modules/
-│   └── auth.module.ts           # Auth module
-├── services/
-│   ├── auth.service.ts          # Main auth service
-│   └── supabase.service.ts      # Supabase integration
-├── types/
-│   └── auth.types.ts            # TypeScript types
-└── decorators/
-    └── current-user.decorator.ts # Current user decorator
-```
+This application follows a clean microservices architecture with the following services:
+
+### 🔐 Auth Microservice
+
+- **Purpose**: User authentication and session management
+- **Features**: Sign-up, sign-in, sign-out, profile management, password changes
+- **Database**: `users` and `sessions` tables
+- **Security**: JWT tokens, HTTP-only cookies, bcrypt password hashing
+
+### 🛠️ Technologies Microservice
+
+- **Purpose**: Technology stack management
+- **Features**: CRUD operations for technologies, categorization, search
+- **Database**: `technologies` table
+- **Access**: Public read, Admin write
+
+### 📁 Projects Microservice
+
+- **Purpose**: Project portfolio management
+- **Features**: Project CRUD, technology associations, public/private projects
+- **Database**: `projects` table
+- **Access**: User-owned projects, public project viewing
+
+### 💬 Messages Microservice
+
+- **Purpose**: Contact form and communication management
+- **Features**: Message sending, admin management, replies, statistics
+- **Database**: `messages` and `message_replies` tables
+- **Access**: Public message sending, Admin management
+
+### 🏥 Health Microservice
+
+- **Purpose**: System monitoring and health checks
+- **Features**: Health status, database connectivity, system metrics
+- **Access**: Public health endpoint
 
 ## 🚀 Quick Start
 
@@ -142,7 +46,8 @@ src/
 
 - Node.js (v18 or higher)
 - npm or yarn
-- Supabase account and project
+- PostgreSQL database (or Supabase)
+- Environment variables configured
 
 ### 1. Environment Setup
 
@@ -153,26 +58,47 @@ Create a `.env` file in the root directory:
 PORT=3000
 NODE_ENV=development
 
-# Supabase Configuration
+# Database Configuration (Supabase)
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_SERVICE_KEY=your_supabase_service_key
 SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # JWT Configuration
 JWT_SECRET=your_super_secret_jwt_key
-JWT_EXPIRES_IN=7d
+JWT_REFRESH_SECRET=your_super_secret_refresh_key
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
 
 # CORS Configuration
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
+
+# Email Configuration (Optional)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_password
 ```
 
-### 2. Install Dependencies
+### 2. Database Setup
+
+Run the database setup scripts in order:
+
+```bash
+# 1. Setup database schema
+psql -h your_host -U your_user -d your_database -f database/01-setup.sql
+
+# 2. Insert sample data (optional)
+psql -h your_host -U your_user -d your_database -f database/02-sample-data.sql
+```
+
+### 3. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Run the Service
+### 4. Run the Application
 
 ```bash
 # Development mode
@@ -182,750 +108,181 @@ npm run start:dev
 npm run start:prod
 ```
 
-## 📚 API Endpoints
-
-### Authentication Endpoints
-
-#### Register User
-
-```http
-POST /api/v1/auth/register
-Content-Type: application/json
-
-{
-  "email": "user@example.com",
-  "name": "John Doe",
-  "password": "optional_password"
-}
-```
-
-#### Login User
-
-```http
-POST /api/v1/auth/login
-Content-Type: application/json
-
-{
-  "email": "user@example.com",
-  "password": "password"
-}
-```
-
-#### Get Current User
-
-```http
-GET /api/v1/auth/me
-Authorization: Bearer <token>
-# or via HTTP-only cookie
-```
-
-#### Verify Authentication
-
-```http
-GET /api/v1/auth/verify
-Authorization: Bearer <token>
-# or via HTTP-only cookie
-```
-
-#### Logout User
-
-```http
-POST /api/v1/auth/logout
-Authorization: Bearer <token>
-# or via HTTP-only cookie
-```
-
-#### Refresh Token
-
-```http
-POST /api/v1/auth/refresh
-Authorization: Bearer <token>
-# or via HTTP-only cookie
-```
-
-## 🔐 Security Features
-
-### JWT Token Management
-
-- Tokens are stored in HTTP-only cookies for enhanced security
-- Automatic token refresh mechanism
-- Secure cookie configuration (httpOnly, secure, sameSite)
-
-### Authentication Guard
-
-- Route protection with `@UseGuards(AuthGuard)`
-- Automatic token validation
-- User context injection with `@CurrentUser()` decorator
-
-### Input Validation
-
-- DTO-based validation using class-validator
-- Automatic request sanitization
-- Type-safe request handling
-
-## 🏗️ Microservices Integration
-
-### For Other Services
-
-To integrate with other microservices, use the `AuthGuard` and `@CurrentUser()` decorator:
-
-```typescript
-import { Controller, Get, UseGuards } from '@nestjs/common';
-import { AuthGuard } from '../guards/auth.guard';
-import { CurrentUser } from '../decorators/current-user.decorator';
-import { UserProfile } from '../types/auth.types';
-
-@Controller('protected')
-@UseGuards(AuthGuard)
-export class ProtectedController {
-  @Get('profile')
-  getProfile(@CurrentUser() user: UserProfile) {
-    return { user };
-  }
-}
-```
-
-### Token Validation
-
-For inter-service communication, validate tokens using the `AuthService`:
-
-```typescript
-// In another service
-const isValid = await authService.validateToken(token);
-if (isValid) {
-  // Token is valid, proceed with request
-}
-```
-
-## 🧪 Testing
-
-### Unit Tests
-
-```bash
-npm run test
-```
-
-### E2E Tests
-
-```bash
-npm run test:e2e
-```
-
-### Test Coverage
-
-```bash
-npm run test:cov
-```
-
-## 📦 Deployment
-
-### Docker
-
-Create a `Dockerfile`:
-
-```dockerfile
-FROM node:18-alpine
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci --only=production
-
-COPY dist ./dist
-
-EXPOSE 3000
-
-CMD ["node", "dist/main"]
-```
-
-### Environment Variables
-
-Ensure all required environment variables are set in your deployment environment:
-
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_KEY`
-- `SUPABASE_ANON_KEY`
-- `JWT_SECRET`
-- `NODE_ENV`
-- `ALLOWED_ORIGINS`
-
-## 🔧 Configuration
-
-### Supabase Setup
-
-1. Create a Supabase project at [supabase.com](https://supabase.com)
-2. Get your project URL and API keys from the dashboard
-3. Configure authentication settings in Supabase dashboard
-4. Set up email templates and authentication providers as needed
-
-### Environment Variables
-
-| Variable               | Description          | Required | Default        |
-| ---------------------- | -------------------- | -------- | -------------- |
-| `PORT`                 | Server port          | No       | 3000           |
-| `NODE_ENV`             | Environment          | No       | development    |
-| `SUPABASE_URL`         | Supabase project URL | Yes      | -              |
-| `SUPABASE_SERVICE_KEY` | Supabase service key | Yes      | -              |
-| `SUPABASE_ANON_KEY`    | Supabase anon key    | Yes      | -              |
-| `JWT_SECRET`           | JWT secret key       | No       | auto-generated |
-| `JWT_EXPIRES_IN`       | JWT expiration       | No       | 7d             |
-| `ALLOWED_ORIGINS`      | CORS origins         | No       | localhost:3000 |
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-# Flexify Backend
-
-A comprehensive authentication service built with NestJS and Supabase.
-
-## 🚀 Quick Start
-
-1. **Clone the repository**
-
-   ```bash
-   git clone <repository-url>
-   cd flexify-backend
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-
-   ```bash
-   cp env.example .env
-   # Edit .env with your Supabase credentials
-   ```
-
-4. **Run the application**
-   ```bash
-   npm run start:dev
-   ```
-
-## 🔐 Authentication Endpoints
-
-### Endpoints
-
-- `POST /api/v1/auth/sign-up` - Register a new user
-- `POST /api/v1/auth/sign-in` - Sign in user
-- `POST /api/v1/auth/sign-out` - Sign out user
-- `GET /api/v1/auth/me` - Get current user profile
-
-### Response Format
-
-All responses follow a standard format:
-
-```typescript
-{
-  data: {} | [] | null,
-  message: string,
-  status: string
-}
-```
-
-### Cookie Management
-
-The authentication system uses cookies for session management. Cookies are set to be accessible by frontend JavaScript for seamless user experience.
-
-#### Cookie Configuration
-
-- **auth-token**: Contains the JWT access token
-- **user**: Contains the user profile data as JSON string
-
-#### Cookie Settings
-
-- `httpOnly: false` - Allows frontend JavaScript to read cookies
-- `secure: true` - HTTPS only in production
-- `sameSite: 'lax'` - CSRF protection
-- `maxAge: 7 days` - Token expiry
-- `path: '/'` - Available across the site
-
-## 🍪 Frontend Integration
-
-### Reading Cookies in Frontend
-
-```javascript
-// Utility function to get cookies
-function getCookie(name) {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(';').shift();
-}
-
-// Get user data
-const userData = getCookie('user');
-const user = userData ? JSON.parse(userData) : null;
-
-// Get auth token
-const authToken = getCookie('auth-token');
-```
-
-### React Example
-
-```jsx
-import { useState, useEffect } from 'react';
-
-function useAuth() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Read user data from cookie
-    const userData = getCookie('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-    setLoading(false);
-  }, []);
-
-  const signIn = async (credentials) => {
-    const response = await fetch('/api/v1/auth/sign-in', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include', // Important for cookies
-      body: JSON.stringify(credentials),
-    });
-
-    const result = await response.json();
-    if (result.status === 'success') {
-      // User data is automatically set in cookies
-      setUser(result.data);
-    }
-    return result;
-  };
-
-  const signOut = async () => {
-    await fetch('/api/v1/auth/sign-out', {
-      method: 'POST',
-      credentials: 'include',
-    });
-    setUser(null);
-  };
-
-  return { user, loading, signIn, signOut };
-}
-```
-
-### Vue.js Example
-
-```javascript
-// composables/useAuth.js
-import { ref, onMounted } from 'vue';
-
-export function useAuth() {
-  const user = ref(null);
-  const loading = ref(true);
-
-  const getCookie = (name) => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-  };
-
-  onMounted(() => {
-    const userData = getCookie('user');
-    if (userData) {
-      user.value = JSON.parse(userData);
-    }
-    loading.value = false;
-  });
-
-  const signIn = async (credentials) => {
-    const response = await fetch('/api/v1/auth/sign-in', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(credentials),
-    });
-
-    const result = await response.json();
-    if (result.status === 'success') {
-      user.value = result.data;
-    }
-    return result;
-  };
-
-  const signOut = async () => {
-    await fetch('/api/v1/auth/sign-out', {
-      method: 'POST',
-      credentials: 'include',
-    });
-    user.value = null;
-  };
-
-  return { user, loading, signIn, signOut };
-}
-```
-
-### Angular Example
-
-```typescript
-// services/auth.service.ts
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable } from 'rxjs';
-
-@Injectable({
-  providedIn: 'root',
-})
-export class AuthService {
-  private userSubject = new BehaviorSubject<any>(null);
-  public user$ = this.userSubject.asObservable();
-
-  constructor(private http: HttpClient) {
-    this.loadUserFromCookie();
-  }
-
-  private loadUserFromCookie() {
-    const userData = this.getCookie('user');
-    if (userData) {
-      this.userSubject.next(JSON.parse(userData));
-    }
-  }
-
-  private getCookie(name: string): string | null {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-    return null;
-  }
-
-  signIn(credentials: any): Observable<any> {
-    return this.http.post('/api/v1/auth/sign-in', credentials, {
-      withCredentials: true,
-    });
-  }
-
-  signOut(): Observable<any> {
-    return this.http.post(
-      '/api/v1/auth/sign-out',
-      {},
-      {
-        withCredentials: true,
-      },
-    );
-  }
-}
-```
-
-## 🚀 Vercel Deployment
-
-### Prerequisites
-
-1. **Vercel Account**: Sign up at [vercel.com](https://vercel.com)
-2. **GitHub Repository**: Push your code to GitHub
-3. **Environment Variables**: Set up your environment variables in Vercel
-
-### Step-by-Step Deployment
-
-#### 1. Connect to Vercel
-
-1. Go to [vercel.com](https://vercel.com) and sign in
-2. Click "New Project"
-3. Import your GitHub repository
-4. Select the repository and click "Deploy"
-
-#### 2. Configure Environment Variables
-
-In your Vercel project dashboard, go to **Settings** → **Environment Variables** and add:
-
-```env
-# Supabase Configuration
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_SERVICE_KEY=your_supabase_service_key
-SUPABASE_ANON_KEY=your_supabase_anon_key
-
-# JWT Configuration
-JWT_SECRET=your_jwt_secret_key
-JWT_EXPIRES_IN=7d
-
-# CORS Configuration
-ALLOWED_ORIGINS=https://your-frontend-domain.vercel.app
-
-# Cookie Configuration (Production)
-COOKIE_DOMAIN=your-vercel-domain.vercel.app
-
-# Server Configuration
-NODE_ENV=production
-```
-
-#### 3. Configure Build Settings
-
-In your Vercel project dashboard, go to **Settings** → **General** and set:
-
-- **Framework Preset**: Other
-- **Build Command**: `npm run vercel-build`
-- **Output Directory**: `dist`
-- **Install Command**: `npm install`
-
-#### 4. Deploy
-
-1. Click "Deploy" in your Vercel dashboard
-2. Wait for the build to complete
-3. Your API will be available at `https://your-project-name.vercel.app`
-
-### Vercel Configuration Files
-
-#### `vercel.json`
-
-```json
-{
-  "version": 2,
-  "builds": [
-    {
-      "src": "src/main.ts",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["src/**/*"],
-        "maxLambdaSize": "15mb"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "src/main.ts"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "src/main.ts"
-    }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
-}
-```
-
-#### `api/index.ts`
-
-```typescript
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from '../src/app.module';
-import { ValidationPipe } from '@nestjs/common';
-
-let app: any;
-
-async function bootstrap() {
-  if (!app) {
-    app = await NestFactory.create(AppModule);
-
-    // Enable CORS for Vercel
-    app.enableCors({
-      origin: process.env.ALLOWED_ORIGINS?.split(',') || [
-        'http://localhost:3000',
-      ],
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: [
-        'Origin',
-        'X-Requested-With',
-        'Content-Type',
-        'Accept',
-        'Authorization',
-        'Cache-Control',
-        'X-API-Key',
-      ],
-      exposedHeaders: ['Set-Cookie'],
-    });
-
-    // Global validation pipe
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    );
-
-    // Global prefix
-    app.setGlobalPrefix('api/v1');
-
-    await app.init();
-  }
-  return app;
-}
-
-export default async function handler(req: any, res: any) {
-  const app = await bootstrap();
-  const expressApp = app.getHttpAdapter().getInstance();
-
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.setHeader(
-      'Access-Control-Allow-Methods',
-      'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-    );
-    res.setHeader(
-      'Access-Control-Allow-Headers',
-      'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-API-Key',
-    );
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.status(200).end();
-    return;
-  }
-
-  return expressApp(req, res);
-}
-```
-
-### Post-Deployment
-
-#### 1. Test Your API
-
-Your API endpoints will be available at:
-
-- `https://your-project-name.vercel.app/api/v1/auth/sign-up`
-- `https://your-project-name.vercel.app/api/v1/auth/sign-in`
-- `https://your-project-name.vercel.app/api/v1/auth/sign-out`
-- `https://your-project-name.vercel.app/api/v1/auth/me`
-
-#### 2. Update Frontend Configuration
-
-Update your frontend to use the new Vercel URL:
-
-```javascript
-// Update your API base URL
-const API_BASE_URL = 'https://your-project-name.vercel.app/api/v1';
-
-// Example fetch
-const response = await fetch(`${API_BASE_URL}/auth/sign-in`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  credentials: 'include',
-  body: JSON.stringify(credentials),
-});
-```
-
-#### 3. Monitor Deployment
-
-- Check Vercel dashboard for deployment status
-- Monitor function logs for any errors
-- Test all endpoints to ensure they work correctly
-
-### Troubleshooting
-
-#### Common Issues
-
-1. **CORS Errors**: Ensure `ALLOWED_ORIGINS` includes your frontend domain
-2. **Environment Variables**: Double-check all environment variables are set in Vercel
-3. **Build Failures**: Check the build logs in Vercel dashboard
-4. **Function Timeouts**: Increase `maxDuration` in `vercel.json` if needed
-
-#### Debugging
-
-1. **Check Logs**: Go to Vercel dashboard → Functions → View logs
-2. **Test Locally**: Use `vercel dev` to test locally
-3. **Environment Variables**: Verify all variables are set correctly
-
-## 🔒 Security Considerations
-
-### Cookie Security
-
-1. **HttpOnly**: Set to `false` to allow frontend access
-2. **Secure**: Only sent over HTTPS in production
-3. **SameSite**: Set to `lax` for CSRF protection
-4. **Domain**: Configurable for production environments
-5. **Path**: Set to `/` for site-wide access
-
-### CORS Configuration
-
-The application is configured with proper CORS settings:
-
-- **Development**: Allows all origins with credentials
-- **Production**: Configurable allowed origins
-
-### Environment Variables
-
-```env
-# Supabase Configuration
-SUPABASE_URL=your_supabase_url
-SUPABASE_SERVICE_KEY=your_service_key
-
-# Cookie Configuration (Production)
-COOKIE_DOMAIN=your-domain.com
-NODE_ENV=production
-
-# CORS Configuration (Production)
-ALLOWED_ORIGINS=https://your-frontend-domain.com
-```
+### 5. Access the API
+
+- **API Base URL**: `http://localhost:3000/api/v1`
+- **Swagger Documentation**: `http://localhost:3000/api/docs`
+- **Health Check**: `http://localhost:3000/api/v1/health`
 
 ## 📚 API Documentation
 
-Visit `http://localhost:3000/api/docs` for interactive API documentation.
+### Authentication Endpoints
+
+| Method | Endpoint                | Description          | Auth Required |
+| ------ | ----------------------- | -------------------- | ------------- |
+| POST   | `/auth/sign-up`         | User registration    | No            |
+| POST   | `/auth/sign-in`         | User login           | No            |
+| POST   | `/auth/sign-out`        | User logout          | Yes           |
+| POST   | `/auth/refresh`         | Refresh access token | No            |
+| GET    | `/auth/me`              | Get current user     | Yes           |
+| PUT    | `/auth/profile`         | Update user profile  | Yes           |
+| PUT    | `/auth/change-password` | Change password      | Yes           |
+
+### Technologies Endpoints
+
+| Method | Endpoint                           | Description             | Auth Required |
+| ------ | ---------------------------------- | ----------------------- | ------------- |
+| GET    | `/technologies`                    | Get technologies list   | No            |
+| GET    | `/technologies/active`             | Get active technologies | No            |
+| GET    | `/technologies/search`             | Search technologies     | No            |
+| GET    | `/technologies/category/:category` | Get by category         | No            |
+| GET    | `/technologies/:id`                | Get technology by ID    | No            |
+| POST   | `/technologies`                    | Create technology       | Yes (Admin)   |
+| PUT    | `/technologies/:id`                | Update technology       | Yes (Admin)   |
+| DELETE | `/technologies/:id`                | Delete technology       | Yes (Admin)   |
+
+### Projects Endpoints
+
+| Method | Endpoint                          | Description           | Auth Required     |
+| ------ | --------------------------------- | --------------------- | ----------------- |
+| GET    | `/projects`                       | Get projects list     | No                |
+| GET    | `/projects/public`                | Get public projects   | No                |
+| GET    | `/projects/featured`              | Get featured projects | No                |
+| GET    | `/projects/search`                | Search projects       | No                |
+| GET    | `/projects/status/:status`        | Get by status         | No                |
+| GET    | `/projects/my`                    | Get user's projects   | Yes               |
+| GET    | `/projects/:id`                   | Get project by ID     | No                |
+| GET    | `/projects/:id/with-technologies` | Get with tech details | No                |
+| POST   | `/projects`                       | Create project        | Yes               |
+| PUT    | `/projects/:id`                   | Update project        | Yes (Owner/Admin) |
+| DELETE | `/projects/:id`                   | Delete project        | Yes (Owner/Admin) |
+
+### Messages Endpoints
+
+| Method | Endpoint                     | Description            | Auth Required |
+| ------ | ---------------------------- | ---------------------- | ------------- |
+| POST   | `/messages`                  | Send message           | No            |
+| GET    | `/messages`                  | Get messages list      | Yes (Admin)   |
+| GET    | `/messages/stats`            | Get message statistics | Yes (Admin)   |
+| GET    | `/messages/search`           | Search messages        | Yes (Admin)   |
+| GET    | `/messages/status/:status`   | Get by status          | Yes (Admin)   |
+| GET    | `/messages/:id`              | Get message by ID      | Yes (Admin)   |
+| GET    | `/messages/:id/with-replies` | Get with replies       | Yes (Admin)   |
+| PUT    | `/messages/:id/status`       | Update status          | Yes (Admin)   |
+| POST   | `/messages/:id/reply`        | Reply to message       | Yes (Admin)   |
+| DELETE | `/messages/:id`              | Delete message         | Yes (Admin)   |
+
+### Health Endpoints
+
+| Method | Endpoint  | Description  | Auth Required |
+| ------ | --------- | ------------ | ------------- |
+| GET    | `/health` | Health check | No            |
+
+## 🔧 Configuration
+
+### Environment Variables
+
+| Variable                 | Description              | Default             | Required |
+| ------------------------ | ------------------------ | ------------------- | -------- |
+| `PORT`                   | Server port              | 3000                | No       |
+| `NODE_ENV`               | Environment              | development         | No       |
+| `SUPABASE_URL`           | Supabase project URL     | -                   | Yes      |
+| `SUPABASE_SERVICE_KEY`   | Supabase service key     | -                   | Yes      |
+| `SUPABASE_ANON_KEY`      | Supabase anonymous key   | -                   | Yes      |
+| `JWT_SECRET`             | JWT secret key           | -                   | Yes      |
+| `JWT_REFRESH_SECRET`     | JWT refresh secret       | -                   | Yes      |
+| `JWT_EXPIRES_IN`         | JWT expiration           | 15m                 | No       |
+| `JWT_REFRESH_EXPIRES_IN` | Refresh token expiration | 7d                  | No       |
+| `ALLOWED_ORIGINS`        | CORS allowed origins     | localhost:3000,3001 | No       |
+| `SMTP_HOST`              | SMTP host                | smtp.gmail.com      | No       |
+| `SMTP_PORT`              | SMTP port                | 587                 | No       |
+| `SMTP_USER`              | SMTP username            | -                   | No       |
+| `SMTP_PASS`              | SMTP password            | -                   | No       |
+
+### Database Schema
+
+The application uses the following main tables:
+
+- **users**: User accounts and profiles
+- **sessions**: User session management
+- **technologies**: Technology stack items
+- **projects**: Project portfolio items
+- **messages**: Contact form messages
+- **message_replies**: Message replies
+
+## 🛡️ Security Features
+
+- **JWT Authentication**: Secure token-based authentication
+- **HTTP-only Cookies**: Session management with secure cookies
+- **Password Hashing**: bcrypt with salt rounds
+- **CORS Protection**: Configurable cross-origin resource sharing
+- **Input Validation**: Comprehensive request validation
+- **SQL Injection Protection**: Parameterized queries
+- **Rate Limiting**: Built-in request rate limiting
 
 ## 🧪 Testing
 
-```bash
-# Unit tests
-npm run test
+### Sample Data
 
-# E2E tests
-npm run test:e2e
+The application includes comprehensive sample data:
 
-# Test coverage
-npm run test:cov
+- **5 Sample Users**: Test accounts with password `password123`
+- **12 Technologies**: Various frontend, backend, and DevOps technologies
+- **5 Sample Projects**: Different project types and statuses
+- **5 Sample Messages**: Contact form submissions
+- **2 Sample Replies**: Admin responses to messages
+
+### Test Credentials
+
+| Email                  | Password    | Role  |
+| ---------------------- | ----------- | ----- |
+| admin@flexify.com      | admin123    | ADMIN |
+| john.doe@example.com   | password123 | USER  |
+| jane.smith@example.com | password123 | USER  |
+
+## 📦 Deployment
+
+### Vercel Deployment
+
+The application is configured for Vercel deployment:
+
+1. Connect your GitHub repository to Vercel
+2. Set environment variables in Vercel dashboard
+3. Deploy automatically on push to main branch
+
+### Environment Variables for Production
+
+Ensure all required environment variables are set in your production environment:
+
+```env
+NODE_ENV=production
+SUPABASE_URL=your_production_supabase_url
+SUPABASE_SERVICE_KEY=your_production_service_key
+JWT_SECRET=your_production_jwt_secret
+JWT_REFRESH_SECRET=your_production_refresh_secret
+ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 ```
-
-## 🚀 Deployment
-
-1. **Build the application**
-
-   ```bash
-   npm run build
-   ```
-
-2. **Set production environment variables**
-
-   ```bash
-   NODE_ENV=production
-   COOKIE_DOMAIN=your-domain.com
-   ALLOWED_ORIGINS=https://your-frontend-domain.com
-   ```
-
-3. **Start the application**
-   ```bash
-   npm run start:prod
-   ```
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests
+4. Add tests if applicable
 5. Submit a pull request
 
 ## 📄 License
 
 This project is licensed under the MIT License.
 
-## 📦 Projects Module
+## 🆘 Support
 
-Admin-only mutations with public read access.
+For support and questions:
 
-Endpoints (prefixed by `api/v1`):
+- Create an issue in the GitHub repository
+- Check the API documentation at `/api/docs`
+- Review the health endpoint at `/api/v1/health`
 
-- POST `/projects` (admin) multipart/form-data: fields of CreateProjectDto plus optional files `logo`, `cover`
-- PUT `/projects/{id}` (admin) multipart/form-data: fields of UpdateProjectDto plus optional files `logo`, `cover`
-- DELETE `/projects/{id}` (admin)
-- GET `/projects` supports: `page`, `limit`, `q`, repeated `technology`
-- GET `/projects/{id}`
+---
 
-Env vars:
-
-- `ADMIN_EMAILS` comma-separated admin emails
-- `SUPABASE_STORAGE_BUCKET` storage bucket for project assets (default `project-assets`)
+**Flexify Server** - Built with ❤️ using NestJS and modern web technologies.

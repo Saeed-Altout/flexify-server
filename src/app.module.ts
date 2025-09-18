@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { ProjectsModule } from './projects/projects.module';
 import { MessagesModule } from './messages/messages.module';
 import { TechnologiesModule } from './technologies/technologies.module';
+import { FileUploadModule } from './file-upload/file-upload.module';
 import { SupabaseModule } from './supabase/supabase.module';
 import { HealthModule } from './health/health.module';
 import configuration from './config/configuration';
@@ -16,11 +17,12 @@ import configuration from './config/configuration';
       isGlobal: true,
       load: [configuration],
     }),
+    SupabaseModule,
     AuthModule,
+    TechnologiesModule,
     ProjectsModule,
     MessagesModule,
-    TechnologiesModule,
-    SupabaseModule,
+    FileUploadModule,
     HealthModule,
   ],
   controllers: [AppController],

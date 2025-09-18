@@ -1,87 +1,213 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsString,
-  IsNotEmpty,
   IsOptional,
-  MaxLength,
-  IsArray,
-  ArrayNotEmpty,
-  ArrayMinSize,
+  IsBoolean,
+  IsNumber,
+  IsIn,
+  Min,
+  Max,
 } from 'class-validator';
-import { StandardResponseDto } from '../../auth/dto/auth.dto';
+import { Transform } from 'class-transformer';
 
 export class CreateTechnologyDto {
+  @ApiProperty({ example: 'React', description: 'Technology name' })
   @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  label: string;
+  name: string;
 
+  @ApiPropertyOptional({
+    example: 'A JavaScript library for building user interfaces',
+    description: 'Technology description',
+  })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  @MaxLength(50)
-  value: string;
+  description?: string;
+
+  @ApiPropertyOptional({
+    example: 'Frontend',
+    description: 'Technology category',
+  })
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://example.com/react-icon.png',
+    description: 'Icon URL',
+  })
+  @IsOptional()
+  @IsString()
+  icon_url?: string;
 }
 
 export class UpdateTechnologyDto {
+  @ApiPropertyOptional({ example: 'React', description: 'Technology name' })
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  label?: string;
+  name?: string;
 
+  @ApiPropertyOptional({
+    example: 'A JavaScript library for building user interfaces',
+    description: 'Technology description',
+  })
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  @MaxLength(50)
-  value?: string;
-}
+  description?: string;
 
-export class TechnologyResponseDto {
-  id: string;
+  @ApiPropertyOptional({
+    example: 'Frontend',
+    description: 'Technology category',
+  })
+  @IsOptional()
+  @IsString()
+  category?: string;
 
-  label: string;
+  @ApiPropertyOptional({
+    example: 'https://example.com/react-icon.png',
+    description: 'Icon URL',
+  })
+  @IsOptional()
+  @IsString()
+  icon_url?: string;
 
-  value: string;
-
-  created_at: string;
-
-  updated_at: string;
-}
-
-export class TechnologiesListDto {
-  data: TechnologyResponseDto[];
-
-  total: number;
-
-  page: number;
-
-  limit: number;
-
-  next: boolean;
-
-  prev: boolean;
+  @ApiPropertyOptional({ example: true, description: 'Is technology active' })
+  @IsOptional()
+  @IsBoolean()
+  is_active?: boolean;
 }
 
 export class TechnologyQueryDto {
-  @IsOptional()
-  page?: number = 1;
-
-  @IsOptional()
-  limit?: number = 10;
-
+  @ApiPropertyOptional({
+    example: 'Frontend',
+    description: 'Filter by category',
+  })
   @IsOptional()
   @IsString()
-  q?: string;
+  category?: string;
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Filter by active status',
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true')
+  @IsBoolean()
+  is_active?: boolean;
+
+  @ApiPropertyOptional({ example: 'react', description: 'Search term' })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiPropertyOptional({ example: 1, description: 'Page number', minimum: 1 })
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value))
+  @IsNumber()
+  @Min(1)
+  page?: number;
+
+  @ApiPropertyOptional({
+    example: 10,
+    description: 'Items per page',
+    minimum: 1,
+    maximum: 100,
+  })
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value))
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+
+  @ApiPropertyOptional({
+    example: 'name',
+    enum: ['name', 'category', 'created_at'],
+    description: 'Sort by field',
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['name', 'category', 'created_at'])
+  sort_by?: 'name' | 'category' | 'created_at';
+
+  @ApiPropertyOptional({
+    example: 'asc',
+    enum: ['asc', 'desc'],
+    description: 'Sort order',
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['asc', 'desc'])
+  sort_order?: 'asc' | 'desc';
 }
 
-export class BulkCreateTechnologiesDto {
-  @IsArray()
-  @ArrayNotEmpty()
-  @ArrayMinSize(1)
-  technologies: CreateTechnologyDto[];
+export class TechnologyDto {
+  @ApiProperty({
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    description: 'Technology ID',
+  })
+  id: string;
+
+  @ApiProperty({ example: 'React', description: 'Technology name' })
+  name: string;
+
+  @ApiPropertyOptional({
+    example: 'A JavaScript library for building user interfaces',
+    description: 'Technology description',
+  })
+  description?: string;
+
+  @ApiPropertyOptional({
+    example: 'Frontend',
+    description: 'Technology category',
+  })
+  category?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://example.com/react-icon.png',
+    description: 'Icon URL',
+  })
+  icon_url?: string;
+
+  @ApiProperty({ example: true, description: 'Is technology active' })
+  is_active: boolean;
+
+  @ApiProperty({
+    example: '2023-01-01T00:00:00Z',
+    description: 'Creation timestamp',
+  })
+  created_at: string;
+
+  @ApiProperty({
+    example: '2023-01-01T00:00:00Z',
+    description: 'Last update timestamp',
+  })
+  updated_at: string;
 }
 
-export class TechnologiesListEnvelopeDto extends StandardResponseDto<TechnologiesListDto> {}
-export class SingleTechnologyResponseDto extends StandardResponseDto<TechnologyResponseDto> {}
-export class BulkCreateTechnologiesResponseDto extends StandardResponseDto<
-  TechnologyResponseDto[]
-> {}
+export class TechnologyListResponseDto {
+  @ApiProperty({ type: [TechnologyDto], description: 'List of technologies' })
+  technologies: TechnologyDto[];
+
+  @ApiProperty({ example: 50, description: 'Total number of technologies' })
+  total: number;
+
+  @ApiProperty({ example: 1, description: 'Current page number' })
+  page: number;
+
+  @ApiProperty({ example: 10, description: 'Items per page' })
+  limit: number;
+
+  @ApiProperty({ example: 5, description: 'Total number of pages' })
+  total_pages: number;
+}
+
+export class StandardResponseDto<T> {
+  @ApiProperty({ description: 'Response data' })
+  data: T;
+
+  @ApiProperty({ example: 'Success message', description: 'Response message' })
+  message: string;
+
+  @ApiProperty({ example: 'success', description: 'Response status' })
+  status: string;
+}

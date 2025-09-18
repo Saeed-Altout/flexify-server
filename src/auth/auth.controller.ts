@@ -2,291 +2,312 @@ import {
   Controller,
   Post,
   Get,
+  Put,
   Body,
-  Req,
-  Res,
-  UseGuards,
-  HttpStatus,
   HttpCode,
-  ValidationPipe,
-  UsePipes,
+  HttpStatus,
+  UseGuards,
+  Request,
+  Response,
 } from '@nestjs/common';
-import type { Response } from 'express';
 import {
   ApiTags,
   ApiOperation,
-  ApiBody,
+  ApiResponse,
   ApiBearerAuth,
-  ApiCreatedResponse,
-  ApiOkResponse,
-  ApiUnauthorizedResponse,
-  ApiBadRequestResponse,
-  ApiInternalServerErrorResponse,
+  ApiBody,
+  ApiConsumes,
 } from '@nestjs/swagger';
-import type { Request } from 'express';
+import type { Response as ExpressResponse } from 'express';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './guards/auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import {
   SignUpDto,
   SignInDto,
+  SignOutDto,
+  RefreshTokenDto,
+  ChangePasswordDto,
+  UpdateProfileDto,
   AuthResponseDto,
-  ErrorResponseDto,
+  UserDto,
   StandardResponseDto,
-  UserProfileDto,
 } from './dto/auth.dto';
-import type { UserProfile } from './types/auth.types';
+import type { User } from './types/auth.types';
 
 @ApiTags('auth')
 @Controller('auth')
-@UsePipes(new ValidationPipe({ transform: true }))
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('sign-up')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary: 'Sign up a new user',
-    description:
-      'Creates a new user account with email and name. Password is optional for Supabase magic links. Session token is automatically set as HTTP-only cookie with 7-day expiry. Returns only success message, no user data.',
+    summary: 'User Registration',
+    description: 'Register a new user account with email, name, and password',
   })
-  @ApiBody({
-    type: SignUpDto,
-    description: 'User sign up data',
-    examples: {
-      withPassword: {
-        summary: 'Sign up with password',
-        value: {
-          email: 'john.doe@example.com',
-          name: 'John Doe',
-          password: 'securePassword123',
-        },
-      },
-      withoutPassword: {
-        summary: 'Sign up without password (magic link)',
-        value: {
-          email: 'john.doe@example.com',
-          name: 'John Doe',
-        },
-      },
-    },
-  })
-  @ApiCreatedResponse({
-    description:
-      'User successfully signed up. Session token is set as HTTP-only cookie.',
+  @ApiBody({ type: SignUpDto })
+  @ApiResponse({
+    status: 201,
+    description: 'User registered successfully',
     schema: {
       type: 'object',
       properties: {
-        data: { type: 'null', example: null },
+        data: { $ref: '#/components/schemas/UserDto' },
         message: { type: 'string', example: 'User signed up successfully' },
         status: { type: 'string', example: 'success' },
       },
     },
   })
-  @ApiBadRequestResponse({
-    description: 'Invalid input data or user already exists',
-    type: ErrorResponseDto,
+  @ApiResponse({
+    status: 409,
+    description: 'User already exists with this email',
   })
-  @ApiInternalServerErrorResponse({
-    description: 'Internal server error',
-    type: ErrorResponseDto,
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data',
   })
   async signUp(
     @Body() signUpDto: SignUpDto,
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<StandardResponseDto<null>> {
-    const authResponse = await this.authService.signUp(signUpDto);
-
-    // Set HTTP-only cookie with 7-day expiry
-    if (authResponse.access_token) {
-      res.cookie('session_token', authResponse.access_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
-        path: '/',
-      });
-    }
-
-    return {
-      data: null,
-      message: authResponse.message,
-      status: authResponse.status,
-    };
+  ): Promise<StandardResponseDto<UserDto>> {
+    return this.authService.signUp(signUpDto);
   }
 
   @Post('sign-in')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'User sign in',
+    summary: 'User Login',
     description:
-      'Authenticates a user with email and password. Session token is automatically set as HTTP-only cookie with 7-day expiry. Returns only success message, no user data.',
+      'Authenticate user with email and password, returns access and refresh tokens',
   })
-  @ApiBody({
-    type: SignInDto,
-    description: 'User sign in credentials',
-    examples: {
-      withPassword: {
-        summary: 'Sign in with password',
-        value: {
-          email: 'john.doe@example.com',
-          password: 'securePassword123',
-        },
-      },
-      withoutPassword: {
-        summary: 'Sign in without password (magic link)',
-        value: {
-          email: 'john.doe@example.com',
-        },
-      },
-    },
-  })
-  @ApiOkResponse({
-    description:
-      'User successfully signed in. Session token is set as HTTP-only cookie.',
+  @ApiBody({ type: SignInDto })
+  @ApiResponse({
+    status: 200,
+    description: 'User signed in successfully',
     schema: {
       type: 'object',
       properties: {
-        data: { type: 'null', example: null },
+        data: { $ref: '#/components/schemas/AuthResponseDto' },
         message: { type: 'string', example: 'User signed in successfully' },
         status: { type: 'string', example: 'success' },
       },
     },
   })
-  @ApiUnauthorizedResponse({
+  @ApiResponse({
+    status: 401,
     description: 'Invalid credentials',
-    type: ErrorResponseDto,
   })
-  @ApiBadRequestResponse({
+  @ApiResponse({
+    status: 400,
     description: 'Invalid input data',
-    type: ErrorResponseDto,
   })
   async signIn(
     @Body() signInDto: SignInDto,
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<StandardResponseDto<null>> {
-    const authResponse = await this.authService.signIn(signInDto);
+    @Request() req: any,
+    @Response({ passthrough: true }) res: ExpressResponse,
+  ): Promise<StandardResponseDto<AuthResponseDto>> {
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('User-Agent');
 
-    // Set HTTP-only cookie with 7-day expiry
-    if (authResponse.access_token) {
-      res.cookie('session_token', authResponse.access_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
-        path: '/',
-      });
-    }
+    const result = await this.authService.signIn(
+      signInDto,
+      ipAddress,
+      userAgent,
+    );
 
-    return {
-      data: null,
-      message: authResponse.message,
-      status: authResponse.status,
-    };
-  }
-
-  @Post('sign-out')
-  @UseGuards(AuthGuard)
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'User sign out',
-    description: 'Signs out the current user and clears the session cookie.',
-  })
-  @ApiBearerAuth('JWT-auth')
-  @ApiOkResponse({
-    description: 'User successfully signed out',
-    examples: {
-      success: {
-        summary: 'Sign out successful',
-        value: {
-          data: null,
-          message: 'User signed out successfully',
-          status: 'success',
-        },
-      },
-    },
-  })
-  @ApiUnauthorizedResponse({
-    description: 'User not authenticated',
-    type: ErrorResponseDto,
-  })
-  async signOut(
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<StandardResponseDto<null>> {
-    const token = this.extractTokenFromRequest(req);
-
-    if (token) {
-      await this.authService.signOut(token);
-    }
-
-    // Clear the session cookie
-    res.clearCookie('session_token', {
+    // Set HTTP-only cookies
+    res.cookie('access_token', result.data.access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      path: '/',
+      maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
-    return {
-      data: null,
-      message: 'User signed out successfully',
-      status: 'success',
-    };
+    res.cookie('refresh_token', result.data.refresh_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    return result;
+  }
+
+  @Post('sign-out')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'User Logout',
+    description: 'Sign out user and invalidate their sessions',
+  })
+  @ApiBody({ type: SignOutDto })
+  @ApiResponse({
+    status: 200,
+    description: 'User signed out successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'null' },
+        message: { type: 'string', example: 'User signed out successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  async signOut(
+    @Body() signOutDto: SignOutDto,
+    @CurrentUser() user: User,
+    @Response({ passthrough: true }) res: ExpressResponse,
+  ): Promise<StandardResponseDto<null>> {
+    const result = await this.authService.signOut(signOutDto, user.id);
+
+    // Clear cookies
+    res.clearCookie('access_token');
+    res.clearCookie('refresh_token');
+
+    return result;
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Refresh Access Token',
+    description: 'Get a new access token using a valid refresh token',
+  })
+  @ApiBody({ type: RefreshTokenDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Token refreshed successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/AuthResponseDto' },
+        message: { type: 'string', example: 'Token refreshed successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid refresh token',
+  })
+  async refreshToken(
+    @Body() refreshTokenDto: RefreshTokenDto,
+    @Response({ passthrough: true }) res: ExpressResponse,
+  ): Promise<StandardResponseDto<AuthResponseDto>> {
+    const result = await this.authService.refreshToken(refreshTokenDto);
+
+    // Set new access token cookie
+    res.cookie('access_token', result.data.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+
+    return result;
   }
 
   @Get('me')
   @UseGuards(AuthGuard)
-  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Get current user profile',
-    description: 'Retrieves the profile of the currently authenticated user.',
+    summary: 'Get Current User',
+    description: 'Get the current authenticated user information',
   })
-  @ApiBearerAuth('JWT-auth')
-  @ApiOkResponse({
-    description: 'Current user profile retrieved successfully',
-    type: AuthResponseDto,
-    examples: {
-      success: {
-        summary: 'User profile retrieved',
-        value: {
-          data: {
-            id: '123e4567-e89b-12d3-a456-426614174000',
-            email: 'john.doe@example.com',
-            name: 'John Doe',
-            role: 'USER',
-            created_at: '2023-01-01T00:00:00.000Z',
-            updated_at: '2023-01-01T00:00:00.000Z',
-          },
-          message: 'Current user retrieved successfully',
-          status: 'success',
-        },
+  @ApiResponse({
+    status: 200,
+    description: 'User information retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/UserDto' },
+        message: { type: 'string', example: 'User retrieved successfully' },
+        status: { type: 'string', example: 'success' },
       },
     },
   })
-  @ApiUnauthorizedResponse({
-    description: 'User not authenticated',
-    type: ErrorResponseDto,
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
   })
-  getCurrentUser(
-    @CurrentUser() user: UserProfile,
-  ): StandardResponseDto<UserProfileDto> {
-    return {
-      data: user,
-      message: 'Current user retrieved successfully',
-      status: 'success',
-    };
+  async getCurrentUser(
+    @CurrentUser() user: User,
+  ): Promise<StandardResponseDto<UserDto>> {
+    return this.authService.getCurrentUser(user.id);
   }
 
-  private extractTokenFromRequest(req: Request): string | undefined {
-    // First try to get from cookie (preferred for session-based auth)
-    const cookieToken = req.cookies?.session_token;
-    if (cookieToken) {
-      return cookieToken;
-    }
+  @Put('profile')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Update User Profile',
+    description: 'Update user profile information (name, avatar)',
+  })
+  @ApiBody({ type: UpdateProfileDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile updated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/UserDto' },
+        message: { type: 'string', example: 'Profile updated successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data',
+  })
+  async updateProfile(
+    @Body() updateProfileDto: UpdateProfileDto,
+    @CurrentUser() user: User,
+  ): Promise<StandardResponseDto<UserDto>> {
+    return this.authService.updateProfile(user.id, updateProfileDto);
+  }
 
-    // Fallback to Authorization header for backward compatibility
-    const [type, token] = req.headers.authorization?.split(' ') ?? [];
-    return type === 'Bearer' ? token : undefined;
+  @Put('change-password')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Change Password',
+    description: 'Change user password (requires current password)',
+  })
+  @ApiBody({ type: ChangePasswordDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Password changed successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'null' },
+        message: { type: 'string', example: 'Password changed successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid current password',
+  })
+  async changePassword(
+    @Body() changePasswordDto: ChangePasswordDto,
+    @CurrentUser() user: User,
+  ): Promise<StandardResponseDto<null>> {
+    return this.authService.changePassword(user.id, changePasswordDto);
   }
 }

@@ -1,14 +1,12 @@
 import { Module } from '@nestjs/common';
-import { ProjectsService } from './projects.service';
 import { ProjectsController } from './projects.controller';
-import { SupabaseService } from '../supabase/supabase.service';
-import { AuthGuard } from '../auth/guards/auth.guard';
-import { TechnologiesModule } from '../technologies/technologies.module';
+import { ProjectsService } from './projects.service';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [TechnologiesModule],
+  imports: [AuthModule],
   controllers: [ProjectsController],
-  providers: [ProjectsService, SupabaseService, AuthGuard],
+  providers: [ProjectsService],
   exports: [ProjectsService],
 })
 export class ProjectsModule {}

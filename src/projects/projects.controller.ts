@@ -1,266 +1,395 @@
 import {
-  Body,
   Controller,
-  Delete,
   Get,
-  HttpCode,
-  HttpStatus,
-  Param,
   Post,
   Put,
+  Delete,
+  Body,
+  Param,
   Query,
-  UploadedFiles,
+  HttpCode,
+  HttpStatus,
   UseGuards,
-  UseInterceptors,
-  ForbiddenException,
 } from '@nestjs/common';
 import {
-  ApiBearerAuth,
-  ApiConsumes,
-  ApiCreatedResponse,
-  ApiOkResponse,
-  ApiOperation,
   ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
-import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { ProjectsService } from './projects.service';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import type { UserProfile } from '../auth/types/auth.types';
-import { ProjectsService } from './projects.service';
-import { SupabaseService } from '../supabase/supabase.service';
+import type { User } from '../auth/types/auth.types';
 import {
   CreateProjectDto,
   UpdateProjectDto,
   ProjectQueryDto,
-  ProjectResponseDto,
-  ProjectsListEnvelopeDto,
-  SingleProjectResponseDto,
+  ProjectDto,
+  ProjectWithTechnologiesDto,
+  ProjectListResponseDto,
+  StandardResponseDto,
 } from './dto/projects.dto';
 
 @ApiTags('projects')
 @Controller('projects')
 export class ProjectsController {
-  constructor(
-    private readonly projectsService: ProjectsService,
-    private readonly supabaseService: SupabaseService,
-  ) {}
+  constructor(private readonly projectsService: ProjectsService) {}
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   @UseGuards(AuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Create a new project' })
-  @ApiConsumes('multipart/form-data')
-  @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: 'logo', maxCount: 1 },
-      { name: 'cover', maxCount: 1 },
-    ]),
-  )
-  @ApiCreatedResponse({ description: 'Project created' })
-  create(
-    @CurrentUser() user: UserProfile,
-    @Body() body: CreateProjectDto,
-    @UploadedFiles()
-    files?: { logo?: any[]; cover?: any[] },
-  ): Promise<{ data: ProjectResponseDto; status: string; message: string }> {
-    // Only admins can mutate; enforced via user.role
-    // Extract logo and cover from files[] by fieldname if provided
-    const logo = files?.logo?.[0];
-    const cover = files?.cover?.[0];
-    const payloadFiles = {
-      logo: logo ? { buffer: logo.buffer, mimetype: logo.mimetype } : undefined,
-      cover: cover
-        ? { buffer: cover.buffer, mimetype: cover.mimetype }
-        : undefined,
-    };
-    return this.projectsService
-      .create(user, body, payloadFiles)
-      .then((project) => ({
-        data: project,
-        status: 'success',
-        message: 'Project created successfully',
-      }));
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Create Project',
+    description: 'Create a new project',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Project created successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/ProjectDto' },
+        message: { type: 'string', example: 'Project created successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  async createProject(
+    @Body() createDto: CreateProjectDto,
+    @CurrentUser() user: User,
+  ): Promise<StandardResponseDto<ProjectDto>> {
+    return this.projectsService.createProject(createDto, user.id);
   }
 
-  @Put(':id')
-  @UseGuards(AuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Update an existing project' })
-  @ApiConsumes('multipart/form-data')
-  @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: 'logo', maxCount: 1 },
-      { name: 'cover', maxCount: 1 },
-    ]),
-  )
-  @ApiOkResponse({ description: 'Project updated' })
-  update(
-    @CurrentUser() user: UserProfile,
-    @Param('id') id: string,
-    @Body() body: UpdateProjectDto,
-    @UploadedFiles()
-    files?: { logo?: any[]; cover?: any[] },
-  ): Promise<{ data: ProjectResponseDto; status: string; message: string }> {
-    const logo = files?.logo?.[0];
-    const cover = files?.cover?.[0];
-    const payloadFiles = {
-      logo: logo ? { buffer: logo.buffer, mimetype: logo.mimetype } : undefined,
-      cover: cover
-        ? { buffer: cover.buffer, mimetype: cover.mimetype }
-        : undefined,
-    };
-    return this.projectsService
-      .update(user, id, body, payloadFiles)
-      .then((project) => ({
-        data: project,
-        status: 'success',
-        message: 'Project updated successfully',
-      }));
+  @Get()
+  @ApiOperation({
+    summary: 'Get Projects',
+    description: 'Get a paginated list of projects with optional filtering',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Filter by status',
+  })
+  @ApiQuery({
+    name: 'is_public',
+    required: false,
+    description: 'Filter by public status',
+  })
+  @ApiQuery({
+    name: 'is_featured',
+    required: false,
+    description: 'Filter by featured status',
+  })
+  @ApiQuery({
+    name: 'user_id',
+    required: false,
+    description: 'Filter by user ID',
+  })
+  @ApiQuery({ name: 'search', required: false, description: 'Search term' })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Items per page' })
+  @ApiQuery({ name: 'sort_by', required: false, description: 'Sort by field' })
+  @ApiQuery({ name: 'sort_order', required: false, description: 'Sort order' })
+  @ApiResponse({
+    status: 200,
+    description: 'Projects retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/ProjectListResponseDto' },
+        message: { type: 'string', example: 'Projects retrieved successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  async getProjects(
+    @Query() query: ProjectQueryDto,
+  ): Promise<StandardResponseDto<ProjectListResponseDto>> {
+    return this.projectsService.getProjects(query);
   }
 
-  @Delete(':id')
-  @UseGuards(AuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Delete a project' })
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(
-    @CurrentUser() user: UserProfile,
-    @Param('id') id: string,
-  ): Promise<void> {
-    await this.projectsService.delete(user, id);
+  @Get('public')
+  @ApiOperation({
+    summary: 'Get Public Projects',
+    description: 'Get all public projects',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Public projects retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/ProjectListResponseDto' },
+        message: {
+          type: 'string',
+          example: 'Public projects retrieved successfully',
+        },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  async getPublicProjects(
+    @Query() query: ProjectQueryDto,
+  ): Promise<StandardResponseDto<ProjectListResponseDto>> {
+    return this.projectsService.getPublicProjects(query);
   }
 
-  @Get('technologies')
-  @ApiOperation({ summary: 'Get all unique technologies from all projects' })
-  @ApiOkResponse({
-    description: 'List of all technologies used in projects',
+  @Get('featured')
+  @ApiOperation({
+    summary: 'Get Featured Projects',
+    description: 'Get all featured projects',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Featured projects retrieved successfully',
     schema: {
       type: 'object',
       properties: {
         data: {
           type: 'array',
-          items: { type: 'string' },
+          items: { $ref: '#/components/schemas/ProjectDto' },
         },
-        status: { type: 'string' },
-        message: { type: 'string' },
+        message: {
+          type: 'string',
+          example: 'Featured projects retrieved successfully',
+        },
+        status: { type: 'string', example: 'success' },
       },
     },
   })
-  async getTechnologies(): Promise<{
-    data: string[];
-    status: string;
-    message: string;
-  }> {
-    const technologies = await this.projectsService.getAllTechnologies();
-    return {
-      data: technologies,
-      status: 'success',
-      message: 'Technologies retrieved successfully',
-    };
+  async getFeaturedProjects(): Promise<StandardResponseDto<ProjectDto[]>> {
+    return this.projectsService.getFeaturedProjects();
   }
 
-  @Get('public')
-  @ApiOperation({ summary: 'Get all projects (public access for guests)' })
-  @ApiOkResponse({
-    description: 'List of all projects accessible to guests',
-    type: ProjectsListEnvelopeDto,
+  @Get('search')
+  @ApiOperation({
+    summary: 'Search Projects',
+    description: 'Search projects by title or description',
   })
-  async getPublicProjects(
-    @Query() query: ProjectQueryDto,
-  ): Promise<ProjectsListEnvelopeDto> {
-    const result = await this.projectsService.findAll(query);
-
-    return {
-      data: {
-        projects: result.data,
-        limit: Number(query.limit ?? 10),
-        page: Number(query.page ?? 1),
-        total: result.total,
-        next:
-          result.total > Number(query.page ?? 1) * Number(query.limit ?? 10),
-        prev: Number(query.page ?? 1) > 1,
+  @ApiQuery({ name: 'q', required: true, description: 'Search term' })
+  @ApiResponse({
+    status: 200,
+    description: 'Search results retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/ProjectListResponseDto' },
+        message: {
+          type: 'string',
+          example: 'Search results retrieved successfully',
+        },
+        status: { type: 'string', example: 'success' },
       },
-      status: 'success',
-      message: 'Projects retrieved successfully',
-    };
-  }
-
-  @Get()
-  @ApiOperation({ summary: 'List all projects' })
-  @ApiOkResponse({
-    description: 'Projects list',
-    type: ProjectsListEnvelopeDto,
+    },
   })
-  async list(
+  async searchProjects(
+    @Query('q') searchTerm: string,
     @Query() query: ProjectQueryDto,
-  ): Promise<ProjectsListEnvelopeDto> {
-    const result = await this.projectsService.findAll(query);
-
-    return {
-      data: {
-        projects: result.data,
-        limit: Number(query.limit ?? 10),
-        page: Number(query.page ?? 1),
-        total: result.total,
-        next:
-          result.total > Number(query.page ?? 1) * Number(query.limit ?? 10),
-        prev: Number(query.page ?? 1) > 1,
-      },
-      status: 'success',
-      message: 'Projects retrieved successfully',
-    };
+  ): Promise<StandardResponseDto<ProjectListResponseDto>> {
+    return this.projectsService.searchProjects(searchTerm, query);
   }
 
-  @Get('admin/all')
+  @Get('status/:status')
+  @ApiOperation({
+    summary: 'Get Projects by Status',
+    description: 'Get projects filtered by status',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Projects retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/ProjectListResponseDto' },
+        message: { type: 'string', example: 'Projects retrieved successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  async getProjectsByStatus(
+    @Param('status') status: string,
+    @Query() query: ProjectQueryDto,
+  ): Promise<StandardResponseDto<ProjectListResponseDto>> {
+    return this.projectsService.getProjectsByStatus(status, query);
+  }
+
+  @Get('my')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List all projects for admin (including private)' })
-  @ApiOkResponse({
-    description: 'All projects list',
-    type: ProjectsListEnvelopeDto,
+  @ApiOperation({
+    summary: 'Get My Projects',
+    description: 'Get current user projects',
   })
-  async listAllForAdmin(
-    @Query() query: ProjectQueryDto,
-    @CurrentUser() user: UserProfile,
-  ): Promise<ProjectsListEnvelopeDto> {
-    // Ensure user is admin
-    if (user.role !== 'ADMIN') {
-      throw new ForbiddenException('Admin privileges required');
-    }
-
-    const result = await this.projectsService.findAllForAdmin(query);
-    const page = Number(query.page ?? 1);
-    const limit = Number(query.limit ?? 10);
-    const total = result.total;
-    const totalPages = Math.ceil(total / (limit || 1)) || 1;
-    const next = page < totalPages;
-    const prev = page > 1;
-    return {
-      data: {
-        projects: result.data,
-        limit,
-        page,
-        total,
-        next,
-        prev,
+  @ApiResponse({
+    status: 200,
+    description: 'User projects retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/ProjectListResponseDto' },
+        message: {
+          type: 'string',
+          example: 'User projects retrieved successfully',
+        },
+        status: { type: 'string', example: 'success' },
       },
-      status: 'success',
-      message: 'All projects fetched successfully (admin view)',
-    };
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  async getMyProjects(
+    @Query() query: ProjectQueryDto,
+    @CurrentUser() user: User,
+  ): Promise<StandardResponseDto<ProjectListResponseDto>> {
+    return this.projectsService.getUserProjects(user.id, query);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get project by ID' })
-  @ApiOkResponse({
-    description: 'Project details',
-    type: SingleProjectResponseDto,
+  @ApiOperation({
+    summary: 'Get Project by ID',
+    description: 'Get a specific project by its ID',
   })
-  async getOne(@Param('id') id: string): Promise<SingleProjectResponseDto> {
-    const project = await this.projectsService.findOne(id);
-    return {
-      data: project,
-      message: 'Project retrieved successfully',
-      status: 'success',
-    };
+  @ApiResponse({
+    status: 200,
+    description: 'Project retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/ProjectDto' },
+        message: { type: 'string', example: 'Project retrieved successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Project not found',
+  })
+  async getProjectById(
+    @Param('id') id: string,
+  ): Promise<StandardResponseDto<ProjectDto>> {
+    return this.projectsService.getProjectById(id);
+  }
+
+  @Get(':id/with-technologies')
+  @ApiOperation({
+    summary: 'Get Project with Technologies',
+    description: 'Get a project with detailed technology information',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Project with technologies retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/ProjectWithTechnologiesDto' },
+        message: {
+          type: 'string',
+          example: 'Project with technologies retrieved successfully',
+        },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Project not found',
+  })
+  async getProjectWithTechnologies(
+    @Param('id') id: string,
+  ): Promise<StandardResponseDto<ProjectWithTechnologiesDto>> {
+    return this.projectsService.getProjectWithTechnologies(id);
+  }
+
+  @Put(':id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Update Project',
+    description: 'Update a project (owner or admin only)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Project updated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/ProjectDto' },
+        message: { type: 'string', example: 'Project updated successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - You can only update your own projects',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Project not found',
+  })
+  async updateProject(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateProjectDto,
+    @CurrentUser() user: User,
+  ): Promise<StandardResponseDto<ProjectDto>> {
+    return this.projectsService.updateProject(
+      id,
+      updateDto,
+      user.id,
+    );
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Delete Project',
+    description: 'Delete a project (owner or admin only)',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Project deleted successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - You can only delete your own projects',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Project not found',
+  })
+  async deleteProject(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+  ): Promise<StandardResponseDto<null>> {
+    return this.projectsService.deleteProject(id, user.id);
   }
 }

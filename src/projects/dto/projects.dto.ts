@@ -1,23 +1,18 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsArray,
-  IsBoolean,
-  IsDateString,
-  IsEnum,
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
   IsString,
-  IsUrl,
-  MaxLength,
-  ArrayNotEmpty,
-  ArrayMinSize,
+  IsOptional,
+  IsBoolean,
+  IsArray,
+  IsEnum,
+  IsNumber,
   IsIn,
+  Min,
+  Max,
+  IsUUID,
 } from 'class-validator';
-import { StandardResponseDto } from '../../auth/dto/auth.dto';
+import { Transform } from 'class-transformer';
 
-/**
- * Enum for project status values.
- */
 export enum ProjectStatusEnum {
   Active = 'active',
   InProgress = 'in_progress',
@@ -25,205 +20,384 @@ export enum ProjectStatusEnum {
   Planning = 'planning',
 }
 
-/**
- * DTO for creating a new project.
- */
 export class CreateProjectDto {
+  @ApiProperty({ example: 'My Awesome Project', description: 'Project title' })
   @IsString()
-  @IsNotEmpty()
-  name: string;
+  title: string;
 
-  @IsString()
-  @IsNotEmpty()
-  description: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(150)
-  brief: string;
-
-  @IsArray()
-  @ArrayNotEmpty()
-  @ArrayMinSize(1)
-  @IsString({ each: true })
-  technologies: string[];
-
-  @IsOptional()
-  @IsUrl({ require_protocol: true })
-  githubLink?: string;
-
-  @IsOptional()
-  @IsUrl({ require_protocol: true })
-  demoLink?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  isFeatured?: boolean = false;
-
-  @IsBoolean()
-  isPublic: boolean;
-
-  @IsEnum(ProjectStatusEnum)
-  status: ProjectStatusEnum;
-
-  @IsOptional()
-  @IsDateString()
-  startDate?: string;
-
-  @IsOptional()
-  @IsDateString()
-  endDate?: string;
-
-  @IsOptional()
-  @IsInt()
-  likes?: number = 0;
-}
-
-/**
- * DTO for updating an existing project.
- */
-export class UpdateProjectDto {
+  @ApiPropertyOptional({
+    example: 'A brief description of the project',
+    description: 'Project description',
+  })
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  name?: string;
-
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty()
   description?: string;
 
+  @ApiPropertyOptional({
+    example: 'Detailed project content and information',
+    description: 'Project content',
+  })
   @IsOptional()
   @IsString()
-  @MaxLength(150)
-  brief?: string;
+  content?: string;
 
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  technologies?: string[];
-
-  @IsOptional()
-  @IsUrl({ require_protocol: true })
-  githubLink?: string;
-
-  @IsOptional()
-  @IsUrl({ require_protocol: true })
-  demoLink?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  isFeatured?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  isPublic?: boolean;
-
+  @ApiPropertyOptional({
+    example: 'active',
+    enum: ProjectStatusEnum,
+    description: 'Project status',
+  })
   @IsOptional()
   @IsEnum(ProjectStatusEnum)
   status?: ProjectStatusEnum;
 
+  @ApiPropertyOptional({
+    example: ['tech-id-1', 'tech-id-2'],
+    description: 'Array of technology IDs',
+  })
   @IsOptional()
-  @IsDateString()
-  startDate?: string;
+  @IsArray()
+  @IsUUID('4', { each: true })
+  technologies?: string[];
 
+  @ApiPropertyOptional({
+    example: [
+      'https://example.com/image1.jpg',
+      'https://example.com/image2.jpg',
+    ],
+    description: 'Array of image URLs',
+  })
   @IsOptional()
-  @IsDateString()
-  endDate?: string;
+  @IsArray()
+  @IsString({ each: true })
+  images?: string[];
 
+  @ApiPropertyOptional({
+    example: 'https://demo.example.com',
+    description: 'Demo URL',
+  })
   @IsOptional()
-  @IsInt()
-  likes?: number;
+  @IsString()
+  demo_url?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://github.com/user/repo',
+    description: 'GitHub repository URL',
+  })
+  @IsOptional()
+  @IsString()
+  github_url?: string;
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Is project public',
+  })
+  @IsOptional()
+  @IsBoolean()
+  is_public?: boolean;
+
+  @ApiPropertyOptional({
+    example: false,
+    description: 'Is project featured',
+  })
+  @IsOptional()
+  @IsBoolean()
+  is_featured?: boolean;
 }
 
-/**
- * DTO for querying projects with filters and pagination.
- */
+export class UpdateProjectDto {
+  @ApiPropertyOptional({
+    example: 'Updated Project Title',
+    description: 'Project title',
+  })
+  @IsOptional()
+  @IsString()
+  title?: string;
+
+  @ApiPropertyOptional({
+    example: 'Updated project description',
+    description: 'Project description',
+  })
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiPropertyOptional({
+    example: 'Updated project content',
+    description: 'Project content',
+  })
+  @IsOptional()
+  @IsString()
+  content?: string;
+
+  @ApiPropertyOptional({
+    example: 'completed',
+    enum: ProjectStatusEnum,
+    description: 'Project status',
+  })
+  @IsOptional()
+  @IsEnum(ProjectStatusEnum)
+  status?: ProjectStatusEnum;
+
+  @ApiPropertyOptional({
+    example: ['tech-id-1', 'tech-id-2'],
+    description: 'Array of technology IDs',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  technologies?: string[];
+
+  @ApiPropertyOptional({
+    example: ['https://example.com/image1.jpg'],
+    description: 'Array of image URLs',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  images?: string[];
+
+  @ApiPropertyOptional({
+    example: 'https://updated-demo.example.com',
+    description: 'Demo URL',
+  })
+  @IsOptional()
+  @IsString()
+  demo_url?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://github.com/user/updated-repo',
+    description: 'GitHub repository URL',
+  })
+  @IsOptional()
+  @IsString()
+  github_url?: string;
+
+  @ApiPropertyOptional({
+    example: false,
+    description: 'Is project public',
+  })
+  @IsOptional()
+  @IsBoolean()
+  is_public?: boolean;
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Is project featured',
+  })
+  @IsOptional()
+  @IsBoolean()
+  is_featured?: boolean;
+}
+
 export class ProjectQueryDto {
+  @ApiPropertyOptional({
+    example: 'active',
+    enum: ProjectStatusEnum,
+    description: 'Filter by status',
+  })
   @IsOptional()
-  page?: number = 1;
+  @IsEnum(ProjectStatusEnum)
+  status?: ProjectStatusEnum;
 
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Filter by public status',
+  })
   @IsOptional()
-  limit?: number = 10;
+  @Transform(({ value }) => value === 'true')
+  @IsBoolean()
+  is_public?: boolean;
 
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Filter by featured status',
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true')
+  @IsBoolean()
+  is_featured?: boolean;
+
+  @ApiPropertyOptional({
+    example: 'user-id-here',
+    description: 'Filter by user ID',
+  })
+  @IsOptional()
+  @IsUUID('4')
+  user_id?: string;
+
+  @ApiPropertyOptional({
+    example: 'awesome project',
+    description: 'Search term',
+  })
   @IsOptional()
   @IsString()
-  q?: string;
+  search?: string;
 
+  @ApiPropertyOptional({ example: 1, description: 'Page number', minimum: 1 })
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value))
+  @IsNumber()
+  @Min(1)
+  page?: number;
+
+  @ApiPropertyOptional({
+    example: 10,
+    description: 'Items per page',
+    minimum: 1,
+    maximum: 100,
+  })
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value))
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+
+  @ApiPropertyOptional({
+    example: 'created_at',
+    enum: ['title', 'status', 'created_at', 'updated_at'],
+    description: 'Sort by field',
+  })
   @IsOptional()
   @IsString()
-  technology?: string;
+  @IsIn(['title', 'status', 'created_at', 'updated_at'])
+  sort_by?: 'title' | 'status' | 'created_at' | 'updated_at';
 
+  @ApiPropertyOptional({
+    example: 'desc',
+    enum: ['asc', 'desc'],
+    description: 'Sort order',
+  })
   @IsOptional()
   @IsString()
-  @IsIn(['true', 'false'])
-  isFeatured?: string;
+  @IsIn(['asc', 'desc'])
+  sort_order?: 'asc' | 'desc';
 }
 
-/**
- * DTO for returning a single project's data.
- */
-export class ProjectResponseDto {
+export class ProjectDto {
+  @ApiProperty({
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    description: 'Project ID',
+  })
   id: string;
-  name: string;
-  logoUrl?: string | null;
-  coverUrl?: string | null;
-  description: string;
-  brief: string;
-  technologies: string[];
-  githubLink?: string | null;
-  demoLink?: string | null;
-  isFeatured: boolean;
-  isPublic: boolean;
+
+  @ApiProperty({ example: 'My Awesome Project', description: 'Project title' })
+  title: string;
+
+  @ApiPropertyOptional({
+    example: 'A brief description of the project',
+    description: 'Project description',
+  })
+  description?: string;
+
+  @ApiPropertyOptional({
+    example: 'Detailed project content',
+    description: 'Project content',
+  })
+  content?: string;
+
+  @ApiProperty({
+    example: 'active',
+    enum: ProjectStatusEnum,
+    description: 'Project status',
+  })
   status: ProjectStatusEnum;
-  startDate?: string | null;
-  endDate?: string | null;
-  likes: number;
-  comments?: number | null;
+
+  @ApiProperty({
+    example: 'user-id-here',
+    description: 'User ID who created the project',
+  })
+  user_id: string;
+
+  @ApiProperty({
+    example: ['tech-id-1', 'tech-id-2'],
+    description: 'Array of technology IDs',
+  })
+  technologies: string[];
+
+  @ApiProperty({
+    example: ['https://example.com/image1.jpg'],
+    description: 'Array of image URLs',
+  })
+  images: string[];
+
+  @ApiPropertyOptional({
+    example: 'https://demo.example.com',
+    description: 'Demo URL',
+  })
+  demo_url?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://github.com/user/repo',
+    description: 'GitHub repository URL',
+  })
+  github_url?: string;
+
+  @ApiProperty({ example: true, description: 'Is project public' })
+  is_public: boolean;
+
+  @ApiProperty({ example: false, description: 'Is project featured' })
+  is_featured: boolean;
+
+  @ApiProperty({
+    example: '2023-01-01T00:00:00Z',
+    description: 'Creation timestamp',
+  })
   created_at: string;
+
+  @ApiProperty({
+    example: '2023-01-01T00:00:00Z',
+    description: 'Last update timestamp',
+  })
   updated_at: string;
-  avatarUrl?: string | null;
-  creatorName?: string | null;
 }
 
-/**
- * DTO for paginated project responses.
- */
-export class PagedProjectsResponseDto {
-  data: ProjectResponseDto[];
+export class ProjectWithTechnologiesDto extends ProjectDto {
+  @ApiPropertyOptional({
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string' },
+        category: { type: 'string' },
+        icon_url: { type: 'string' },
+      },
+    },
+    description: 'Technology details',
+  })
+  technology_details?: Array<{
+    id: string;
+    name: string;
+    category?: string;
+    icon_url?: string;
+  }>;
+}
+
+export class ProjectListResponseDto {
+  @ApiProperty({ type: [ProjectDto], description: 'List of projects' })
+  projects: ProjectDto[];
+
+  @ApiProperty({ example: 50, description: 'Total number of projects' })
   total: number;
+
+  @ApiProperty({ example: 1, description: 'Current page number' })
   page: number;
+
+  @ApiProperty({ example: 10, description: 'Items per page' })
   limit: number;
+
+  @ApiProperty({ example: 5, description: 'Total number of pages' })
+  total_pages: number;
 }
 
-/**
- * DTO for a single project item response.
- */
-export class ProjectItemResponseDto extends StandardResponseDto<ProjectResponseDto> {}
+export class StandardResponseDto<T> {
+  @ApiProperty({ description: 'Response data' })
+  data: T;
 
-/**
- * DTO for a paginated list of projects.
- */
-export class ProjectsListResponseDto extends StandardResponseDto<PagedProjectsResponseDto> {}
+  @ApiProperty({ example: 'Success message', description: 'Response message' })
+  message: string;
 
-/**
- * DTO for a single project response.
- */
-export class SingleProjectResponseDto extends StandardResponseDto<ProjectResponseDto> {}
-
-/**
- * DTO for projects list data with pagination info.
- */
-export class ProjectsListDataDto {
-  projects: ProjectResponseDto[];
-  limit: number;
-  page: number;
-  total: number;
-  next: boolean;
-  prev: boolean;
+  @ApiProperty({ example: 'success', description: 'Response status' })
+  status: string;
 }
-
-/**
- * Envelope DTO for projects list data.
- */
-export class ProjectsListEnvelopeDto extends StandardResponseDto<ProjectsListDataDto> {}

@@ -20,7 +20,7 @@ import {
 } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { FileUploadService } from './file-upload.service';
-import type { UserProfile } from '../auth/types/auth.types';
+import type { User } from '../auth/types/auth.types';
 
 // File interface for multer
 interface MulterFile {
@@ -80,7 +80,7 @@ export class FileUploadController {
   @ApiResponse({ status: 400, description: 'Bad request - invalid file' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async uploadProfilePicture(
-    @Request() req: { user: UserProfile },
+    @Request() req: { user: User },
     @UploadedFile(
       new ParseFilePipe({
         validators: [
@@ -154,7 +154,7 @@ export class FileUploadController {
   @ApiResponse({ status: 400, description: 'Bad request - invalid file' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async uploadProjectImage(
-    @Request() req: { user: UserProfile },
+    @Request() req: { user: User },
     @UploadedFile(
       new ParseFilePipe({
         validators: [

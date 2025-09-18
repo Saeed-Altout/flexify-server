@@ -5,22 +5,23 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { CustomAuthService } from '../../supabase/custom-auth.service';
+import { AuthService } from '../auth.service';
+import { User } from '../types/auth.types';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private customAuthService: CustomAuthService) {}
+  constructor(private authService: AuthService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
-    const token = this.extractTokenFromHeader(request);
+    const token = this.extractTokenFromRequest(request);
 
     if (!token) {
       throw new UnauthorizedException('No token provided');
     }
 
     try {
-      const user = await this.customAuthService.verifySession(token);
+      const user = await this.authService.validateToken(token);
       if (!user) {
         throw new UnauthorizedException('Invalid token');
       }
@@ -28,14 +29,14 @@ export class AuthGuard implements CanActivate {
       // Attach user to request object
       request['user'] = user;
       return true;
-    } catch {
+    } catch (error) {
       throw new UnauthorizedException('Invalid token');
     }
   }
 
-  private extractTokenFromHeader(request: Request): string | undefined {
+  private extractTokenFromRequest(request: Request): string | undefined {
     // First try to get from cookie (preferred for session-based auth)
-    const cookieToken = request.cookies?.session_token;
+    const cookieToken = request.cookies?.access_token;
     if (cookieToken) {
       return cookieToken;
     }

@@ -1,491 +1,536 @@
 import {
   Injectable,
+  Logger,
+  NotFoundException,
   BadRequestException,
   ForbiddenException,
-  Logger,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
-import { TechnologiesService } from '../technologies/technologies.service';
-import type { UserProfile } from '../auth/types/auth.types';
 import {
-  CreateProjectDto,
-  UpdateProjectDto,
-  ProjectQueryDto,
-  ProjectResponseDto,
+  Project,
+  CreateProjectRequest,
+  UpdateProjectRequest,
+  ProjectQuery,
+  ProjectListResponse,
+  ProjectWithTechnologies,
+} from './types/projects.types';
+import {
+  StandardResponseDto,
+  ProjectListResponseDto,
+  ProjectWithTechnologiesDto,
+  ProjectDto,
   ProjectStatusEnum,
 } from './dto/projects.dto';
-
-// Define proper types for Supabase client operations
-interface SupabaseClient {
-  from: (table: string) => SupabaseQueryBuilder;
-}
-
-interface SupabaseQueryBuilder {
-  select: (
-    columns?: string | string[],
-    options?: { count: string },
-  ) => SupabaseQueryBuilder;
-  insert: (data: Record<string, unknown>) => SupabaseQueryBuilder;
-  update: (data: Record<string, unknown>) => SupabaseQueryBuilder;
-  delete: () => SupabaseQueryBuilder;
-  eq: (column: string, value: unknown) => SupabaseQueryBuilder;
-  or: (filter: string) => SupabaseQueryBuilder;
-  contains: (column: string, value: unknown) => SupabaseQueryBuilder;
-  in: (column: string, values: unknown[]) => SupabaseQueryBuilder;
-  order: (
-    column: string,
-    options: { ascending: boolean },
-  ) => SupabaseQueryBuilder;
-  range: (from: number, to: number) => SupabaseQueryBuilder;
-  single: () => Promise<{ data: unknown; error: unknown }>;
-  // When awaited, the query builder returns the result
-  then: (
-    onfulfilled?:
-      | ((value: { data: unknown; error: unknown; count?: unknown }) => unknown)
-      | null,
-    onrejected?: ((reason: unknown) => unknown) | null,
-  ) => Promise<{ data: unknown; error: unknown; count?: unknown }>;
-}
-
-interface ProjectRow {
-  id: string;
-  user_id: string;
-  name: string;
-  logo_url: string | null;
-  cover_url: string | null;
-  description: string;
-  brief: string;
-  technologies: string[];
-  github_link: string | null;
-  demo_link: string | null;
-  is_featured: boolean;
-  is_public: boolean;
-  status: ProjectStatusEnum;
-  start_date: string | null;
-  end_date: string | null;
-  likes: number;
-  comments: number | null;
-  created_at: string;
-  updated_at: string;
-  // Joined user profile data
-  creator_avatar_url?: string | null;
-  creator_name?: string | null;
-}
 
 @Injectable()
 export class ProjectsService {
   private readonly logger = new Logger(ProjectsService.name);
 
-  constructor(
-    private supabase: SupabaseService,
-    private technologiesService: TechnologiesService,
-  ) {}
+  constructor(private supabaseService: SupabaseService) {}
 
-  private ensureAdminOrThrow(user?: UserProfile): void {
-    if (!user || user.role !== 'ADMIN') {
-      throw new ForbiddenException('Admin privileges required');
-    }
-  }
+  // =====================================================
+  // CONVERSION FUNCTIONS
+  // =====================================================
 
-  private toDto(row: ProjectRow): ProjectResponseDto {
+  private convertProjectToDto(project: Project): ProjectDto {
     return {
-      id: row.id,
-      name: row.name,
-      logoUrl: row.logo_url,
-      coverUrl: row.cover_url,
-      description: row.description,
-      brief: row.brief,
-      technologies: row.technologies,
-      githubLink: row.github_link,
-      demoLink: row.demo_link,
-      isFeatured: row.is_featured,
-      isPublic: row.is_public,
-      status: row.status,
-      startDate: row.start_date,
-      endDate: row.end_date,
-      likes: row.likes,
-      comments: row.comments ?? null,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-      avatarUrl: row.creator_avatar_url,
-      creatorName: row.creator_name,
+      id: project.id,
+      title: project.title,
+      description: project.description,
+      content: project.content,
+      status: project.status as ProjectStatusEnum,
+      user_id: project.user_id,
+      technologies: project.technologies,
+      images: project.images,
+      demo_url: project.demo_url,
+      github_url: project.github_url,
+      is_public: project.is_public,
+      is_featured: project.is_featured,
+      created_at: project.created_at,
+      updated_at: project.updated_at,
     };
   }
 
-  private validateDates(start?: string, end?: string): void {
-    if (start && end) {
-      if (new Date(start).getTime() > new Date(end).getTime()) {
+  private convertProjectWithTechnologiesToDto(
+    projectWithTech: ProjectWithTechnologies,
+  ): ProjectWithTechnologiesDto {
+    return {
+      ...this.convertProjectToDto(projectWithTech),
+      technology_details: projectWithTech.technology_details,
+    };
+  }
+
+  private convertProjectListResponseToDto(
+    response: ProjectListResponse,
+  ): ProjectListResponseDto {
+    return {
+      projects: response.projects.map((project) =>
+        this.convertProjectToDto(project),
+      ),
+      total: response.total,
+      page: response.page,
+      limit: response.limit,
+      total_pages: response.total_pages,
+    };
+  }
+
+  // =====================================================
+  // CRUD OPERATIONS
+  // =====================================================
+
+  async createProject(
+    createDto: CreateProjectRequest,
+    userId: string,
+  ): Promise<StandardResponseDto<ProjectDto>> {
+    try {
+      this.logger.log(
+        `Creating project: ${createDto.title} for user: ${userId}`,
+      );
+
+      const { data, error } = await this.supabaseService.insert('projects', {
+        title: createDto.title,
+        description: createDto.description,
+        content: createDto.content,
+        status: createDto.status || 'planning',
+        user_id: userId,
+        technologies: createDto.technologies || [],
+        images: createDto.images || [],
+        demo_url: createDto.demo_url,
+        github_url: createDto.github_url,
+        is_public: createDto.is_public || false,
+        is_featured: createDto.is_featured || false,
+      });
+
+      if (error) {
+        this.logger.error(`Error creating project: ${error.message}`);
         throw new BadRequestException(
-          'startDate must be before or equal to endDate',
+          `Failed to create project: ${error.message}`,
         );
       }
+
+      this.logger.log(`Successfully created project: ${data.id}`);
+
+      return {
+        data: this.convertProjectToDto(data),
+        message: 'Project created successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in createProject: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 
-  private async validateTechnologies(technologies: string[]): Promise<void> {
-    if (!technologies || technologies.length === 0) {
-      throw new BadRequestException('At least one technology is required');
-    }
+  async getProjects(
+    query: ProjectQuery = {},
+  ): Promise<StandardResponseDto<ProjectListResponseDto>> {
+    try {
+      this.logger.log('Fetching projects');
 
-    // Get all valid technology values from the technologies table
-    const validTechnologies =
-      await this.technologiesService.getTechnologiesForProjects();
+      let supabaseQuery = this.supabaseService.supabase
+        .from('projects')
+        .select('*', { count: 'exact' });
 
-    // Check if all provided technologies exist in the valid technologies list
-    const invalidTechnologies = technologies.filter(
-      (tech) => !validTechnologies.includes(tech.toLowerCase()),
-    );
+      // Apply filters
+      if (query.status) {
+        supabaseQuery = supabaseQuery.eq('status', query.status);
+      }
 
-    if (invalidTechnologies.length > 0) {
-      throw new BadRequestException(
-        `Invalid technologies: ${invalidTechnologies.join(', ')}. Please use only predefined technologies.`,
-      );
+      if (query.is_public !== undefined) {
+        supabaseQuery = supabaseQuery.eq('is_public', query.is_public);
+      }
+
+      if (query.is_featured !== undefined) {
+        supabaseQuery = supabaseQuery.eq('is_featured', query.is_featured);
+      }
+
+      if (query.user_id) {
+        supabaseQuery = supabaseQuery.eq('user_id', query.user_id);
+      }
+
+      if (query.search) {
+        supabaseQuery = supabaseQuery.or(
+          `title.ilike.%${query.search}%,description.ilike.%${query.search}%,content.ilike.%${query.search}%`,
+        );
+      }
+
+      // Apply sorting
+      const sortBy = query.sort_by || 'created_at';
+      const sortOrder = query.sort_order || 'desc';
+      supabaseQuery = supabaseQuery.order(sortBy, {
+        ascending: sortOrder === 'asc',
+      });
+
+      // Apply pagination
+      const page = query.page || 1;
+      const limit = query.limit || 10;
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+
+      supabaseQuery = supabaseQuery.range(from, to);
+
+      const { data, error, count } = await supabaseQuery;
+
+      if (error) {
+        this.logger.error(`Error fetching projects: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to fetch projects: ${error.message}`,
+        );
+      }
+
+      const total = count || 0;
+      const totalPages = Math.ceil(total / limit);
+
+      const response: ProjectListResponse = {
+        projects: data || [],
+        total,
+        page,
+        limit,
+        total_pages: totalPages,
+      };
+
+      this.logger.log(`Successfully fetched ${data?.length || 0} projects`);
+
+      return {
+        data: this.convertProjectListResponseToDto(response),
+        message: 'Projects retrieved successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in getProjects: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 
-  private getSupabaseClient(): SupabaseClient {
-    // Access the internal Supabase client through a type-safe wrapper
-    const client = this.supabase as unknown as { supabase: SupabaseClient };
-    if (!client.supabase) {
-      throw new Error('Supabase client unavailable');
+  async getProjectById(id: string): Promise<StandardResponseDto<ProjectDto>> {
+    try {
+      this.logger.log(`Fetching project with ID: ${id}`);
+
+      const { data, error } = await this.supabaseService.select('projects', {
+        eq: { id },
+      });
+
+      if (error) {
+        this.logger.error(`Error fetching project: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to fetch project: ${error.message}`,
+        );
+      }
+
+      if (!data || data.length === 0) {
+        throw new NotFoundException(`Project with ID ${id} not found`);
+      }
+
+      this.logger.log(`Successfully fetched project: ${id}`);
+
+      return {
+        data: this.convertProjectToDto(data[0]),
+        message: 'Project retrieved successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in getProjectById: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
-    return client.supabase;
   }
 
-  async create(
-    user: UserProfile | undefined,
-    dto: CreateProjectDto,
-    files: {
-      logo?: { buffer: Buffer; mimetype: string };
-      cover?: { buffer: Buffer; mimetype: string };
-    },
-  ): Promise<ProjectResponseDto> {
-    this.ensureAdminOrThrow(user);
-    // After ensureAdminOrThrow, user is guaranteed to be defined and have ADMIN role
-    if (!user) {
-      throw new ForbiddenException('Admin privileges required');
-    }
-
-    this.validateDates(dto.startDate, dto.endDate);
-
-    // Validate that all technologies exist in the predefined list
-    await this.validateTechnologies(dto.technologies);
-
-    // Upload files first (optional)
-    let logoUrl: string | null = null;
-    let coverUrl: string | null = null;
-    if (files.logo) {
-      this.assertImage(files.logo.mimetype, files.logo.buffer.length);
-      logoUrl = await this.supabase.uploadPublicAsset(
-        `projects/logos/${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        files.logo.buffer,
-        files.logo.mimetype,
-      );
-    }
-    if (files.cover) {
-      this.assertImage(files.cover.mimetype, files.cover.buffer.length);
-      coverUrl = await this.supabase.uploadPublicAsset(
-        `projects/covers/${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        files.cover.buffer,
-        files.cover.mimetype,
-      );
-    }
-
-    // Insert into DB via Supabase REST
-    const supa = this.getSupabaseClient();
-
-    const payload = {
-      user_id: user.id,
-      name: dto.name,
-      logo_url: logoUrl,
-      cover_url: coverUrl,
-      description: dto.description,
-      brief: dto.brief,
-      technologies: dto.technologies,
-      github_link: dto.githubLink ?? null,
-      demo_link: dto.demoLink ?? null,
-      is_featured: dto.isFeatured ?? false,
-      is_public: dto.isPublic,
-      status: dto.status,
-      start_date: dto.startDate ?? null,
-      end_date: dto.endDate ?? null,
-      likes: dto.likes ?? 0,
-    };
-
-    const { data, error } = await supa
-      .from('projects')
-      .insert(payload)
-      .select()
-      .single();
-
-    if (error) {
-      this.logger.error(
-        `Create project error: ${(error as { message: string }).message}`,
-      );
-      throw new BadRequestException('Failed to create project');
-    }
-
-    return this.toDto(data as ProjectRow);
-  }
-
-  async update(
-    user: UserProfile | undefined,
+  async getProjectWithTechnologies(
     id: string,
-    dto: UpdateProjectDto,
-    files: {
-      logo?: { buffer: Buffer; mimetype: string };
-      cover?: { buffer: Buffer; mimetype: string };
-    },
-  ): Promise<ProjectResponseDto> {
-    this.ensureAdminOrThrow(user);
-    // After ensureAdminOrThrow, user is guaranteed to be defined and have ADMIN role
-    if (!user) {
-      throw new ForbiddenException('Admin privileges required');
-    }
+  ): Promise<StandardResponseDto<ProjectWithTechnologiesDto>> {
+    try {
+      this.logger.log(`Fetching project with technologies for ID: ${id}`);
 
-    if (dto.startDate || dto.endDate) {
-      this.validateDates(dto.startDate, dto.endDate);
-    }
+      // Get the project
+      const { data: projectData, error: projectError } =
+        await this.supabaseService.select('projects', {
+          eq: { id },
+        });
 
-    // Validate technologies if they are being updated
-    if (dto.technologies) {
-      await this.validateTechnologies(dto.technologies);
-    }
+      if (projectError) {
+        this.logger.error(`Error fetching project: ${projectError.message}`);
+        throw new BadRequestException(
+          `Failed to fetch project: ${projectError.message}`,
+        );
+      }
 
-    let logoUrl: string | undefined;
-    let coverUrl: string | undefined;
-    if (files.logo) {
-      this.assertImage(files.logo.mimetype, files.logo.buffer.length);
-      logoUrl = await this.supabase.uploadPublicAsset(
-        `projects/logos/${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        files.logo.buffer,
-        files.logo.mimetype,
+      if (!projectData || projectData.length === 0) {
+        throw new NotFoundException(`Project with ID ${id} not found`);
+      }
+
+      const project = projectData[0];
+
+      // Get technology details if technologies exist
+      let technologyDetails: Array<{
+        id: string;
+        name: string;
+        category?: string;
+        icon_url?: string;
+      }> = [];
+      if (project.technologies && project.technologies.length > 0) {
+        const { data: techData, error: techError } =
+          await this.supabaseService.supabase
+            .from('technologies')
+            .select('id, name, category, icon_url')
+            .in('id', project.technologies);
+
+        if (techError) {
+          this.logger.warn(
+            `Error fetching technology details: ${techError.message}`,
+          );
+        } else {
+          technologyDetails = techData || [];
+        }
+      }
+
+      const projectWithTechnologies: ProjectWithTechnologies = {
+        ...project,
+        technology_details: technologyDetails,
+      };
+
+      this.logger.log(
+        `Successfully fetched project with ${technologyDetails.length} technologies`,
       );
-    }
-    if (files.cover) {
-      this.assertImage(files.cover.mimetype, files.cover.buffer.length);
-      coverUrl = await this.supabase.uploadPublicAsset(
-        `projects/covers/${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        files.cover.buffer,
-        files.cover.mimetype,
-      );
-    }
 
-    const supa = this.getSupabaseClient();
-
-    const updates: Record<string, unknown> = {};
-    if (dto.name !== undefined) updates.name = dto.name;
-    if (dto.description !== undefined) updates.description = dto.description;
-    if (dto.brief !== undefined) updates.brief = dto.brief;
-    if (dto.technologies !== undefined) updates.technologies = dto.technologies;
-    if (dto.githubLink !== undefined) updates.github_link = dto.githubLink;
-    if (dto.demoLink !== undefined) updates.demo_link = dto.demoLink;
-    if (dto.isFeatured !== undefined) updates.is_featured = dto.isFeatured;
-    if (dto.isPublic !== undefined) updates.is_public = dto.isPublic;
-    if (dto.status !== undefined) updates.status = dto.status;
-    if (dto.startDate !== undefined) updates.start_date = dto.startDate;
-    if (dto.endDate !== undefined) updates.end_date = dto.endDate;
-    if (dto.likes !== undefined) updates.likes = dto.likes;
-    if (logoUrl !== undefined) updates.logo_url = logoUrl;
-    if (coverUrl !== undefined) updates.cover_url = coverUrl;
-
-    const { data, error } = await supa
-      .from('projects')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      this.logger.error(
-        `Update project error: ${(error as { message: string }).message}`,
-      );
-      throw new BadRequestException('Failed to update project');
-    }
-
-    return this.toDto(data as ProjectRow);
-  }
-
-  async delete(user: UserProfile | undefined, id: string): Promise<void> {
-    this.ensureAdminOrThrow(user);
-    // After ensureAdminOrThrow, user is guaranteed to be defined and have ADMIN role
-    if (!user) {
-      throw new ForbiddenException('Admin privileges required');
-    }
-
-    const supa = this.getSupabaseClient();
-
-    const { error } = await supa.from('projects').delete().eq('id', id);
-
-    if (error) {
-      this.logger.error(
-        `Delete project error: ${(error as { message: string }).message}`,
-      );
-      throw new BadRequestException('Failed to delete project');
+      return {
+        data: this.convertProjectWithTechnologiesToDto(projectWithTechnologies),
+        message: 'Project with technologies retrieved successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in getProjectWithTechnologies: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 
-  async findAll(
-    query: ProjectQueryDto,
-  ): Promise<{ data: ProjectResponseDto[]; total: number }> {
-    const supa = this.getSupabaseClient();
+  async updateProject(
+    id: string,
+    updateDto: UpdateProjectRequest,
+    userId: string,
+  ): Promise<StandardResponseDto<ProjectDto>> {
+    try {
+      this.logger.log(`Updating project with ID: ${id}`);
 
-    const page = Math.max(1, Number(query.page ?? 1));
-    const limit = Math.min(100, Math.max(1, Number(query.limit ?? 10)));
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
+      // Check if project exists and user owns it
+      const { data: existingProject, error: fetchError } =
+        await this.supabaseService.select('projects', {
+          eq: { id },
+        });
 
-    // Get projects with pagination and filters
-    let req = supa.from('projects').select('*', { count: 'exact' });
+      if (fetchError) {
+        this.logger.error(`Error fetching project: ${fetchError.message}`);
+        throw new BadRequestException(
+          `Failed to fetch project: ${fetchError.message}`,
+        );
+      }
 
-    // Return all projects (both public and private)
+      if (!existingProject || existingProject.length === 0) {
+        throw new NotFoundException(`Project with ID ${id} not found`);
+      }
 
-    if (query.q) {
-      const term = `%${query.q}%`;
-      req = req.or(`name.ilike.${term},description.ilike.${term}`);
-    }
+      if (existingProject[0].user_id !== userId) {
+        throw new ForbiddenException('You can only update your own projects');
+      }
 
-    if (query.technology) {
-      // technology is now a single string; use contains operator
-      req = req.contains('technologies', [query.technology]);
-    }
-
-    if (query.isFeatured !== undefined) {
-      // Convert string "true"/"false" to boolean for database query
-      const isFeatured = query.isFeatured === 'true';
-      req = req.eq('is_featured', isFeatured);
-    }
-
-    req = req.order('created_at', { ascending: false }).range(from, to);
-
-    const { data, error, count } = await req;
-    if (error) {
-      this.logger.error(
-        `List projects error: ${(error as { message: string }).message}`,
+      // Update the project
+      const { data, error } = await this.supabaseService.update(
+        'projects',
+        {
+          ...updateDto,
+        },
+        { id },
       );
-      throw new BadRequestException('Failed to fetch projects');
+
+      if (error) {
+        this.logger.error(`Error updating project: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to update project: ${error.message}`,
+        );
+      }
+
+      this.logger.log(`Successfully updated project: ${id}`);
+
+      return {
+        data: this.convertProjectToDto(data[0]),
+        message: 'Project updated successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in updateProject: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
-
-    // Transform the data (without user profile info for now)
-    const transformedData = (data as unknown[]).map((row: unknown) => ({
-      ...(row as Record<string, unknown>),
-      creator_avatar_url: null,
-      creator_name: null,
-    }));
-
-    return {
-      data: transformedData.map((r) => this.toDto(r as ProjectRow)),
-      total: (count as number) ?? 0,
-    };
   }
 
-  // Admin-only method to get all projects (including private ones)
-  async findAllForAdmin(
-    query: ProjectQueryDto,
-  ): Promise<{ data: ProjectResponseDto[]; total: number }> {
-    const supa = this.getSupabaseClient();
+  async deleteProject(
+    id: string,
+    userId: string,
+  ): Promise<StandardResponseDto<null>> {
+    try {
+      this.logger.log(`Deleting project with ID: ${id}`);
 
-    const page = Math.max(1, Number(query.page ?? 1));
-    const limit = Math.min(100, Math.max(1, Number(query.limit ?? 10)));
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
+      // Check if project exists and user owns it
+      const { data: existingProject, error: fetchError } =
+        await this.supabaseService.select('projects', {
+          eq: { id },
+        });
 
-    // Get projects with pagination and filters
-    let req = supa.from('projects').select('*', { count: 'exact' });
+      if (fetchError) {
+        this.logger.error(`Error fetching project: ${fetchError.message}`);
+        throw new BadRequestException(
+          `Failed to fetch project: ${fetchError.message}`,
+        );
+      }
 
-    if (query.q) {
-      const term = `%${query.q}%`;
-      req = req.or(`name.ilike.${term},description.ilike.${term}`);
+      if (!existingProject || existingProject.length === 0) {
+        throw new NotFoundException(`Project with ID ${id} not found`);
+      }
+
+      if (existingProject[0].user_id !== userId) {
+        throw new ForbiddenException('You can only delete your own projects');
+      }
+
+      // Delete the project
+      const { error } = await this.supabaseService.delete('projects', { id });
+
+      if (error) {
+        this.logger.error(`Error deleting project: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to delete project: ${error.message}`,
+        );
+      }
+
+      this.logger.log(`Successfully deleted project: ${id}`);
+
+      return {
+        data: null,
+        message: 'Project deleted successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in deleteProject: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
+  }
 
-    if (query.technology) {
-      req = req.contains('technologies', [query.technology]);
+  // =====================================================
+  // PUBLIC PROJECTS
+  // =====================================================
+
+  async getPublicProjects(
+    query: ProjectQuery = {},
+  ): Promise<StandardResponseDto<ProjectListResponseDto>> {
+    try {
+      this.logger.log('Fetching public projects');
+
+      const publicQuery = { ...query, is_public: true };
+      return this.getProjects(publicQuery);
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in getPublicProjects: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
+  }
 
-    if (query.isFeatured !== undefined) {
-      // Convert string "true"/"false" to boolean for database query
-      const isFeatured = query.isFeatured === 'true';
-      req = req.eq('is_featured', isFeatured);
-    }
+  async getFeaturedProjects(): Promise<StandardResponseDto<ProjectDto[]>> {
+    try {
+      this.logger.log('Fetching featured projects');
 
-    req = req.order('created_at', { ascending: false }).range(from, to);
+      const { data, error } = await this.supabaseService.supabase
+        .from('projects')
+        .select('*')
+        .eq('is_featured', true)
+        .eq('is_public', true)
+        .order('created_at', { ascending: false })
+        .limit(10);
 
-    const { data, error, count } = await req;
-    if (error) {
-      this.logger.error(
-        `List projects error: ${(error as { message: string }).message}`,
+      if (error) {
+        this.logger.error(`Error fetching featured projects: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to fetch featured projects: ${error.message}`,
+        );
+      }
+
+      this.logger.log(
+        `Successfully fetched ${data?.length || 0} featured projects`,
       );
-      throw new BadRequestException('Failed to fetch projects');
+
+      return {
+        data: (data || []).map((project) => this.convertProjectToDto(project)),
+        message: 'Featured projects retrieved successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in getFeaturedProjects: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
-
-    // Transform the data (without user profile info for now)
-    const transformedData = (data as unknown[]).map((row: unknown) => ({
-      ...(row as Record<string, unknown>),
-      creator_avatar_url: null,
-      creator_name: null,
-    }));
-
-    return {
-      data: transformedData.map((r) => this.toDto(r as ProjectRow)),
-      total: (count as number) ?? 0,
-    };
   }
 
-  async findOne(id: string): Promise<ProjectResponseDto> {
-    const supa = this.getSupabaseClient();
+  // =====================================================
+  // SEARCH AND FILTER
+  // =====================================================
 
-    const { data, error } = await supa
-      .from('projects')
-      .select('*')
-      .eq('id', id)
-      .single();
+  async searchProjects(
+    searchTerm: string,
+    query: ProjectQuery = {},
+  ): Promise<StandardResponseDto<ProjectListResponseDto>> {
+    try {
+      this.logger.log(`Searching projects with term: ${searchTerm}`);
 
-    if (error) {
-      this.logger.error(
-        `Get project error: ${(error as { message: string }).message}`,
-      );
-      throw new BadRequestException('Failed to fetch project');
+      const searchQuery = { ...query, search: searchTerm };
+      return this.getProjects(searchQuery);
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in searchProjects: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
-
-    if (!data) {
-      throw new BadRequestException('Project not found');
-    }
-
-    // Transform the data (without user profile info for now)
-    const transformedData = {
-      ...(data as Record<string, unknown>),
-      creator_avatar_url: null,
-      creator_name: null,
-    };
-
-    return this.toDto(transformedData as ProjectRow);
   }
 
-  async getAllTechnologies(): Promise<string[]> {
-    // Use the technologies service to get all predefined technologies
-    return this.technologiesService.getTechnologiesForProjects();
+  async getProjectsByStatus(
+    status: string,
+    query: ProjectQuery = {},
+  ): Promise<StandardResponseDto<ProjectListResponseDto>> {
+    try {
+      this.logger.log(`Fetching projects with status: ${status}`);
+
+      const statusQuery = { ...query, status: status as any };
+      return this.getProjects(statusQuery);
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in getProjectsByStatus: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
   }
 
-  private assertImage(mime: string, bytes: number) {
-    const allowed = [
-      'image/png',
-      'image/jpeg',
-      'image/jpg',
-      'image/webp',
-      'image/gif',
-      'image/bmp',
-      'image/tiff',
-      'image/svg+xml',
-      'image/avif',
-      'image/heic',
-      'image/heif',
-    ];
-    if (!allowed.includes(mime)) {
-      throw new BadRequestException('Invalid image type');
-    }
-    const max = 5 * 1024 * 1024; // 5MB
-    if (bytes > max) {
-      throw new BadRequestException('Image size exceeds 5MB limit');
+  async getUserProjects(
+    userId: string,
+    query: ProjectQuery = {},
+  ): Promise<StandardResponseDto<ProjectListResponseDto>> {
+    try {
+      this.logger.log(`Fetching projects for user: ${userId}`);
+
+      const userQuery = { ...query, user_id: userId };
+      return this.getProjects(userQuery);
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in getUserProjects: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 }

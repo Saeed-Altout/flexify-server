@@ -17,22 +17,32 @@ Complete database setup for the Flexify Server project.
 
 ```sql
 -- Run in Supabase SQL Editor
--- Copy and paste 01-setup.sql content
+-- Copy and paste 08-complete-cleanup.sql content
+-- This removes all old tables and constraints
 ```
 
-### 2. Add Sample Data (Optional)
+### 2. Run Setup Script
+
+```sql
+-- Run in Supabase SQL Editor
+-- Copy and paste 01-setup.sql content
+-- This creates the new custom authentication schema
+```
+
+### 3. Fix Foreign Key Issues (If Needed)
+
+```sql
+-- Run in Supabase SQL Editor
+-- Copy and paste 07-fix-foreign-key.sql content
+-- This removes any remaining foreign key constraints
+```
+
+### 4. Add Sample Data (Optional)
 
 ```sql
 -- Run in Supabase SQL Editor
 -- Copy and paste 02-sample-data.sql content
-```
-
-### 3. Reset Database (If Needed)
-
-```sql
--- Run in Supabase SQL Editor
--- Copy and paste 03-cleanup.sql content
--- Then run 01-setup.sql again
+-- This adds sample users and data for testing
 ```
 
 ## 🔐 Authentication System

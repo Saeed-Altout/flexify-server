@@ -6,282 +6,383 @@ import {
   Delete,
   Body,
   Param,
-  UseGuards,
+  Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiOkResponse,
-  ApiCreatedResponse,
-  ApiNoContentResponse,
   ApiBearerAuth,
-  ApiParam,
-  ApiBody,
+  ApiQuery,
 } from '@nestjs/swagger';
-
+import { MessagesService } from './messages.service';
 import { AuthGuard } from '../auth/guards/auth.guard';
-import { AdminGuard } from '../auth/guards/admin.guard';
-
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { User } from '../auth/types/auth.types';
 import {
   CreateMessageDto,
   CreateReplyDto,
   UpdateMessageStatusDto,
-  ApiResponseDto,
-  MessageResponseDto,
-  MessageWithRepliesResponseDto,
-  ReplyResponseDto,
-  MessageStatsResponseDto,
+  MessageQueryDto,
+  MessageDto,
+  MessageReplyDto,
+  MessageWithRepliesDto,
+  MessageListResponseDto,
+  MessageStatsDto,
+  StandardResponseDto,
 } from './dto/messages.dto';
-import { MessagesService } from './messages.service';
 
 @ApiTags('messages')
 @Controller('messages')
 export class MessagesController {
   constructor(private readonly messagesService: MessagesService) {}
 
-  @Post('send')
+  @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary: 'Send a message',
-    description: 'Allows users to send messages through the contact form',
+    summary: 'Send Message',
+    description: 'Send a new message (public endpoint)',
   })
-  @ApiBody({
-    type: CreateMessageDto,
-    description: 'Message data',
-  })
-  @ApiCreatedResponse({
+  @ApiResponse({
+    status: 201,
     description: 'Message sent successfully',
-    type: MessageResponseDto,
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/MessageDto' },
+        message: { type: 'string', example: 'Message sent successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
   })
   @ApiResponse({
     status: 400,
-    description: 'Bad request - invalid input data',
+    description: 'Invalid input data',
   })
   async sendMessage(
-    @Body() createMessageDto: CreateMessageDto,
-  ): Promise<ApiResponseDto<MessageResponseDto>> {
-    return await this.messagesService.createMessage(createMessageDto);
+    @Body() createDto: CreateMessageDto,
+    @Request() req: any,
+  ): Promise<StandardResponseDto<MessageDto>> {
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('User-Agent');
+
+    return this.messagesService.createMessage(createDto, ipAddress, userAgent);
   }
 
   @Get()
-  @UseGuards(AuthGuard, AdminGuard)
-  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Get all messages (Admin only)',
-    description:
-      'Retrieves all messages with their replies. Admin access required.',
+    summary: 'Get Messages',
+    description: 'Get a paginated list of messages (Admin only)',
   })
-  @ApiOkResponse({
-    description: 'Messages retrieved successfully',
-    type: [MessageWithRepliesResponseDto],
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Admin access required',
-  })
-  async getAllMessages(): Promise<
-    ApiResponseDto<MessageWithRepliesResponseDto[]>
-  > {
-    return await this.messagesService.getAllMessages();
-  }
-
-  @Get(':id')
-  @UseGuards(AuthGuard, AdminGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({
-    summary: 'Get message by ID (Admin only)',
-    description:
-      'Retrieves a specific message with its replies by ID. Admin access required.',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'Message unique identifier',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @ApiOkResponse({
-    description: 'Message retrieved successfully',
-    type: MessageWithRepliesResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Message not found',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Admin access required',
-  })
-  async getMessageById(
-    @Param('id') id: string,
-  ): Promise<ApiResponseDto<MessageWithRepliesResponseDto>> {
-    return await this.messagesService.getMessageById(id);
-  }
-
-  @Post(':id/reply')
-  @UseGuards(AuthGuard, AdminGuard)
-  @ApiBearerAuth('JWT-auth')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({
-    summary: 'Reply to a message (Admin only)',
-    description:
-      'Creates a reply to a specific message. Admin access required.',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'Message unique identifier',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @ApiBody({
-    type: CreateReplyDto,
-    description: 'Reply message data',
-  })
-  @ApiCreatedResponse({
-    description: 'Reply created successfully',
-    type: ReplyResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Message not found',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Admin access required',
-  })
-  async createReply(
-    @Param('id') messageId: string,
-    @Body() createReplyDto: CreateReplyDto,
-    // Note: adminId should come from JWT token in real implementation
-  ): Promise<ApiResponseDto<ReplyResponseDto>> {
-    // For now, using a placeholder admin ID - in real app, get from JWT
-    const adminId = 'admin-user-id';
-    return await this.messagesService.createReply(
-      messageId,
-      adminId,
-      createReplyDto,
-    );
-  }
-
-  @Put(':id/status')
-  @UseGuards(AuthGuard, AdminGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({
-    summary: 'Update message status (Admin only)',
-    description:
-      'Updates the status of a message (PENDING, REPLIED, ARCHIVED). Admin access required.',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'Message unique identifier',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @ApiBody({
-    type: UpdateMessageStatusDto,
-    description: 'New status for the message',
-  })
-  @ApiOkResponse({
-    description: 'Message status updated successfully',
-    type: MessageResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Message not found',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Admin access required',
-  })
-  async updateMessageStatus(
-    @Param('id') messageId: string,
-    @Body() updateStatusDto: UpdateMessageStatusDto,
-  ): Promise<ApiResponseDto<MessageResponseDto>> {
-    return await this.messagesService.updateMessageStatus(
-      messageId,
-      updateStatusDto,
-    );
-  }
-
-  @Delete(':id')
-  @UseGuards(AuthGuard, AdminGuard)
-  @ApiBearerAuth('JWT-auth')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({
-    summary: 'Delete a message (Admin only)',
-    description:
-      'Permanently deletes a message and all its replies. Admin access required.',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'Message unique identifier',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @ApiNoContentResponse({
-    description: 'Message deleted successfully',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Message not found',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Admin access required',
-  })
-  async deleteMessage(
-    @Param('id') messageId: string,
-  ): Promise<ApiResponseDto<{ message: string }>> {
-    return await this.messagesService.deleteMessage(messageId);
-  }
-
-  @Get('status/:status')
-  @UseGuards(AuthGuard, AdminGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({
-    summary: 'Get messages by status (Admin only)',
-    description:
-      'Retrieves messages filtered by status (PENDING, REPLIED, ARCHIVED). Admin access required.',
-  })
-  @ApiParam({
+  @ApiQuery({
     name: 'status',
-    description: 'Message status to filter by',
-    enum: ['PENDING', 'REPLIED', 'ARCHIVED'],
-    example: 'PENDING',
+    required: false,
+    description: 'Filter by status',
   })
-  @ApiOkResponse({
-    description: 'Messages retrieved successfully',
-    type: [MessageResponseDto],
+  @ApiQuery({
+    name: 'user_id',
+    required: false,
+    description: 'Filter by user ID',
   })
+  @ApiQuery({ name: 'search', required: false, description: 'Search term' })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Items per page' })
+  @ApiQuery({ name: 'sort_by', required: false, description: 'Sort by field' })
+  @ApiQuery({ name: 'sort_order', required: false, description: 'Sort order' })
   @ApiResponse({
-    status: 400,
-    description: 'Bad request - invalid status value',
+    status: 200,
+    description: 'Messages retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/MessageListResponseDto' },
+        message: { type: 'string', example: 'Messages retrieved successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - Admin access required',
+    description: 'Unauthorized',
   })
-  async getMessagesByStatus(
-    @Param('status') status: 'PENDING' | 'REPLIED' | 'ARCHIVED',
-  ): Promise<ApiResponseDto<MessageResponseDto[]>> {
-    return await this.messagesService.getMessagesByStatus(status);
+  async getMessages(
+    @Query() query: MessageQueryDto,
+  ): Promise<StandardResponseDto<MessageListResponseDto>> {
+    return this.messagesService.getMessages(query);
   }
 
   @Get('stats')
-  @UseGuards(AuthGuard, AdminGuard)
-  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Get message statistics (Admin only)',
-    description:
-      'Retrieves statistics about messages (total, by status, etc.). Admin access required.',
+    summary: 'Get Message Statistics',
+    description: 'Get message statistics and analytics (Admin only)',
   })
-  @ApiOkResponse({
+  @ApiResponse({
+    status: 200,
     description: 'Message statistics retrieved successfully',
-    type: MessageStatsResponseDto,
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/MessageStatsDto' },
+        message: {
+          type: 'string',
+          example: 'Message statistics retrieved successfully',
+        },
+        status: { type: 'string', example: 'success' },
+      },
+    },
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - Admin access required',
+    description: 'Unauthorized',
   })
-  async getMessageStats(): Promise<ApiResponseDto<MessageStatsResponseDto>> {
-    return await this.messagesService.getMessageStats();
+  async getMessageStats(): Promise<StandardResponseDto<MessageStatsDto>> {
+    return this.messagesService.getMessageStats();
+  }
+
+  @Get('search')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Search Messages',
+    description: 'Search messages by name, email, or subject (Admin only)',
+  })
+  @ApiQuery({ name: 'q', required: true, description: 'Search term' })
+  @ApiResponse({
+    status: 200,
+    description: 'Search results retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/MessageListResponseDto' },
+        message: {
+          type: 'string',
+          example: 'Search results retrieved successfully',
+        },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  async searchMessages(
+    @Query('q') searchTerm: string,
+    @Query() query: MessageQueryDto,
+  ): Promise<StandardResponseDto<MessageListResponseDto>> {
+    return this.messagesService.searchMessages(searchTerm, query);
+  }
+
+  @Get('status/:status')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get Messages by Status',
+    description: 'Get messages filtered by status (Admin only)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Messages retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/MessageListResponseDto' },
+        message: { type: 'string', example: 'Messages retrieved successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  async getMessagesByStatus(
+    @Param('status') status: string,
+    @Query() query: MessageQueryDto,
+  ): Promise<StandardResponseDto<MessageListResponseDto>> {
+    return this.messagesService.getMessagesByStatus(status, query);
+  }
+
+  @Get(':id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get Message by ID',
+    description: 'Get a specific message by its ID (Admin only)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Message retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/MessageDto' },
+        message: { type: 'string', example: 'Message retrieved successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Message not found',
+  })
+  async getMessageById(
+    @Param('id') id: string,
+  ): Promise<StandardResponseDto<MessageDto>> {
+    return this.messagesService.getMessageById(id);
+  }
+
+  @Get(':id/with-replies')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get Message with Replies',
+    description: 'Get a message with all its replies (Admin only)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Message with replies retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/MessageWithRepliesDto' },
+        message: {
+          type: 'string',
+          example: 'Message with replies retrieved successfully',
+        },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Message not found',
+  })
+  async getMessageWithReplies(
+    @Param('id') id: string,
+  ): Promise<StandardResponseDto<MessageWithRepliesDto>> {
+    return this.messagesService.getMessageWithReplies(id);
+  }
+
+  @Put(':id/status')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Update Message Status',
+    description: 'Update message status (Admin only)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Message status updated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/MessageDto' },
+        message: {
+          type: 'string',
+          example: 'Message status updated successfully',
+        },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Message not found',
+  })
+  async updateMessageStatus(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateMessageStatusDto,
+  ): Promise<StandardResponseDto<MessageDto>> {
+    return this.messagesService.updateMessageStatus(id, updateDto);
+  }
+
+  @Post(':id/reply')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Reply to Message',
+    description: 'Send a reply to a message (Admin only)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Reply sent successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/MessageReplyDto' },
+        message: { type: 'string', example: 'Reply sent successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Message not found',
+  })
+  async replyToMessage(
+    @Param('id') id: string,
+    @Body() createDto: CreateReplyDto,
+    @CurrentUser() user: User,
+  ): Promise<StandardResponseDto<MessageReplyDto>> {
+    return this.messagesService.createReply(id, createDto, user.id);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Delete Message',
+    description: 'Delete a message (Admin only)',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Message deleted successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Message not found',
+  })
+  async deleteMessage(
+    @Param('id') id: string,
+  ): Promise<StandardResponseDto<null>> {
+    return this.messagesService.deleteMessage(id);
   }
 }

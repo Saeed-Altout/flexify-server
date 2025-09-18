@@ -1,517 +1,391 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { UserProfile, AuthResponse, UserRole } from '../auth/types/auth.types';
+import { User, Session, UserRole } from '../auth/types/auth.types';
+import * as bcrypt from 'bcrypt';
+import * as jwt from 'jsonwebtoken';
 
 @Injectable()
 export class SupabaseService {
   private readonly logger = new Logger(SupabaseService.name);
-  private supabase: SupabaseClient;
+  public supabase: SupabaseClient;
   private isDevelopmentMode = false;
-  private storageBucket: string;
+  private jwtSecret: string;
+  private jwtRefreshSecret: string;
 
   constructor(private configService: ConfigService) {
     const supabaseUrl = this.configService.get<string>('supabase.url');
     const supabaseServiceKey = this.configService.get<string>(
       'supabase.serviceKey',
     );
+    this.jwtSecret =
+      this.configService.get<string>('jwt.secret') || 'your-secret-key';
+    this.jwtRefreshSecret =
+      this.configService.get<string>('jwt.refreshSecret') ||
+      'your-refresh-secret-key';
 
     if (!supabaseUrl || !supabaseServiceKey) {
       this.logger.warn(
-        'Supabase configuration is missing. Please set SUPABASE_URL and SUPABASE_SERVICE_KEY in your environment variables.',
+        'Supabase configuration is missing. Running in development mode.',
       );
-      this.logger.warn(
-        'For development, you can use dummy values or create a .env file based on env.example',
+      this.isDevelopmentMode = true;
+      this.supabase = createClient(
+        supabaseUrl || 'https://dummy.supabase.co',
+        supabaseServiceKey || 'dummy-key',
       );
-
-      // For development, create a dummy client to prevent crashes
-      if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
-        this.logger.warn('Creating dummy Supabase client for development');
-        this.isDevelopmentMode = true;
-        this.supabase = createClient(
-          supabaseUrl || 'https://dummy.supabase.co',
-          supabaseServiceKey || 'dummy-key',
-        );
-      } else {
-        throw new Error(
-          'Supabase configuration is missing. Please set SUPABASE_URL and SUPABASE_SERVICE_KEY in your environment variables.',
-        );
-      }
     } else {
       this.supabase = createClient(supabaseUrl, supabaseServiceKey);
     }
-
-    this.storageBucket =
-      this.configService.get<string>('supabase.storageBucket') ||
-      'project-assets';
   }
+
+  // =====================================================
+  // USER OPERATIONS
+  // =====================================================
 
   async createUser(
     email: string,
     name: string,
-    password?: string,
-  ): Promise<UserProfile> {
+    password: string,
+  ): Promise<User> {
     try {
-      // Check if we're in development mode with dummy config
-      if (
-        this.isDevelopmentMode ||
-        !this.configService.get<string>('supabase.url')
-      ) {
+      if (this.isDevelopmentMode) {
         this.logger.warn(
           'Running in development mode with dummy Supabase config',
         );
-        // Return a mock user for development
         return {
           id: 'dev-user-id',
           email,
           name,
+          password_hash: 'dev-hash',
           role: 'USER',
+          is_active: true,
+          email_verified: false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
       }
 
-      const {
-        data: { user },
-        error,
-      } = await this.supabase.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: { name, role: 'USER' },
-      });
+      // Check if user already exists
+      const existingUser = await this.getUserByEmail(email);
+      if (existingUser) {
+        throw new Error('User already exists with this email');
+      }
+
+      // Hash the password
+      const saltRounds = 12;
+      const passwordHash = await bcrypt.hash(password, saltRounds);
+
+      // Create user
+      const { data, error } = await this.supabase
+        .from('users')
+        .insert({
+          email,
+          name,
+          password_hash: passwordHash,
+          role: 'USER',
+          is_active: true,
+          email_verified: false,
+        })
+        .select()
+        .single();
 
       if (error) {
         this.logger.error(`Error creating user: ${error.message}`);
-
-        // Handle specific Supabase errors
-        if (
-          typeof error.message === 'string' &&
-          error.message.includes('User not allowed')
-        ) {
-          throw new Error(
-            'Supabase configuration error: "User not allowed". Please check:\n' +
-              '1. You are using the SERVICE_ROLE key (not anon key)\n' +
-              '2. Your Supabase project is properly configured\n' +
-              '3. RLS policies are set up correctly\n' +
-              '4. See SUPABASE_SETUP.md for complete setup instructions',
-          );
-        }
-
-        if (
-          typeof error.message === 'string' &&
-          error.message.includes('Invalid API key')
-        ) {
-          throw new Error(
-            'Invalid Supabase API key. Please check:\n' +
-              '1. SUPABASE_SERVICE_KEY is correct\n' +
-              '2. SUPABASE_URL is correct\n' +
-              '3. No extra spaces or characters in the keys',
-          );
-        }
-
-        throw new Error(
-          typeof error.message === 'string'
-            ? error.message
-            : JSON.stringify(error),
-        );
+        throw new Error(`Failed to create user: ${error.message}`);
       }
 
-      if (!user) {
+      if (!data) {
         throw new Error('Failed to create user');
       }
 
-      const profile = await this.fetchUserProfile(user.id);
-      return {
-        id: user.id,
-        email: user.email!,
-        name: profile?.name || (user.user_metadata?.name as string) || name,
-        avatar_url:
-          profile?.avatar_url || (user.user_metadata?.avatar_url as string),
-        role: profile?.role || (user.user_metadata?.role as UserRole) || 'USER',
-        created_at: user.created_at,
-        updated_at: user.updated_at!,
-      };
+      this.logger.log(`Successfully created user: ${data.id}`);
+      return data;
     } catch (error: any) {
       const errorMessage =
-        error instanceof Error
-          ? error.message
-          : typeof error === 'string'
-            ? error
-            : JSON.stringify(error);
+        error instanceof Error ? error.message : JSON.stringify(error);
       this.logger.error(`Error in createUser: ${errorMessage}`);
       throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 
-  async signInUser(email: string, password?: string): Promise<AuthResponse> {
+  async getUserByEmail(email: string): Promise<User | null> {
     try {
-      // Check if we're in development mode with dummy config
-      if (
-        this.isDevelopmentMode ||
-        !this.configService.get<string>('supabase.url')
-      ) {
-        this.logger.warn(
-          'Running in development mode with dummy Supabase config',
-        );
-        // Return a mock response for development
+      if (this.isDevelopmentMode) {
+        return null;
+      }
+
+      const { data, error } = await this.supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+      if (error || !data) {
+        return null;
+      }
+
+      return data;
+    } catch (error: any) {
+      this.logger.error(`Error in getUserByEmail: ${error.message}`);
+      return null;
+    }
+  }
+
+  async getUserById(id: string): Promise<User | null> {
+    try {
+      if (this.isDevelopmentMode) {
+        return null;
+      }
+
+      const { data, error } = await this.supabase
+        .from('users')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error || !data) {
+        return null;
+      }
+
+      return data;
+    } catch (error: any) {
+      this.logger.error(`Error in getUserById: ${error.message}`);
+      return null;
+    }
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<User> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('Running in development mode');
         return {
-          user: {
-            id: 'dev-user-id',
-            email,
-            name: 'Development User',
-            role: 'USER',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-          access_token: 'dev-token',
+          id,
+          email: 'dev@example.com',
+          name: 'Dev User',
+          password_hash: 'dev-hash',
+          role: 'USER',
+          is_active: true,
+          email_verified: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         };
       }
 
-      const { data, error } = await this.supabase.auth.signInWithPassword({
-        email,
-        password: password || '',
-      });
-
-      if (error) {
-        this.logger.error(`Error signing in user: ${error.message}`);
-        throw new Error(
-          typeof error.message === 'string'
-            ? error.message
-            : JSON.stringify(error),
-        );
-      }
-
-      if (!data.user) {
-        throw new Error('User not found');
-      }
-
-      const profile = await this.fetchUserProfile(data.user.id);
-      return {
-        user: {
-          id: data.user.id,
-          email: data.user.email!,
-          name:
-            profile?.name ||
-            (data.user.user_metadata?.name as string | undefined),
-          avatar_url:
-            profile?.avatar_url ||
-            (data.user.user_metadata?.avatar_url as string | undefined),
-          role:
-            (profile?.role || (data.user.user_metadata?.role as UserRole)) ??
-            'USER',
-          created_at: data.user.created_at,
-          updated_at: data.user.updated_at!,
-        },
-        session: data.session,
-        access_token: data.session?.access_token,
-      };
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : typeof error === 'string'
-            ? error
-            : JSON.stringify(error);
-      this.logger.error(`Error in signInUser: ${errorMessage}`);
-      throw error instanceof Error ? error : new Error(errorMessage);
-    }
-  }
-
-  async getUserById(userId: string): Promise<UserProfile | null> {
-    try {
-      // Check if we're in development mode with dummy config
-      if (
-        this.isDevelopmentMode ||
-        !this.configService.get<string>('supabase.url')
-      ) {
-        this.logger.warn(
-          'Running in development mode with dummy Supabase config',
-        );
-        return null;
-      }
-
-      const {
-        data: { user },
-        error,
-      } = await this.supabase.auth.admin.getUserById(userId);
-
-      if (error) {
-        this.logger.error(`Error getting user: ${error.message}`);
-        return null;
-      }
-
-      if (!user) {
-        return null;
-      }
-
-      const profile = await this.fetchUserProfile(user.id);
-      return {
-        id: user.id,
-        email: user.email!,
-        name: profile?.name || (user.user_metadata?.name as string | undefined),
-        avatar_url:
-          profile?.avatar_url ||
-          (user.user_metadata?.avatar_url as string | undefined),
-        role: profile?.role || (user.user_metadata?.role as UserRole) || 'USER',
-        created_at: user.created_at,
-        updated_at: user.updated_at!,
-      };
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : typeof error === 'string'
-            ? error
-            : JSON.stringify(error);
-      this.logger.error(`Error in getUserById: ${errorMessage}`);
-      return null;
-    }
-  }
-
-  async getUserByEmail(email: string): Promise<UserProfile | null> {
-    try {
-      // Check if we're in development mode with dummy config
-      if (
-        this.isDevelopmentMode ||
-        !this.configService.get<string>('supabase.url')
-      ) {
-        this.logger.warn(
-          'Running in development mode with dummy Supabase config',
-        );
-        return null;
-      }
-
-      const {
-        data: { users },
-        error,
-      } = await this.supabase.auth.admin.listUsers();
-
-      if (error) {
-        this.logger.error(`Error listing users: ${error.message}`);
-        return null;
-      }
-
-      const user = users.find((u: { email: string }) => u.email === email);
-      if (!user) {
-        return null;
-      }
-
-      const profile = await this.fetchUserProfile(user.id);
-      return {
-        id: user.id,
-        email: user.email!,
-        name: profile?.name || (user.user_metadata?.name as string | undefined),
-        avatar_url:
-          profile?.avatar_url ||
-          (user.user_metadata?.avatar_url as string | undefined),
-        role: profile?.role || (user.user_metadata?.role as UserRole) || 'USER',
-        created_at: user.created_at,
-        updated_at: user.updated_at!,
-      };
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : typeof error === 'string'
-            ? error
-            : JSON.stringify(error);
-      this.logger.error(`Error in getUserByEmail: ${errorMessage}`);
-      return null;
-    }
-  }
-
-  async signOutUser(sessionToken: string): Promise<void> {
-    try {
-      // Check if we're in development mode with dummy config
-      if (
-        this.isDevelopmentMode ||
-        !this.configService.get<string>('supabase.url')
-      ) {
-        this.logger.warn(
-          'Running in development mode with dummy Supabase config',
-        );
-        return;
-      }
-
-      const { error } = await this.supabase.auth.admin.signOut(sessionToken);
-      if (error) {
-        this.logger.error(`Error signing out user: ${error.message}`);
-        throw new Error(
-          typeof error.message === 'string'
-            ? error.message
-            : JSON.stringify(error),
-        );
-      }
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : typeof error === 'string'
-            ? error
-            : JSON.stringify(error);
-      this.logger.error(`Error in signOutUser: ${errorMessage}`);
-      throw error instanceof Error ? error : new Error(errorMessage);
-    }
-  }
-
-  async verifySession(sessionToken: string): Promise<UserProfile | null> {
-    try {
-      // Check if we're in development mode with dummy config
-      if (
-        this.isDevelopmentMode ||
-        !this.configService.get<string>('supabase.url')
-      ) {
-        this.logger.warn(
-          'Running in development mode with dummy Supabase config',
-        );
-        // Return a mock user for development if token looks valid
-        if (sessionToken && sessionToken !== 'invalid') {
-          return {
-            id: 'dev-user-id',
-            email: 'dev@example.com',
-            name: 'Development User',
-            role: 'USER',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          };
-        }
-        return null;
-      }
-
-      const {
-        data: { user },
-        error,
-      } = await this.supabase.auth.getUser(sessionToken);
-
-      if (error || !user) {
-        return null;
-      }
-
-      const profile = await this.fetchUserProfile(user.id);
-      return {
-        id: user.id,
-        email: user.email!,
-        name: profile?.name || (user.user_metadata?.name as string | undefined),
-        avatar_url:
-          profile?.avatar_url ||
-          (user.user_metadata?.avatar_url as string | undefined),
-        role: profile?.role || (user.user_metadata?.role as UserRole) || 'USER',
-        created_at: user.created_at,
-        updated_at: user.updated_at!,
-      };
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : typeof error === 'string'
-            ? error
-            : JSON.stringify(error);
-      this.logger.error(`Error in verifySession: ${errorMessage}`);
-      return null;
-    }
-  }
-
-  /**
-   * Uploads a file buffer to Supabase Storage and returns a public URL if available
-   */
-  async uploadPublicAsset(
-    path: string,
-    fileBuffer: Buffer,
-    contentType: string,
-  ): Promise<string> {
-    // In development dummy mode, return a mock URL
-    if (
-      this.isDevelopmentMode ||
-      !this.configService.get<string>('supabase.url')
-    ) {
-      this.logger.warn(
-        'uploadPublicAsset called in development mode. Returning mock URL.',
-      );
-      return `https://dummy.supabase.co/storage/v1/object/public/${this.storageBucket}/${encodeURIComponent(
-        path,
-      )}`;
-    }
-
-    const { error } = await this.supabase.storage
-      .from(this.storageBucket)
-      .upload(path, fileBuffer, {
-        contentType,
-        upsert: true,
-      });
-    if (error) {
-      this.logger.error(`Storage upload error: ${error.message}`);
-      throw new Error(
-        `Failed to upload file: ${typeof error.message === 'string' ? error.message : JSON.stringify(error)}`,
-      );
-    }
-
-    const { data } = this.supabase.storage
-      .from(this.storageBucket)
-      .getPublicUrl(path);
-    return data.publicUrl;
-  }
-
-  /** Deletes a file from storage; best-effort */
-  async deleteAsset(path: string): Promise<void> {
-    if (
-      this.isDevelopmentMode ||
-      !this.configService.get<string>('supabase.url')
-    ) {
-      return;
-    }
-    const { error } = await this.supabase.storage
-      .from(this.storageBucket)
-      .remove([path]);
-    if (error) {
-      this.logger.warn(`Failed to delete asset ${path}: ${error.message}`);
-    }
-  }
-  // Fetch user profile from public.users table
-  // Returns null if not found or on error
-  private async fetchUserProfile(
-    userId: string,
-  ): Promise<{ name?: string; role: UserRole; avatar_url?: string } | null> {
-    try {
-      if (
-        this.isDevelopmentMode ||
-        !this.configService.get<string>('supabase.url')
-      ) {
-        return { name: 'Development User', role: 'USER' };
-      }
       const { data, error } = await this.supabase
         .from('users')
-        .select('name, role, avatar_url')
-        .eq('id', userId)
+        .update(updates)
+        .eq('id', id)
+        .select()
         .single();
 
       if (error) {
-        this.logger.warn(`fetchUserProfile error: ${error.message}`);
+        this.logger.error(`Error updating user: ${error.message}`);
+        throw new Error(`Failed to update user: ${error.message}`);
+      }
+
+      if (!data) {
+        throw new Error('User not found');
+      }
+
+      return data;
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in updateUser: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async verifyPassword(password: string, hash: string): Promise<boolean> {
+    try {
+      return await bcrypt.compare(password, hash);
+    } catch (error: any) {
+      this.logger.error(`Error verifying password: ${error.message}`);
+      return false;
+    }
+  }
+
+  // =====================================================
+  // SESSION OPERATIONS
+  // =====================================================
+
+  async createSession(
+    userId: string,
+    tokenHash: string,
+    expiresAt: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<Session> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('Running in development mode');
+        return {
+          id: 'dev-session-id',
+          user_id: userId,
+          token_hash: tokenHash,
+          expires_at: expiresAt,
+          is_active: true,
+          ip_address: ipAddress,
+          user_agent: userAgent,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+      }
+
+      const { data, error } = await this.supabase
+        .from('sessions')
+        .insert({
+          user_id: userId,
+          token_hash: tokenHash,
+          expires_at: expiresAt,
+          is_active: true,
+          ip_address: ipAddress,
+          user_agent: userAgent,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        this.logger.error(`Error creating session: ${error.message}`);
+        throw new Error(`Failed to create session: ${error.message}`);
+      }
+
+      if (!data) {
+        throw new Error('Failed to create session');
+      }
+
+      return data;
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in createSession: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async getSessionByTokenHash(tokenHash: string): Promise<Session | null> {
+    try {
+      if (this.isDevelopmentMode) {
         return null;
       }
-      return {
-        name: data?.name as string,
-        role: (data?.role as UserRole) ?? 'USER',
-        avatar_url: data?.avatar_url as string,
-      };
-    } catch (err: any) {
-      const msg =
-        err instanceof Error
-          ? err.message
-          : typeof err === 'string'
-            ? err
-            : JSON.stringify(err);
-      this.logger.warn(`fetchUserProfile exception: ${msg}`);
+
+      const { data, error } = await this.supabase
+        .from('sessions')
+        .select('*')
+        .eq('token_hash', tokenHash)
+        .eq('is_active', true)
+        .single();
+
+      if (error || !data) {
+        return null;
+      }
+
+      return data;
+    } catch (error: any) {
+      this.logger.error(`Error in getSessionByTokenHash: ${error.message}`);
       return null;
     }
   }
 
-  // Public methods for database operations
+  async invalidateSession(sessionId: string): Promise<void> {
+    try {
+      if (this.isDevelopmentMode) {
+        return;
+      }
+
+      const { error } = await this.supabase
+        .from('sessions')
+        .update({ is_active: false })
+        .eq('id', sessionId);
+
+      if (error) {
+        this.logger.error(`Error invalidating session: ${error.message}`);
+        throw new Error(`Failed to invalidate session: ${error.message}`);
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in invalidateSession: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async invalidateUserSessions(userId: string): Promise<void> {
+    try {
+      if (this.isDevelopmentMode) {
+        return;
+      }
+
+      const { error } = await this.supabase
+        .from('sessions')
+        .update({ is_active: false })
+        .eq('user_id', userId);
+
+      if (error) {
+        this.logger.error(`Error invalidating user sessions: ${error.message}`);
+        throw new Error(`Failed to invalidate user sessions: ${error.message}`);
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in invalidateUserSessions: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async cleanExpiredSessions(): Promise<void> {
+    try {
+      if (this.isDevelopmentMode) {
+        return;
+      }
+
+      const { error } = await this.supabase.rpc('clean_expired_sessions');
+      if (error) {
+        this.logger.error(`Error cleaning expired sessions: ${error.message}`);
+      }
+    } catch (error: any) {
+      this.logger.error(`Error in cleanExpiredSessions: ${error.message}`);
+    }
+  }
+
+  // =====================================================
+  // JWT OPERATIONS
+  // =====================================================
+
+  generateAccessToken(payload: any): string {
+    return jwt.sign(payload, this.jwtSecret, { expiresIn: '15m' });
+  }
+
+  generateRefreshToken(payload: any): string {
+    return jwt.sign(payload, this.jwtRefreshSecret, { expiresIn: '7d' });
+  }
+
+  verifyAccessToken(token: string): any {
+    try {
+      return jwt.verify(token, this.jwtSecret);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  verifyRefreshToken(token: string): any {
+    try {
+      return jwt.verify(token, this.jwtRefreshSecret);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  generateTokenHash(token: string): string {
+    return require('crypto').createHash('sha256').update(token).digest('hex');
+  }
+
+  // =====================================================
+  // GENERAL DATABASE OPERATIONS
+  // =====================================================
+
   async insert(table: string, data: Record<string, any>) {
-    if (
-      this.isDevelopmentMode ||
-      !this.configService.get<string>('supabase.url')
-    ) {
+    if (this.isDevelopmentMode) {
       this.logger.warn(`insert called in development mode for table: ${table}`);
       return { data: { id: 'dev-id', ...data }, error: null };
     }
@@ -525,10 +399,7 @@ export class SupabaseService {
       order?: { column: string; options: any };
     },
   ) {
-    if (
-      this.isDevelopmentMode ||
-      !this.configService.get<string>('supabase.url')
-    ) {
+    if (this.isDevelopmentMode) {
       this.logger.warn(`select called in development mode for table: ${table}`);
       return { data: [], error: null };
     }
@@ -557,10 +428,7 @@ export class SupabaseService {
     data: Record<string, any>,
     eq: Record<string, any>,
   ) {
-    if (
-      this.isDevelopmentMode ||
-      !this.configService.get<string>('supabase.url')
-    ) {
+    if (this.isDevelopmentMode) {
       this.logger.warn(`update called in development mode for table: ${table}`);
       return { data: { id: 'dev-id', ...data }, error: null };
     }
@@ -577,10 +445,7 @@ export class SupabaseService {
   }
 
   async delete(table: string, eq: Record<string, any>) {
-    if (
-      this.isDevelopmentMode ||
-      !this.configService.get<string>('supabase.url')
-    ) {
+    if (this.isDevelopmentMode) {
       this.logger.warn(`delete called in development mode for table: ${table}`);
       return { error: null };
     }

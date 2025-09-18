@@ -1,423 +1,387 @@
 import {
   Injectable,
-  BadRequestException,
-  ForbiddenException,
   Logger,
-  ConflictException,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
-import type { UserProfile } from '../auth/types/auth.types';
 import {
-  CreateTechnologyDto,
-  UpdateTechnologyDto,
-  TechnologyQueryDto,
-  TechnologyResponseDto,
-  BulkCreateTechnologiesDto,
+  Technology,
+  CreateTechnologyRequest,
+  UpdateTechnologyRequest,
+  TechnologyQuery,
+  TechnologyListResponse,
+} from './types/technologies.types';
+import {
+  StandardResponseDto,
+  TechnologyListResponseDto,
 } from './dto/technologies.dto';
-
-// Define proper types for Supabase client operations
-interface SupabaseClient {
-  from: (table: string) => SupabaseQueryBuilder;
-}
-
-interface SupabaseQueryBuilder {
-  select: (
-    columns?: string | string[],
-    options?: { count: string },
-  ) => SupabaseQueryBuilder;
-  insert: (data: Record<string, unknown>) => SupabaseQueryBuilder;
-  update: (data: Record<string, unknown>) => SupabaseQueryBuilder;
-  delete: () => SupabaseQueryBuilder;
-  eq: (column: string, value: unknown) => SupabaseQueryBuilder;
-  neq: (column: string, value: unknown) => SupabaseQueryBuilder;
-  or: (filter: string) => SupabaseQueryBuilder;
-  ilike: (column: string, value: string) => SupabaseQueryBuilder;
-  contains: (column: string, value: unknown) => SupabaseQueryBuilder;
-  order: (
-    column: string,
-    options: { ascending: boolean },
-  ) => SupabaseQueryBuilder;
-  range: (from: number, to: number) => SupabaseQueryBuilder;
-  single: () => Promise<{ data: unknown; error: unknown }>;
-  // When awaited, the query builder returns the result
-  then: (
-    onfulfilled?:
-      | ((value: { data: unknown; error: unknown; count?: unknown }) => unknown)
-      | null,
-    onrejected?: ((reason: unknown) => unknown) | null,
-  ) => Promise<{ data: unknown; error: unknown; count?: unknown }>;
-}
-
-interface TechnologyRow {
-  id: string;
-  label: string;
-  value: string;
-  created_at: string;
-  updated_at: string;
-}
 
 @Injectable()
 export class TechnologiesService {
   private readonly logger = new Logger(TechnologiesService.name);
 
-  constructor(private supabase: SupabaseService) {}
+  constructor(private supabaseService: SupabaseService) {}
 
-  private ensureAdminOrThrow(user?: UserProfile): void {
-    if (!user || user.role !== 'ADMIN') {
-      throw new ForbiddenException('Admin privileges required');
-    }
-  }
+  // =====================================================
+  // CRUD OPERATIONS
+  // =====================================================
 
-  private toDto(row: TechnologyRow): TechnologyResponseDto {
-    return {
-      id: row.id,
-      label: row.label,
-      value: row.value,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-    };
-  }
+  async createTechnology(
+    createDto: CreateTechnologyRequest,
+  ): Promise<StandardResponseDto<Technology>> {
+    try {
+      this.logger.log(`Creating technology: ${createDto.name}`);
 
-  private getSupabaseClient(): SupabaseClient {
-    // Access the internal Supabase client through a type-safe wrapper
-    const client = this.supabase as unknown as { supabase: SupabaseClient };
-    if (!client.supabase) {
-      throw new Error('Supabase client unavailable');
-    }
-    return client.supabase;
-  }
-
-  private async validateUniqueValue(
-    value: string,
-    excludeId?: string,
-  ): Promise<void> {
-    const supa = this.getSupabaseClient();
-
-    let query = supa.from('technologies').select('id').eq('value', value);
-
-    if (excludeId) {
-      query = query.neq('id', excludeId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      this.logger.error(
-        `Validate unique value error: ${(error as { message: string }).message}`,
-      );
-      throw new BadRequestException('Failed to validate technology uniqueness');
-    }
-
-    if (data && (data as unknown[]).length > 0) {
-      throw new ConflictException(
-        `Technology with value '${value}' already exists`,
-      );
-    }
-  }
-
-  private async validateUniqueLabel(
-    label: string,
-    excludeId?: string,
-  ): Promise<void> {
-    const supa = this.getSupabaseClient();
-
-    let query = supa.from('technologies').select('id').eq('label', label);
-
-    if (excludeId) {
-      query = query.neq('id', excludeId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      this.logger.error(
-        `Validate unique label error: ${(error as { message: string }).message}`,
-      );
-      throw new BadRequestException(
-        'Failed to validate technology label uniqueness',
-      );
-    }
-
-    if (data && (data as unknown[]).length > 0) {
-      throw new ConflictException(
-        `Technology with label '${label}' already exists`,
-      );
-    }
-  }
-
-  async create(
-    user: UserProfile | undefined,
-    dto: CreateTechnologyDto,
-  ): Promise<TechnologyResponseDto> {
-    this.ensureAdminOrThrow(user);
-
-    // Validate uniqueness
-    await this.validateUniqueValue(dto.value);
-    await this.validateUniqueLabel(dto.label);
-
-    const supa = this.getSupabaseClient();
-
-    const payload = {
-      label: dto.label.trim(),
-      value: dto.value.trim().toLowerCase(),
-    };
-
-    const { data, error } = await supa
-      .from('technologies')
-      .insert(payload)
-      .select()
-      .single();
-
-    if (error) {
-      this.logger.error(
-        `Create technology error: ${(error as { message: string }).message}`,
-      );
-      throw new BadRequestException('Failed to create technology');
-    }
-
-    return this.toDto(data as TechnologyRow);
-  }
-
-  async bulkCreate(
-    user: UserProfile | undefined,
-    dto: BulkCreateTechnologiesDto,
-  ): Promise<TechnologyResponseDto[]> {
-    this.ensureAdminOrThrow(user);
-
-    const supa = this.getSupabaseClient();
-    const results: TechnologyResponseDto[] = [];
-    const errors: string[] = [];
-
-    // Process each technology individually to handle validation and conflicts
-    for (const tech of dto.technologies) {
-      try {
-        // Validate uniqueness for each technology
-        await this.validateUniqueValue(tech.value);
-        await this.validateUniqueLabel(tech.label);
-
-        const payload = {
-          label: tech.label.trim(),
-          value: tech.value.trim().toLowerCase(),
-        };
-
-        const { data, error } = await supa
-          .from('technologies')
-          .insert(payload)
-          .select()
-          .single();
-
-        if (error) {
-          errors.push(
-            `Failed to create '${tech.label}': ${(error as { message: string }).message}`,
-          );
-        } else {
-          results.push(this.toDto(data as TechnologyRow));
-        }
-      } catch (error) {
-        if (error instanceof ConflictException) {
-          errors.push(`Technology '${tech.label}' already exists`);
-        } else {
-          errors.push(`Failed to create '${tech.label}': ${error.message}`);
-        }
+      // Check if technology already exists
+      const existingTech = await this.getTechnologyByName(createDto.name);
+      if (existingTech) {
+        throw new BadRequestException(
+          'Technology with this name already exists',
+        );
       }
-    }
 
-    if (errors.length > 0) {
-      this.logger.warn(
-        `Bulk create completed with errors: ${errors.join('; ')}`,
+      const { data, error } = await this.supabaseService.insert(
+        'technologies',
+        {
+          name: createDto.name,
+          description: createDto.description,
+          category: createDto.category,
+          icon_url: createDto.icon_url,
+          is_active: true,
+        },
       );
-    }
 
-    return results;
+      if (error) {
+        this.logger.error(`Error creating technology: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to create technology: ${error.message}`,
+        );
+      }
+
+      this.logger.log(`Successfully created technology: ${data.id}`);
+
+      return {
+        data: data,
+        message: 'Technology created successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in createTechnology: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
   }
 
-  async update(
-    user: UserProfile | undefined,
+  async getTechnologies(
+    query: TechnologyQuery = {},
+  ): Promise<StandardResponseDto<TechnologyListResponse>> {
+    try {
+      this.logger.log('Fetching technologies');
+
+      const page = query.page || 1;
+      const limit = query.limit || 10;
+      const offset = (page - 1) * limit;
+
+      // Build query
+      let queryBuilder = this.supabaseService.supabase
+        .from('technologies')
+        .select('*', { count: 'exact' });
+
+      // Apply filters
+      if (query.category) {
+        queryBuilder = queryBuilder.eq('category', query.category);
+      }
+      if (query.is_active !== undefined) {
+        queryBuilder = queryBuilder.eq('is_active', query.is_active);
+      }
+      if (query.search) {
+        queryBuilder = queryBuilder.or(
+          `name.ilike.%${query.search}%,description.ilike.%${query.search}%`,
+        );
+      }
+
+      // Apply sorting
+      const sortBy = query.sort_by || 'name';
+      const sortOrder = query.sort_order || 'asc';
+      queryBuilder = queryBuilder.order(sortBy, {
+        ascending: sortOrder === 'asc',
+      });
+
+      // Apply pagination
+      queryBuilder = queryBuilder.range(offset, offset + limit - 1);
+
+      const { data, error, count } = await queryBuilder;
+
+      if (error) {
+        this.logger.error(`Error fetching technologies: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to fetch technologies: ${error.message}`,
+        );
+      }
+
+      const total = count || 0;
+      const totalPages = Math.ceil(total / limit);
+
+      const result: TechnologyListResponse = {
+        technologies: data || [],
+        total,
+        page,
+        limit,
+        total_pages: totalPages,
+      };
+
+      return {
+        data: result,
+        message: 'Technologies retrieved successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in getTechnologies: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async getTechnologyById(
     id: string,
-    dto: UpdateTechnologyDto,
-  ): Promise<TechnologyResponseDto> {
-    this.ensureAdminOrThrow(user);
+  ): Promise<StandardResponseDto<Technology>> {
+    try {
+      this.logger.log(`Fetching technology: ${id}`);
 
-    // Check if technology exists
-    const existing = await this.findOne(id);
-    if (!existing) {
-      throw new NotFoundException('Technology not found');
-    }
+      const { data, error } = await this.supabaseService.supabase
+        .from('technologies')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-    // Validate uniqueness if updating value or label
-    if (dto.value && dto.value !== existing.value) {
-      await this.validateUniqueValue(dto.value, id);
-    }
-
-    if (dto.label && dto.label !== existing.label) {
-      await this.validateUniqueLabel(dto.label, id);
-    }
-
-    const supa = this.getSupabaseClient();
-
-    const updates: Record<string, unknown> = {};
-    if (dto.label !== undefined) updates.label = dto.label.trim();
-    if (dto.value !== undefined) updates.value = dto.value.trim().toLowerCase();
-
-    const { data, error } = await supa
-      .from('technologies')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      this.logger.error(
-        `Update technology error: ${(error as { message: string }).message}`,
-      );
-      throw new BadRequestException('Failed to update technology');
-    }
-
-    return this.toDto(data as TechnologyRow);
-  }
-
-  async delete(user: UserProfile | undefined, id: string): Promise<void> {
-    this.ensureAdminOrThrow(user);
-
-    // Check if technology exists
-    const existing = await this.findOne(id);
-    if (!existing) {
-      throw new NotFoundException('Technology not found');
-    }
-
-    // Check if technology is being used in any projects
-    const supa = this.getSupabaseClient();
-    const { data: projectsUsingTech, error: checkError } = await supa
-      .from('projects')
-      .select('id, name')
-      .contains('technologies', [existing.value]);
-
-    if (checkError) {
-      this.logger.error(
-        `Check technology usage error: ${(checkError as { message: string }).message}`,
-      );
-      throw new BadRequestException('Failed to check technology usage');
-    }
-
-    if (projectsUsingTech && (projectsUsingTech as unknown[]).length > 0) {
-      const projectNames = (projectsUsingTech as unknown[])
-        .map((p: any) => p.name)
-        .join(', ');
-      throw new BadRequestException(
-        `Cannot delete technology '${existing.label}' as it is used in projects: ${projectNames}`,
-      );
-    }
-
-    // Delete the technology
-    const { error } = await supa.from('technologies').delete().eq('id', id);
-
-    if (error) {
-      this.logger.error(
-        `Delete technology error: ${(error as { message: string }).message}`,
-      );
-      throw new BadRequestException('Failed to delete technology');
-    }
-  }
-
-  async findAll(
-    query: TechnologyQueryDto,
-  ): Promise<{ data: TechnologyResponseDto[]; total: number }> {
-    const supa = this.getSupabaseClient();
-
-    const page = Math.max(1, Number(query.page ?? 1));
-    const limit = Math.min(100, Math.max(1, Number(query.limit ?? 10)));
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
-
-    let req = supa.from('technologies').select('*', { count: 'exact' });
-
-    // Apply search filter if provided
-    if (query.q) {
-      const searchTerm = `%${query.q}%`;
-      req = req.or(`label.ilike.${searchTerm},value.ilike.${searchTerm}`);
-    }
-
-    req = req.order('label', { ascending: true }).range(from, to);
-
-    const { data, error, count } = await req;
-    if (error) {
-      this.logger.error(
-        `List technologies error: ${(error as { message: string }).message}`,
-      );
-      throw new BadRequestException('Failed to fetch technologies');
-    }
-
-    return {
-      data: (data as TechnologyRow[]).map((row) => this.toDto(row)),
-      total: (count as number) ?? 0,
-    };
-  }
-
-  async findOne(id: string): Promise<TechnologyResponseDto | null> {
-    const supa = this.getSupabaseClient();
-
-    const { data, error } = await supa
-      .from('technologies')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error) {
-      if ((error as { code: string }).code === 'PGRST116') {
-        return null; // Not found
+      if (error || !data) {
+        throw new NotFoundException('Technology not found');
       }
-      this.logger.error(
-        `Get technology error: ${(error as { message: string }).message}`,
-      );
-      throw new BadRequestException('Failed to fetch technology');
-    }
 
-    return this.toDto(data as TechnologyRow);
+      return {
+        data: data,
+        message: 'Technology retrieved successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in getTechnologyById: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
   }
 
-  async findByValue(value: string): Promise<TechnologyResponseDto | null> {
-    const supa = this.getSupabaseClient();
+  async updateTechnology(
+    id: string,
+    updateDto: UpdateTechnologyRequest,
+  ): Promise<StandardResponseDto<Technology>> {
+    try {
+      this.logger.log(`Updating technology: ${id}`);
 
-    const { data, error } = await supa
-      .from('technologies')
-      .select('*')
-      .eq('value', value.toLowerCase())
-      .single();
-
-    if (error) {
-      if ((error as { code: string }).code === 'PGRST116') {
-        return null; // Not found
+      // Check if technology exists
+      const existingTech = await this.getTechnologyById(id);
+      if (!existingTech) {
+        throw new NotFoundException('Technology not found');
       }
-      this.logger.error(
-        `Get technology by value error: ${(error as { message: string }).message}`,
-      );
-      throw new BadRequestException('Failed to fetch technology');
-    }
 
-    return this.toDto(data as TechnologyRow);
+      // Check if name is being changed and if it conflicts
+      if (updateDto.name && updateDto.name !== existingTech.data.name) {
+        const nameConflict = await this.getTechnologyByName(updateDto.name);
+        if (nameConflict) {
+          throw new BadRequestException(
+            'Technology with this name already exists',
+          );
+        }
+      }
+
+      const { data, error } = await this.supabaseService.update(
+        'technologies',
+        updateDto,
+        { id },
+      );
+
+      if (error) {
+        this.logger.error(`Error updating technology: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to update technology: ${error.message}`,
+        );
+      }
+
+      this.logger.log(`Successfully updated technology: ${id}`);
+
+      return {
+        data: data,
+        message: 'Technology updated successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in updateTechnology: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
   }
 
-  async getAllTechnologies(): Promise<TechnologyResponseDto[]> {
-    const supa = this.getSupabaseClient();
+  async deleteTechnology(id: string): Promise<StandardResponseDto<null>> {
+    try {
+      this.logger.log(`Deleting technology: ${id}`);
 
-    const { data, error } = await supa
-      .from('technologies')
-      .select('*')
-      .order('label', { ascending: true });
+      // Check if technology exists
+      const existingTech = await this.getTechnologyById(id);
+      if (!existingTech) {
+        throw new NotFoundException('Technology not found');
+      }
 
-    if (error) {
-      this.logger.error(
-        `Get all technologies error: ${(error as { message: string }).message}`,
-      );
-      throw new BadRequestException('Failed to fetch technologies');
+      const { error } = await this.supabaseService.delete('technologies', {
+        id,
+      });
+
+      if (error) {
+        this.logger.error(`Error deleting technology: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to delete technology: ${error.message}`,
+        );
+      }
+
+      this.logger.log(`Successfully deleted technology: ${id}`);
+
+      return {
+        data: null,
+        message: 'Technology deleted successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in deleteTechnology: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
-
-    return (data as TechnologyRow[]).map((row) => this.toDto(row));
   }
 
-  async getTechnologiesForProjects(): Promise<string[]> {
-    const technologies = await this.getAllTechnologies();
-    return technologies.map((tech) => tech.value);
+  // =====================================================
+  // HELPER METHODS
+  // =====================================================
+
+  async getTechnologyByName(name: string): Promise<Technology | null> {
+    try {
+      const { data, error } = await this.supabaseService.supabase
+        .from('technologies')
+        .select('*')
+        .eq('name', name)
+        .single();
+
+      if (error || !data) {
+        return null;
+      }
+
+      return data;
+    } catch (error: any) {
+      this.logger.error(`Error in getTechnologyByName: ${error.message}`);
+      return null;
+    }
+  }
+
+  async getTechnologiesByCategory(
+    category: string,
+  ): Promise<StandardResponseDto<Technology[]>> {
+    try {
+      this.logger.log(`Fetching technologies by category: ${category}`);
+
+      const { data, error } = await this.supabaseService.supabase
+        .from('technologies')
+        .select('*')
+        .eq('category', category)
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+
+      if (error) {
+        this.logger.error(
+          `Error fetching technologies by category: ${error.message}`,
+        );
+        throw new BadRequestException(
+          `Failed to fetch technologies: ${error.message}`,
+        );
+      }
+
+      return {
+        data: data || [],
+        message: 'Technologies retrieved successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in getTechnologiesByCategory: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async getActiveTechnologies(): Promise<StandardResponseDto<Technology[]>> {
+    try {
+      this.logger.log('Fetching active technologies');
+
+      const { data, error } = await this.supabaseService.supabase
+        .from('technologies')
+        .select('*')
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+
+      if (error) {
+        this.logger.error(
+          `Error fetching active technologies: ${error.message}`,
+        );
+        throw new BadRequestException(
+          `Failed to fetch technologies: ${error.message}`,
+        );
+      }
+
+      return {
+        data: data || [],
+        message: 'Active technologies retrieved successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async searchTechnologies(
+    searchTerm: string,
+  ): Promise<StandardResponseDto<Technology[]>> {
+    try {
+      this.logger.log(`Searching technologies: ${searchTerm}`);
+
+      const { data, error } = await this.supabaseService.supabase
+        .from('technologies')
+        .select('*')
+        .or(
+          `name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,category.ilike.%${searchTerm}%`,
+        )
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+
+      if (error) {
+        this.logger.error(`Error searching technologies: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to search technologies: ${error.message}`,
+        );
+      }
+
+      return {
+        data: data || [],
+        message: 'Search results retrieved successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in searchTechnologies: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
   }
 }

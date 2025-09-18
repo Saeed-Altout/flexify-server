@@ -1,38 +1,32 @@
 import {
-  Body,
   Controller,
-  Delete,
   Get,
-  HttpCode,
-  HttpStatus,
-  Param,
   Post,
   Put,
+  Delete,
+  Body,
+  Param,
   Query,
+  HttpCode,
+  HttpStatus,
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiBearerAuth,
-  ApiCreatedResponse,
-  ApiOkResponse,
-  ApiOperation,
   ApiTags,
-  ApiParam,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
-import { AuthGuard } from '../auth/guards/auth.guard';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import type { UserProfile } from '../auth/types/auth.types';
 import { TechnologiesService } from './technologies.service';
+import { AuthGuard } from '../auth/guards/auth.guard';
 import {
   CreateTechnologyDto,
   UpdateTechnologyDto,
   TechnologyQueryDto,
-  TechnologyResponseDto,
-  BulkCreateTechnologiesDto,
-  TechnologiesListEnvelopeDto,
-  SingleTechnologyResponseDto,
-  BulkCreateTechnologiesResponseDto,
+  TechnologyDto,
+  TechnologyListResponseDto,
+  StandardResponseDto,
 } from './dto/technologies.dto';
 
 @ApiTags('technologies')
@@ -41,276 +35,257 @@ export class TechnologiesController {
   constructor(private readonly technologiesService: TechnologiesService) {}
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   @UseGuards(AuthGuard)
-  @ApiBearerAuth('JWT-auth')
+  @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Create a new technology (Admin only)',
-    description:
-      'Creates a new technology with unique label and value. Only admins can create technologies.',
+    summary: 'Create Technology',
+    description: 'Create a new technology (Admin only)',
   })
-  @ApiCreatedResponse({
+  @ApiResponse({
+    status: 201,
     description: 'Technology created successfully',
-    type: SingleTechnologyResponseDto,
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/TechnologyDto' },
+        message: { type: 'string', example: 'Technology created successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
   })
-  async create(
-    @CurrentUser() user: UserProfile,
-    @Body() dto: CreateTechnologyDto,
-  ): Promise<SingleTechnologyResponseDto> {
-    const technology = await this.technologiesService.create(user, dto);
-    return {
-      data: technology,
-      status: 'success',
-      message: 'Technology created successfully',
-    };
-  }
-
-  @Post('bulk')
-  @UseGuards(AuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({
-    summary: 'Create multiple technologies at once (Admin only)',
-    description:
-      'Creates multiple technologies in a single request. Only admins can perform bulk operations.',
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data or technology already exists',
   })
-  @ApiCreatedResponse({
-    description: 'Technologies created successfully',
-    type: BulkCreateTechnologiesResponseDto,
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
   })
-  async bulkCreate(
-    @CurrentUser() user: UserProfile,
-    @Body() dto: BulkCreateTechnologiesDto,
-  ): Promise<BulkCreateTechnologiesResponseDto> {
-    const technologies = await this.technologiesService.bulkCreate(user, dto);
-    return {
-      data: technologies,
-      status: 'success',
-      message: `Successfully created ${technologies.length} technologies`,
-    };
-  }
-
-  @Put(':id')
-  @UseGuards(AuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({
-    summary: 'Update an existing technology (Admin only)',
-    description:
-      'Updates a technology by ID. Only admins can update technologies.',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'Technology unique identifier',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @ApiOkResponse({
-    description: 'Technology updated successfully',
-    type: SingleTechnologyResponseDto,
-  })
-  async update(
-    @CurrentUser() user: UserProfile,
-    @Param('id') id: string,
-    @Body() dto: UpdateTechnologyDto,
-  ): Promise<SingleTechnologyResponseDto> {
-    const technology = await this.technologiesService.update(user, id, dto);
-    return {
-      data: technology,
-      status: 'success',
-      message: 'Technology updated successfully',
-    };
-  }
-
-  @Delete(':id')
-  @UseGuards(AuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({
-    summary: 'Delete a technology (Admin only)',
-    description:
-      'Deletes a technology by ID. Cannot delete if technology is used in projects. Only admins can delete technologies.',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'Technology unique identifier',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(
-    @CurrentUser() user: UserProfile,
-    @Param('id') id: string,
-  ): Promise<void> {
-    await this.technologiesService.delete(user, id);
+  async createTechnology(
+    @Body() createDto: CreateTechnologyDto,
+  ): Promise<StandardResponseDto<TechnologyDto>> {
+    return this.technologiesService.createTechnology(createDto);
   }
 
   @Get()
   @ApiOperation({
-    summary: 'Get all technologies (Public access)',
-    description:
-      'Retrieves a paginated list of all technologies. No authentication required.',
+    summary: 'Get Technologies',
+    description: 'Get a paginated list of technologies with optional filtering',
   })
   @ApiQuery({
-    name: 'page',
+    name: 'category',
     required: false,
-    description: 'Page number',
-    example: 1,
+    description: 'Filter by category',
   })
   @ApiQuery({
-    name: 'limit',
+    name: 'is_active',
     required: false,
-    description: 'Page size',
-    example: 10,
+    description: 'Filter by active status',
   })
-  @ApiQuery({
-    name: 'q',
-    required: false,
-    description: 'Search query for label or value',
-    example: 'react',
-  })
-  @ApiOkResponse({
+  @ApiQuery({ name: 'search', required: false, description: 'Search term' })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Items per page' })
+  @ApiQuery({ name: 'sort_by', required: false, description: 'Sort by field' })
+  @ApiQuery({ name: 'sort_order', required: false, description: 'Sort order' })
+  @ApiResponse({
+    status: 200,
     description: 'Technologies retrieved successfully',
-    type: TechnologiesListEnvelopeDto,
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/TechnologyListResponseDto' },
+        message: {
+          type: 'string',
+          example: 'Technologies retrieved successfully',
+        },
+        status: { type: 'string', example: 'success' },
+      },
+    },
   })
-  async findAll(
+  async getTechnologies(
     @Query() query: TechnologyQueryDto,
-  ): Promise<TechnologiesListEnvelopeDto> {
-    const result = await this.technologiesService.findAll(query);
-    const page = Number(query.page ?? 1);
-    const limit = Number(query.limit ?? 10);
-    const total = result.total;
-    const totalPages = Math.ceil(total / (limit || 1)) || 1;
-    const next = page < totalPages;
-    const prev = page > 1;
-
-    return {
-      data: {
-        data: result.data,
-        total,
-        page,
-        limit,
-        next,
-        prev,
-      },
-      status: 'success',
-      message: 'Technologies retrieved successfully',
-    };
+  ): Promise<StandardResponseDto<TechnologyListResponseDto>> {
+    return this.technologiesService.getTechnologies(query);
   }
 
-  @Get('all')
+  @Get('active')
   @ApiOperation({
-    summary: 'Get all technologies without pagination (Public access)',
-    description:
-      'Retrieves all technologies in a simple array format. Useful for dropdowns and autocomplete.',
+    summary: 'Get Active Technologies',
+    description: 'Get all active technologies',
   })
-  @ApiOkResponse({
-    description: 'All technologies retrieved successfully',
+  @ApiResponse({
+    status: 200,
+    description: 'Active technologies retrieved successfully',
     schema: {
       type: 'object',
       properties: {
         data: {
           type: 'array',
-          items: { type: 'object' },
+          items: { $ref: '#/components/schemas/TechnologyDto' },
         },
-        status: { type: 'string' },
-        message: { type: 'string' },
+        message: {
+          type: 'string',
+          example: 'Active technologies retrieved successfully',
+        },
+        status: { type: 'string', example: 'success' },
       },
     },
   })
-  async getAllTechnologies(): Promise<{
-    data: TechnologyResponseDto[];
-    status: string;
-    message: string;
-  }> {
-    const technologies = await this.technologiesService.getAllTechnologies();
-    return {
-      data: technologies,
-      status: 'success',
-      message: 'All technologies retrieved successfully',
-    };
+  async getActiveTechnologies(): Promise<StandardResponseDto<TechnologyDto[]>> {
+    return this.technologiesService.getActiveTechnologies();
   }
 
-  @Get('for-projects')
+  @Get('search')
   @ApiOperation({
-    summary: 'Get technology values for project creation (Public access)',
-    description:
-      'Retrieves only the technology values (not labels) for use in project creation forms.',
+    summary: 'Search Technologies',
+    description: 'Search technologies by name, description, or category',
   })
-  @ApiOkResponse({
-    description: 'Technology values retrieved successfully',
+  @ApiQuery({ name: 'q', required: true, description: 'Search term' })
+  @ApiResponse({
+    status: 200,
+    description: 'Search results retrieved successfully',
     schema: {
       type: 'object',
       properties: {
         data: {
           type: 'array',
-          items: { type: 'string' },
+          items: { $ref: '#/components/schemas/TechnologyDto' },
         },
-        status: { type: 'string' },
-        message: { type: 'string' },
+        message: {
+          type: 'string',
+          example: 'Search results retrieved successfully',
+        },
+        status: { type: 'string', example: 'success' },
       },
     },
   })
-  async getTechnologiesForProjects(): Promise<{
-    data: string[];
-    status: string;
-    message: string;
-  }> {
-    const technologies =
-      await this.technologiesService.getTechnologiesForProjects();
-    return {
-      data: technologies,
-      status: 'success',
-      message: 'Technology values retrieved successfully',
-    };
+  async searchTechnologies(
+    @Query('q') searchTerm: string,
+  ): Promise<StandardResponseDto<TechnologyDto[]>> {
+    return this.technologiesService.searchTechnologies(searchTerm);
+  }
+
+  @Get('category/:category')
+  @ApiOperation({
+    summary: 'Get Technologies by Category',
+    description: 'Get all active technologies in a specific category',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Technologies retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/TechnologyDto' },
+        },
+        message: {
+          type: 'string',
+          example: 'Technologies retrieved successfully',
+        },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  async getTechnologiesByCategory(
+    @Param('category') category: string,
+  ): Promise<StandardResponseDto<TechnologyDto[]>> {
+    return this.technologiesService.getTechnologiesByCategory(category);
   }
 
   @Get(':id')
   @ApiOperation({
-    summary: 'Get technology by ID (Public access)',
-    description: 'Retrieves a specific technology by its unique identifier.',
+    summary: 'Get Technology by ID',
+    description: 'Get a specific technology by its ID',
   })
-  @ApiParam({
-    name: 'id',
-    description: 'Technology unique identifier',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @ApiOkResponse({
+  @ApiResponse({
+    status: 200,
     description: 'Technology retrieved successfully',
-    type: SingleTechnologyResponseDto,
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/TechnologyDto' },
+        message: {
+          type: 'string',
+          example: 'Technology retrieved successfully',
+        },
+        status: { type: 'string', example: 'success' },
+      },
+    },
   })
-  async findOne(@Param('id') id: string): Promise<SingleTechnologyResponseDto> {
-    const technology = await this.technologiesService.findOne(id);
-    if (!technology) {
-      throw new Error('Technology not found');
-    }
-    return {
-      data: technology,
-      status: 'success',
-      message: 'Technology retrieved successfully',
-    };
+  @ApiResponse({
+    status: 404,
+    description: 'Technology not found',
+  })
+  async getTechnologyById(
+    @Param('id') id: string,
+  ): Promise<StandardResponseDto<TechnologyDto>> {
+    return this.technologiesService.getTechnologyById(id);
   }
 
-  @Get('by-value/:value')
+  @Put(':id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Get technology by value (Public access)',
-    description:
-      'Retrieves a technology by its value (slug). Useful for URL-based lookups.',
+    summary: 'Update Technology',
+    description: 'Update a technology (Admin only)',
   })
-  @ApiParam({
-    name: 'value',
-    description: 'Technology value (slug)',
-    example: 'react',
+  @ApiResponse({
+    status: 200,
+    description: 'Technology updated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/TechnologyDto' },
+        message: { type: 'string', example: 'Technology updated successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
   })
-  @ApiOkResponse({
-    description: 'Technology retrieved successfully',
-    type: SingleTechnologyResponseDto,
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data',
   })
-  async findByValue(
-    @Param('value') value: string,
-  ): Promise<SingleTechnologyResponseDto> {
-    const technology = await this.technologiesService.findByValue(value);
-    if (!technology) {
-      throw new Error('Technology not found');
-    }
-    return {
-      data: technology,
-      status: 'success',
-      message: 'Technology retrieved successfully',
-    };
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Technology not found',
+  })
+  async updateTechnology(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateTechnologyDto,
+  ): Promise<StandardResponseDto<TechnologyDto>> {
+    return this.technologiesService.updateTechnology(id, updateDto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Delete Technology',
+    description: 'Delete a technology (Admin only)',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Technology deleted successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Technology not found',
+  })
+  async deleteTechnology(
+    @Param('id') id: string,
+  ): Promise<StandardResponseDto<null>> {
+    return this.technologiesService.deleteTechnology(id);
   }
 }

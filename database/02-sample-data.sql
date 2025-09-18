@@ -1,8 +1,7 @@
 -- =====================================================
 -- FLEXIFY SERVER SAMPLE DATA
 -- =====================================================
--- Comprehensive sample data for testing and development
--- Run this AFTER 01-setup.sql
+-- Insert sample data for testing and development
 -- =====================================================
 
 -- =====================================================
@@ -10,141 +9,70 @@
 -- =====================================================
 -- Note: These are sample users for testing purposes.
 -- All users have the password: "password123"
--- In production, users are created through the custom authentication system.
+-- In production, users are created through the authentication system.
 
-INSERT INTO users (id, email, name, password_hash, avatar_url, role) VALUES 
-('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'john.doe@example.com', 'John Doe', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=John', 'USER'),
-('b2c3d4e5-f6a7-8901-bcde-f12345678901', 'jane.smith@example.com', 'Jane Smith', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane', 'USER'),
-('c3d4e5f6-a7b8-9012-cdef-123456789012', 'bob.wilson@example.com', 'Bob Wilson', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob', 'USER'),
-('d4e5f6a7-b8c9-0123-def0-234567890123', 'alice.brown@example.com', 'Alice Brown', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice', 'USER'),
-('e5f6a7b8-c9d0-1234-ef01-345678901234', 'charlie.davis@example.com', 'Charlie Davis', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Charlie', 'USER'),
-('f6a7b8c9-d0e1-2345-f012-456789012345', 'sarah.johnson@example.com', 'Sarah Johnson', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', 'USER'),
-('a7b8c9d0-e1f2-3456-0123-567890123456', 'mike.chen@example.com', 'Mike Chen', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike', 'USER'),
-('b8c9d0e1-f2a3-4567-1234-678901234567', 'lisa.wang@example.com', 'Lisa Wang', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa', 'USER'),
-('c9d0e1f2-a3b4-5678-2345-789012345678', 'david.kim@example.com', 'David Kim', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=David', 'USER'),
-('d0e1f2a3-b4c5-6789-3456-890123456789', 'emma.taylor@example.com', 'Emma Taylor', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma', 'USER')
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO users (id, email, name, password_hash, avatar_url, role, is_active, email_verified) VALUES
+('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'john.doe@example.com', 'John Doe', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=John', 'USER', true, true),
+('b2c3d4e5-f6a7-8901-bcde-f12345678901', 'jane.smith@example.com', 'Jane Smith', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane', 'USER', true, true),
+('c3d4e5f6-a7b8-9012-cdef-123456789012', 'mike.wilson@example.com', 'Mike Wilson', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike', 'USER', true, true),
+('d4e5f6a7-b8c9-0123-defa-234567890123', 'sarah.johnson@example.com', 'Sarah Johnson', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', 'USER', true, true),
+('e5f6a7b8-c9d0-1234-efab-345678901234', 'alex.brown@example.com', 'Alex Brown', '$2b$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex', 'USER', true, true)
+ON CONFLICT (email) DO NOTHING;
 
 -- =====================================================
--- 2. INSERT ADDITIONAL TECHNOLOGIES
+-- 2. INSERT SAMPLE TECHNOLOGIES
 -- =====================================================
+-- Additional technologies for testing
 
-INSERT INTO technologies (name, description, category) VALUES 
-('Vue.js', 'Progressive JavaScript framework for building user interfaces', 'Frontend'),
-('Angular', 'Platform for building mobile and desktop web applications', 'Frontend'),
-('Express.js', 'Fast, unopinionated web framework for Node.js', 'Backend'),
-('Django', 'High-level Python web framework', 'Backend'),
-('Laravel', 'PHP web application framework', 'Backend'),
-('MongoDB', 'NoSQL document database', 'Database'),
-('Redis', 'In-memory data structure store', 'Database'),
-('GraphQL', 'Query language for APIs', 'API'),
-('REST', 'Representational State Transfer architectural style', 'API'),
-('WebSocket', 'Computer communications protocol', 'Real-time'),
-('Docker', 'Containerization platform', 'DevOps'),
-('Kubernetes', 'Container orchestration system', 'DevOps'),
-('Git', 'Distributed version control system', 'Version Control'),
-('GitHub', 'Web-based Git repository hosting service', 'Version Control'),
-('Figma', 'Collaborative interface design tool', 'Design'),
-('Adobe XD', 'User experience design tool', 'Design'),
-('AWS', 'Cloud computing platform', 'Cloud'),
-('Google Cloud', 'Cloud computing services', 'Cloud'),
-('Azure', 'Microsoft cloud computing platform', 'Cloud'),
-('Vercel', 'Cloud platform for static sites and serverless functions', 'Cloud')
+INSERT INTO technologies (name, description, category, icon_url, is_active) VALUES
+('Vue.js', 'Progressive JavaScript framework', 'Frontend', 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vuejs/vuejs-original.svg', true),
+('Angular', 'Platform for building mobile and desktop web applications', 'Frontend', 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/angular/angular-original.svg', true),
+('Svelte', 'Cybernetically enhanced web apps', 'Frontend', 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/svelte/svelte-original.svg', true),
+('Express.js', 'Fast, unopinionated web framework for Node.js', 'Backend', 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/express/express-original.svg', true),
+('FastAPI', 'Modern, fast web framework for building APIs with Python', 'Backend', 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/fastapi/fastapi-original.svg', true),
+('Django', 'High-level Python web framework', 'Backend', 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/django/django-plain.svg', true),
+('MongoDB', 'NoSQL database program', 'Database', 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg', true),
+('Redis', 'In-memory data structure store', 'Database', 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/redis/redis-original.svg', true),
+('GraphQL', 'Query language for APIs', 'API', 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/graphql/graphql-plain.svg', true),
+('Kubernetes', 'Container orchestration system', 'DevOps', 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg', true),
+('Terraform', 'Infrastructure as code tool', 'DevOps', 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/terraform/terraform-original.svg', true),
+('Figma', 'Collaborative interface design tool', 'Design', 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/figma/figma-original.svg', true)
 ON CONFLICT (name) DO NOTHING;
 
 -- =====================================================
 -- 3. INSERT SAMPLE PROJECTS
 -- =====================================================
+-- Sample projects for testing
 
-INSERT INTO projects (id, title, description, status, user_id) VALUES 
--- John Doe's projects
-('e1f2a3b4-c5d6-7890-bcde-f12345678901', 'E-Commerce Platform', 'Full-stack e-commerce website with React, Node.js, and PostgreSQL. Features include user authentication, product catalog, shopping cart, and payment integration.', 'active', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'),
-('f2a3b4c5-d6e7-8901-cdef-123456789012', 'Mobile Banking App', 'Cross-platform mobile banking application built with React Native. Includes secure authentication, account management, and transaction history.', 'in_progress', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'),
-('a3b4c5d6-e7f8-9012-def0-234567890123', 'Task Management System', 'Web-based project management tool with real-time collaboration features. Built with Vue.js and Express.js.', 'completed', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'),
-
--- Jane Smith's projects
-('b4c5d6e7-f8a9-0123-ef01-345678901234', 'RESTful API Service', 'Comprehensive REST API for data management with authentication, rate limiting, and comprehensive documentation.', 'active', 'b2c3d4e5-f6a7-8901-bcde-f12345678901'),
-('c5d6e7f8-a9b0-1234-f012-456789012345', 'Analytics Dashboard', 'Real-time analytics dashboard for business intelligence. Features data visualization, custom reports, and export functionality.', 'in_progress', 'b2c3d4e5-f6a7-8901-bcde-f12345678901'),
-('d6e7f8a9-b0c1-2345-0123-567890123456', 'Content Management System', 'Headless CMS built with Django and React. Supports multiple content types, media management, and role-based access control.', 'planning', 'b2c3d4e5-f6a7-8901-bcde-f12345678901'),
-
--- Bob Wilson's projects
-('e7f8a9b0-c1d2-3456-1234-678901234567', 'Blog Platform', 'Modern blogging platform with markdown support, comment system, and SEO optimization. Built with Next.js and MongoDB.', 'active', 'c3d4e5f6-a7b8-9012-cdef-123456789012'),
-('f8a9b0c1-d2e3-4567-2345-789012345678', 'Portfolio Website', 'Personal portfolio website showcasing projects and skills. Features dark/light theme, animations, and responsive design.', 'completed', 'c3d4e5f6-a7b8-9012-cdef-123456789012'),
-('a9b0c1d2-e3f4-5678-3456-890123456789', 'Weather Application', 'Weather forecasting app with location-based forecasts, weather maps, and push notifications. Built with React Native.', 'in_progress', 'c3d4e5f6-a7b8-9012-cdef-123456789012'),
-
--- Alice Brown's projects
-('b0c1d2e3-f4a5-6789-4567-901234567890', 'Real-time Chat App', 'WebSocket-based chat application with rooms, file sharing, and message encryption. Built with Socket.io and Express.js.', 'active', 'd4e5f6a7-b8c9-0123-def0-234567890123'),
-('c1d2e3f4-a5b6-7890-5678-012345678901', 'E-learning Platform', 'Online learning management system with video streaming, quizzes, and progress tracking. Built with Laravel and Vue.js.', 'in_progress', 'd4e5f6a7-b8c9-0123-def0-234567890123'),
-('d2e3f4a5-b6c7-8901-6789-123456789012', 'Social Media Dashboard', 'Social media management tool for scheduling posts, analytics, and engagement tracking across multiple platforms.', 'planning', 'd4e5f6a7-b8c9-0123-def0-234567890123'),
-
--- Charlie Davis's projects
-('e3f4a5b6-c7d8-9012-7890-234567890123', 'IoT Monitoring System', 'Internet of Things monitoring dashboard for tracking sensor data, alerts, and device management. Built with Angular and Node.js.', 'active', 'e5f6a7b8-c9d0-1234-ef01-345678901234'),
-('f4a5b6c7-d8e9-0123-8901-345678901234', 'Blockchain Explorer', 'Cryptocurrency blockchain explorer with transaction history, address lookup, and network statistics. Built with React and Python.', 'completed', 'e5f6a7b8-c9d0-1234-ef01-345678901234'),
-('a5b6c7d8-e9f0-1234-9012-456789012345', 'AI Chatbot', 'Intelligent chatbot with natural language processing, context awareness, and multi-language support. Built with Python and TensorFlow.', 'in_progress', 'e5f6a7b8-c9d0-1234-ef01-345678901234'),
-
--- Sarah Johnson's projects
-('b6c7d8e9-f0a1-2345-0123-567890123456', 'Fitness Tracking App', 'Mobile fitness app with workout tracking, nutrition logging, and social features. Built with React Native and Firebase.', 'active', 'f6a7b8c9-d0e1-2345-f012-456789012345'),
-('c7d8e9f0-a1b2-3456-1234-678901234567', 'Recipe Management System', 'Recipe collection and meal planning app with ingredient tracking and nutritional analysis. Built with Vue.js and Express.js.', 'completed', 'f6a7b8c9-d0e1-2345-f012-456789012345'),
-
--- Mike Chen's projects
-('d8e9f0a1-b2c3-4567-2345-789012345678', 'Stock Trading Platform', 'Real-time stock trading platform with live market data, portfolio management, and risk analysis. Built with Angular and Node.js.', 'in_progress', 'a7b8c9d0-e1f2-3456-0123-567890123456'),
-('e9f0a1b2-c3d4-5678-3456-890123456789', 'Cryptocurrency Wallet', 'Secure cryptocurrency wallet with multi-coin support, transaction history, and hardware wallet integration. Built with React and Python.', 'planning', 'a7b8c9d0-e1f2-3456-0123-567890123456')
+INSERT INTO projects (id, title, description, content, status, user_id, technologies, images, demo_url, github_url, is_public, is_featured) VALUES
+('f6a7b8c9-d0e1-2345-fabc-456789012345', 'E-Commerce Platform', 'A full-stack e-commerce platform built with React and Node.js', 'This is a comprehensive e-commerce solution featuring user authentication, product catalog, shopping cart, payment integration, and admin dashboard. Built with modern web technologies and best practices.', 'completed', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', ARRAY['a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'b2c3d4e5-f6a7-8901-bcde-f12345678901'], ARRAY['https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800', 'https://images.unsplash.com/photo-1556742111-a301076d9d18?w=800'], 'https://ecommerce-demo.example.com', 'https://github.com/johndoe/ecommerce-platform', true, true),
+('g7a8b9c0-e1f2-3456-gbcd-567890123456', 'Task Management App', 'A collaborative task management application with real-time updates', 'A modern task management solution with drag-and-drop functionality, real-time collaboration, team management, and progress tracking. Built with Vue.js and WebSocket integration.', 'active', 'b2c3d4e5-f6a7-8901-bcde-f12345678901', ARRAY['c3d4e5f6-a7b8-9012-cdef-123456789012', 'd4e5f6a7-b8c9-0123-defa-234567890123'], ARRAY['https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=800'], 'https://taskapp-demo.example.com', 'https://github.com/janesmith/task-management', true, true),
+('h8a9b0c1-f2e3-4567-hcde-678901234567', 'Weather Dashboard', 'Real-time weather information dashboard with location services', 'A responsive weather dashboard that provides current conditions, forecasts, and weather maps. Features location-based services, weather alerts, and customizable widgets.', 'in_progress', 'c3d4e5f6-a7b8-9012-cdef-123456789012', ARRAY['e5f6a7b8-c9d0-1234-efab-345678901234'], ARRAY['https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?w=800'], 'https://weather-demo.example.com', 'https://github.com/mikewilson/weather-dashboard', true, false),
+('i9a0b1c2-e3f4-5678-idef-789012345678', 'Portfolio Website', 'Personal portfolio website with blog and project showcase', 'A modern, responsive portfolio website featuring a clean design, blog functionality, project showcase, and contact form. Built with Next.js and Tailwind CSS.', 'completed', 'd4e5f6a7-b8c9-0123-defa-234567890123', ARRAY['a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'b2c3d4e5-f6a7-8901-bcde-f12345678901'], ARRAY['https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?w=800'], 'https://sarahjohnson.dev', 'https://github.com/sarahjohnson/portfolio', true, false),
+('j0a1b2c3-f4e5-6789-jfgh-890123456789', 'API Gateway', 'Microservices API gateway with authentication and rate limiting', 'A robust API gateway solution for microservices architecture featuring authentication, rate limiting, load balancing, and monitoring. Built with Express.js and Redis.', 'planning', 'e5f6a7b8-c9d0-1234-efab-345678901234', ARRAY['c3d4e5f6-a7b8-9012-cdef-123456789012'], ARRAY[], 'https://api-gateway-docs.example.com', 'https://github.com/alexbrown/api-gateway', false, false)
 ON CONFLICT (id) DO NOTHING;
 
 -- =====================================================
 -- 4. INSERT SAMPLE MESSAGES
 -- =====================================================
+-- Sample contact messages for testing
 
-INSERT INTO messages (id, name, email, subject, message, status, user_id) VALUES 
--- Messages for John Doe
-('f0a1b2c3-d4e5-6789-4567-901234567890', 'Sarah Johnson', 'sarah.j@example.com', 'E-Commerce Project Inquiry', 'Hi John! I am very interested in your e-commerce platform project. The features you described sound exactly like what our company needs. Could we schedule a call to discuss the requirements and timeline? I would love to learn more about the technology stack you used and see if we can collaborate on this project.', 'unread', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'),
-('a1b2c3d4-e5f6-7890-5678-012345678901', 'Mike Chen', 'mike.chen@example.com', 'Mobile App Collaboration', 'Hello John! I noticed your mobile banking app project and I am impressed with the approach you are taking. I have extensive experience with React Native and would love to collaborate on this project. I can help with the authentication system and payment integration features. Let me know if you are interested in working together!', 'read', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'),
-('b2c3d4e5-f6a7-8901-6789-123456789012', 'Lisa Wang', 'lisa.wang@example.com', 'Task Management System', 'Hi John! Your task management system looks fantastic! I am currently working on a similar project for my team and would love to get some insights on how you implemented the real-time collaboration features. Could you share some technical details about the WebSocket implementation?', 'replied', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'),
-
--- Messages for Jane Smith
-('c3d4e5f6-a7b8-9012-7890-234567890123', 'David Kim', 'david.kim@example.com', 'API Integration Help', 'Hi Jane! Your RESTful API service looks very well-designed. I am working on integrating a similar API into our application and I am facing some challenges with the authentication flow. Could you provide some guidance on the best practices for API security and rate limiting implementation?', 'unread', 'b2c3d4e5-f6a7-8901-bcde-f12345678901'),
-('d4e5f6a7-b8c9-0123-8901-345678901234', 'Emma Taylor', 'emma.taylor@example.com', 'Analytics Dashboard', 'Hello Jane! I am very interested in your analytics dashboard project. The data visualization features you mentioned sound exactly like what we need for our business intelligence platform. Could we discuss the possibility of licensing your dashboard components or collaborating on a custom solution?', 'read', 'b2c3d4e5-f6a7-8901-bcde-f12345678901'),
-('e5f6a7b8-c9d0-1234-9012-456789012345', 'Alex Rodriguez', 'alex.rodriguez@example.com', 'CMS Development', 'Hi Jane! Your content management system project caught my attention. I am looking for a headless CMS solution for our marketing team and your approach with Django and React sounds perfect. Could you share more details about the content types and media management features you have implemented?', 'replied', 'b2c3d4e5-f6a7-8901-bcde-f12345678901'),
-
--- Messages for Bob Wilson
-('f6a7b8c9-d0e1-2345-0123-567890123456', 'Sophie Brown', 'sophie.brown@example.com', 'Blog Platform Features', 'Hi Bob! I love your blog platform project! The markdown support and SEO optimization features are exactly what I need for my personal blog. Could you help me set up a similar platform? I would be happy to pay for your services or collaborate on the project.', 'unread', 'c3d4e5f6-a7b8-9012-cdef-123456789012'),
-('a7b8c9d0-e1f2-3456-1234-678901234567', 'Tom Wilson', 'tom.wilson@example.com', 'Portfolio Design', 'Hello Bob! Your portfolio website has an amazing design! The animations and responsive layout are very impressive. What technologies did you use for the animations? I am working on my own portfolio and would love to learn from your approach.', 'read', 'c3d4e5f6-a7b8-9012-cdef-123456789012'),
-('b8c9d0e1-f2a3-4567-2345-789012345678', 'Rachel Green', 'rachel.green@example.com', 'Weather App API', 'Hi Bob! Your weather application looks great! I am working on a similar project and I am curious about the weather API you are using. Could you share some insights about the data sources and how you handle location-based forecasts?', 'replied', 'c3d4e5f6-a7b8-9012-cdef-123456789012'),
-
--- Messages for Alice Brown
-('c9d0e1f2-a3b4-5678-3456-890123456789', 'Kevin Lee', 'kevin.lee@example.com', 'Chat App Security', 'Hello Alice! Your real-time chat application is very impressive! I am particularly interested in the message encryption feature you mentioned. Could you share some technical details about how you implemented end-to-end encryption? I am working on a similar project and would love to learn from your approach.', 'unread', 'd4e5f6a7-b8c9-0123-def0-234567890123'),
-('d0e1f2a3-b4c5-6789-4567-901234567890', 'Maria Garcia', 'maria.garcia@example.com', 'E-learning Platform', 'Hi Alice! Your e-learning platform project sounds fantastic! I am working on a similar project for our company and I would love to discuss the video streaming implementation and quiz system. Could we schedule a call to discuss potential collaboration?', 'read', 'd4e5f6a7-b8c9-0123-def0-234567890123'),
-('e1f2a3b4-c5d6-7890-5678-012345678901', 'James Wilson', 'james.wilson@example.com', 'Social Media Dashboard', 'Hello Alice! Your social media dashboard project looks very promising! I am interested in the analytics and engagement tracking features. Could you share more details about the platform integrations and how you handle rate limiting for API calls?', 'replied', 'd4e5f6a7-b8c9-0123-def0-234567890123'),
-
--- Messages for Charlie Davis
-('f2a3b4c5-d6e7-8901-6789-123456789012', 'Jennifer Liu', 'jennifer.liu@example.com', 'IoT System Integration', 'Hi Charlie! Your IoT monitoring system is very impressive! I am working on a similar project for our manufacturing facility and I would love to discuss the sensor data processing and alert system. Could you share some insights about the scalability and real-time data handling?', 'unread', 'e5f6a7b8-c9d0-1234-ef01-345678901234'),
-('a3b4c5d6-e7f8-9012-7890-234567890123', 'Robert Johnson', 'robert.johnson@example.com', 'Blockchain Explorer', 'Hello Charlie! Your blockchain explorer project looks very professional! I am interested in the transaction history and address lookup features. Could you share some technical details about the data indexing and search optimization?', 'read', 'e5f6a7b8-c9d0-1234-ef01-345678901234'),
-('b4c5d6e7-f8a9-0123-8901-345678901234', 'Amanda Davis', 'amanda.davis@example.com', 'AI Chatbot Development', 'Hi Charlie! Your AI chatbot project sounds very interesting! I am working on a similar project for customer support and I would love to discuss the natural language processing implementation and context awareness features. Could we collaborate on this project?', 'replied', 'e5f6a7b8-c9d0-1234-ef01-345678901234')
+INSERT INTO messages (id, name, email, subject, message, status, user_id, ip_address, user_agent) VALUES
+('k1a2b3c4-d5e6-7890-kabc-901234567890', 'Alice Johnson', 'alice.johnson@example.com', 'Project Collaboration Inquiry', 'Hi! I saw your portfolio and I am very impressed with your work. I would like to discuss a potential collaboration on a new project. Could we schedule a call this week?', 'unread', null, '192.168.1.100', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'),
+('l2a3b4c5-e6f7-8901-labd-012345678901', 'Bob Smith', 'bob.smith@example.com', 'Freelance Opportunity', 'Hello! I am looking for a skilled developer to help with our startup project. Your experience with React and Node.js is exactly what we need. Are you available for freelance work?', 'read', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', '192.168.1.101', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'),
+('m3a4b5c6-f7e8-9012-mbce-123456789012', 'Carol Davis', 'carol.davis@example.com', 'Technical Consultation', 'I need some technical advice on implementing a real-time chat feature in my web application. Could you provide some guidance on the best approach?', 'replied', 'b2c3d4e5-f6a7-8901-bcde-f12345678901', '192.168.1.102', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'),
+('n4a5b6c7-e8f9-0123-ncdf-234567890123', 'David Wilson', 'david.wilson@example.com', 'Job Opportunity', 'We have an opening for a Senior Full Stack Developer at our company. Your portfolio shows excellent skills that would be a great fit. Would you be interested in learning more?', 'unread', null, '192.168.1.103', 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15'),
+('o5a6b7c8-f9e0-1234-odeg-345678901234', 'Emma Brown', 'emma.brown@example.com', 'Partnership Proposal', 'I am the founder of a tech startup and I would like to discuss a potential partnership. Your expertise in modern web technologies would be valuable for our project.', 'read', 'c3d4e5f6-a7b8-9012-cdef-123456789012', '192.168.1.104', 'Mozilla/5.0 (Android 11; Mobile; rv:68.0) Gecko/68.0 Firefox/88.0')
 ON CONFLICT (id) DO NOTHING;
 
 -- =====================================================
 -- 5. INSERT SAMPLE MESSAGE REPLIES
 -- =====================================================
+-- Sample replies to messages
 
-INSERT INTO message_replies (id, message_id, user_id, reply) VALUES 
--- Replies to John Doe's messages
-('c5d6e7f8-a9b0-1234-9012-456789012345', 'b2c3d4e5-f6a7-8901-6789-123456789012', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'Hi Lisa! Thank you for your interest in my task management system. I would be happy to share the technical details about the WebSocket implementation. The real-time collaboration features use Socket.io for bidirectional communication, and I implemented a custom conflict resolution system for simultaneous edits. I can provide you with the code examples and architecture diagrams if you are interested.'),
-
--- Replies to Jane Smith's messages
-('d6e7f8a9-b0c1-2345-0123-567890123456', 'e5f6a7b8-c9d0-1234-9012-456789012345', 'b2c3d4e5-f6a7-8901-bcde-f12345678901', 'Hi Alex! Thank you for your interest in my CMS project. The content types system is built with a flexible schema that supports custom fields, relationships, and validation rules. For media management, I implemented a file upload system with image optimization, thumbnail generation, and CDN integration. I can share the technical documentation and code examples if you would like to learn more.'),
-('e7f8a9b0-c1d2-3456-1234-678901234567', 'e5f6a7b8-c9d0-1234-9012-456789012345', 'b2c3d4e5-f6a7-8901-bcde-f12345678901', 'I also have a comprehensive admin interface built with React that allows content creators to manage all aspects of the CMS without technical knowledge. The system supports role-based permissions, content versioning, and scheduled publishing. Let me know if you would like to see a demo or discuss potential collaboration opportunities.'),
-
--- Replies to Bob Wilson's messages
-('f8a9b0c1-d2e3-4567-2345-789012345678', 'b8c9d0e1-f2a3-4567-2345-789012345678', 'c3d4e5f6-a7b8-9012-cdef-123456789012', 'Hi Rachel! Thank you for your interest in my weather app. I am using the OpenWeatherMap API for weather data, which provides comprehensive forecasts and historical data. For location-based forecasts, I implemented a geolocation service that uses the browser''s geolocation API and falls back to IP-based location detection. The app also includes weather maps using Leaflet.js for interactive visualization.'),
-('a9b0c1d2-e3f4-5678-3456-890123456789', 'b8c9d0e1-f2a3-4567-2345-789012345678', 'c3d4e5f6-a7b8-9012-cdef-123456789012', 'I also implemented caching strategies to reduce API calls and improve performance. The app stores weather data locally and updates it based on user preferences and location changes. If you would like, I can share the technical implementation details and help you integrate similar features into your project.'),
-
--- Replies to Alice Brown's messages
-('b0c1d2e3-f4a5-6789-4567-901234567890', 'e1f2a3b4-c5d6-7890-5678-012345678901', 'd4e5f6a7-b8c9-0123-def0-234567890123', 'Hi James! Thank you for your interest in my social media dashboard. The platform integrations use OAuth 2.0 for authentication and I implemented a rate limiting system that respects each platform''s API limits. I also built a queue system using Redis to handle high-volume API calls and prevent rate limit violations.'),
-('c1d2e3f4-a5b6-7890-5678-012345678901', 'e1f2a3b4-c5d6-7890-5678-012345678901', 'd4e5f6a7-b8c9-0123-def0-234567890123', 'The analytics system processes engagement data in real-time and provides insights through interactive charts and reports. I can share the technical architecture and help you implement similar features for your project. The system is designed to be scalable and can handle multiple social media accounts efficiently.'),
-
--- Replies to Charlie Davis's messages
-('d2e3f4a5-b6c7-8901-6789-123456789012', 'b4c5d6e7-f8a9-0123-8901-345678901234', 'e5f6a7b8-c9d0-1234-ef01-345678901234', 'Hi Amanda! Thank you for your interest in my AI chatbot project. The natural language processing is implemented using TensorFlow and spaCy for text preprocessing and intent recognition. The context awareness system uses a combination of conversation history and user profile data to maintain context across multiple interactions.'),
-('e3f4a5b6-c7d8-9012-7890-234567890123', 'b4c5d6e7-f8a9-0123-8901-345678901234', 'e5f6a7b8-c9d0-1234-ef01-345678901234', 'I also implemented a learning system that allows the chatbot to improve its responses based on user feedback and conversation outcomes. The system supports multiple languages and can be easily integrated into existing customer support workflows. I would love to collaborate on this project and share the technical implementation details with you.')
+INSERT INTO message_replies (id, message_id, user_id, reply, created_at, updated_at) VALUES
+('p6a7b8c9-e0f1-2345-pefh-456789012345', 'm3a4b5c6-f7e8-9012-mbce-123456789012', 'b2c3d4e5-f6a7-8901-bcde-f12345678901', 'Thank you for reaching out! For implementing real-time chat, I recommend using WebSockets with Socket.io for Node.js or Pusher for a managed solution. The key considerations are scalability, message persistence, and user presence. Would you like me to elaborate on any specific aspect?', NOW(), NOW()),
+('q7a8b9c0-f1e2-3456-qfgi-567890123456', 'l2a3b4c5-e6f7-8901-labd-012345678901', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'Hi Bob! Thank you for considering me for your startup project. I am definitely interested in freelance opportunities. Could you tell me more about the project scope, timeline, and budget? I would love to discuss how I can contribute to your success.', NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- =====================================================
@@ -154,16 +82,15 @@ ON CONFLICT (id) DO NOTHING;
 DO $$
 BEGIN
     RAISE NOTICE '=====================================================';
-    RAISE NOTICE 'COMPREHENSIVE SAMPLE DATA INSERTED SUCCESSFULLY!';
+    RAISE NOTICE 'FLEXIFY SERVER SAMPLE DATA INSERTED!';
     RAISE NOTICE '=====================================================';
-    RAISE NOTICE 'Sample data added:';
-    RAISE NOTICE '- 10 additional users (total: 11)';
-    RAISE NOTICE '- 20 additional technologies (total: 28)';
-    RAISE NOTICE '- 20 sample projects (various statuses)';
-    RAISE NOTICE '- 15 sample messages (contact form submissions)';
-    RAISE NOTICE '- 8 message replies (detailed responses)';
-    RAISE NOTICE '';
-    RAISE NOTICE 'All IDs are now in proper hexadecimal UUID format!';
-    RAISE NOTICE 'Your database is now fully populated for testing!';
+    RAISE NOTICE 'Sample data includes:';
+    RAISE NOTICE '- 5 sample users (password: password123)';
+    RAISE NOTICE '- 12 additional technologies';
+    RAISE NOTICE '- 5 sample projects';
+    RAISE NOTICE '- 5 sample messages';
+    RAISE NOTICE '- 2 sample message replies';
+    RAISE NOTICE '=====================================================';
+    RAISE NOTICE 'Sample data ready for testing!';
     RAISE NOTICE '=====================================================';
 END $$;
