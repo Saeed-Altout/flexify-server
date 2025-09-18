@@ -19,7 +19,8 @@ import { StandardResponseDto } from '../../auth/dto/auth.dto';
  * Enum for project status values.
  */
 export enum ProjectStatusEnum {
-  InProgress = 'inprogress',
+  Active = 'active',
+  InProgress = 'in_progress',
   Completed = 'completed',
   Planning = 'planning',
 }
