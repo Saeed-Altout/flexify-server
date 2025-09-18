@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MailerService } from '@nestjs-modules/mailer';
 
-import { EmailTemplate } from './types/contact.types';
+import { EmailTemplate } from './types/messages.types';
 
 @Injectable()
 export class EmailService {

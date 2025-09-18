@@ -1,4 +1,4 @@
-export interface ContactMessage {
+export interface Message {
   id: string;
   name: string;
   email: string;
@@ -10,7 +10,7 @@ export interface ContactMessage {
   updated_at: string;
 }
 
-export interface ContactReply {
+export interface Reply {
   id: string;
   message_id: string;
   admin_id: string;
@@ -21,8 +21,8 @@ export interface ContactReply {
 
 export type MessageStatus = 'PENDING' | 'REPLIED' | 'ARCHIVED';
 
-export interface ContactMessageWithReply extends ContactMessage {
-  replies: ContactReply[];
+export interface MessageWithReply extends Message {
+  replies: Reply[];
 }
 
 export interface EmailTemplate {

@@ -6,45 +6,45 @@ import {
 } from '@nestjs/common';
 
 import {
-  ContactMessage,
-  ContactReply,
-  ContactMessageWithReply,
+  Message,
+  Reply,
+  MessageWithReply,
   MessageStatus,
-} from './types/contact.types';
+} from './types/messages.types';
 import {
-  CreateContactMessageDto,
+  CreateMessageDto,
   CreateReplyDto,
   UpdateMessageStatusDto,
   ApiResponseDto,
   CONTACT_MESSAGES,
-} from './dto/contact.dto';
+} from './dto/messages.dto';
 
 import { EmailService } from './email.service';
 
 import { SupabaseService } from '../supabase/supabase.service';
 
 @Injectable()
-export class ContactService {
-  private readonly logger = new Logger(ContactService.name);
+export class MessagesService {
+  private readonly logger = new Logger(MessagesService.name);
 
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly emailService: EmailService,
   ) {}
 
-  async createContactMessage(
-    createContactMessageDto: CreateContactMessageDto,
-  ): Promise<ApiResponseDto<ContactMessage>> {
+  async createMessage(
+    createMessageDto: CreateMessageDto,
+  ): Promise<ApiResponseDto<Message>> {
     try {
       const { data, error } = await this.supabaseService.insert(
         'contact_messages',
         {
-          name: createContactMessageDto.name,
-          email: createContactMessageDto.email,
-          subject: createContactMessageDto.subject,
-          message: createContactMessageDto.message,
+          name: createMessageDto.name,
+          email: createMessageDto.email,
+          subject: createMessageDto.subject,
+          message: createMessageDto.message,
           status: 'PENDING' as MessageStatus,
-          source: createContactMessageDto.source || 'portfolio',
+          source: createMessageDto.source || 'portfolio',
         },
       );
 
@@ -55,11 +55,9 @@ export class ContactService {
 
       // Send notification email to admin
       try {
-        await this.emailService.sendContactNotification(
-          createContactMessageDto,
-        );
+        await this.emailService.sendContactNotification(createMessageDto);
         this.logger.log(
-          `Contact notification sent to admin for message from ${createContactMessageDto.email}`,
+          `Contact notification sent to admin for message from ${createMessageDto.email}`,
         );
       } catch (emailError) {
         this.logger.error(
@@ -68,9 +66,7 @@ export class ContactService {
         // Don't fail the whole operation if email fails
       }
 
-      this.logger.log(
-        `Contact message created from ${createContactMessageDto.email}`,
-      );
+      this.logger.log(`Message created from ${createMessageDto.email}`);
 
       return {
         data,
@@ -83,7 +79,7 @@ export class ContactService {
     }
   }
 
-  async getAllMessages(): Promise<ApiResponseDto<ContactMessageWithReply[]>> {
+  async getAllMessages(): Promise<ApiResponseDto<MessageWithReply[]>> {
     try {
       const { data: messages, error: messagesError } =
         await this.supabaseService.select('contact_messages', {
@@ -97,7 +93,7 @@ export class ContactService {
 
       // Fetch replies for each message
       const messagesWithReplies = await Promise.all(
-        (messages as ContactMessage[]).map(async (message) => {
+        (messages as Message[]).map(async (message) => {
           const { data: replies } = await this.supabaseService.select(
             'contact_replies',
             {
@@ -126,7 +122,7 @@ export class ContactService {
 
   async getMessageById(
     messageId: string,
-  ): Promise<ApiResponseDto<ContactMessageWithReply>> {
+  ): Promise<ApiResponseDto<MessageWithReply>> {
     try {
       const { data: message, error: messageError } =
         await this.supabaseService.select('contact_messages', {
@@ -147,7 +143,7 @@ export class ContactService {
       );
 
       const messageWithReplies = {
-        ...(message as ContactMessage[])[0],
+        ...(message as Message[])[0],
         replies: replies || [],
       };
 
@@ -168,7 +164,7 @@ export class ContactService {
     messageId: string,
     adminId: string,
     createReplyDto: CreateReplyDto,
-  ): Promise<ApiResponseDto<ContactReply>> {
+  ): Promise<ApiResponseDto<Reply>> {
     try {
       // Verify message exists
       const messageResponse = await this.getMessageById(messageId);
@@ -222,7 +218,7 @@ export class ContactService {
   async updateMessageStatus(
     messageId: string,
     updateStatusDto: UpdateMessageStatusDto,
-  ): Promise<ApiResponseDto<ContactMessage>> {
+  ): Promise<ApiResponseDto<Message>> {
     try {
       const { data, error } = await this.supabaseService.update(
         'contact_messages',
@@ -295,7 +291,7 @@ export class ContactService {
 
   async getMessagesByStatus(
     status: MessageStatus,
-  ): Promise<ApiResponseDto<ContactMessage[]>> {
+  ): Promise<ApiResponseDto<Message[]>> {
     try {
       const { data, error } = await this.supabaseService.select(
         'contact_messages',
@@ -313,7 +309,7 @@ export class ContactService {
       }
 
       return {
-        data: (data as ContactMessage[]) || [],
+        data: (data as Message[]) || [],
         status: 'success',
         message: CONTACT_MESSAGES.MESSAGES_BY_STATUS,
       };
@@ -340,7 +336,7 @@ export class ContactService {
         throw new BadRequestException('Failed to fetch message statistics');
       }
 
-      const messages = data as ContactMessage[];
+      const messages = data as Message[];
       const stats = {
         total: messages.length,
         pending: messages.filter((msg) => msg.status === 'PENDING').length,

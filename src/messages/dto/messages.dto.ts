@@ -6,7 +6,7 @@ import {
   IsIn,
 } from 'class-validator';
 
-export class CreateContactMessageDto {
+export class CreateMessageDto {
   @IsString()
   @IsNotEmpty()
   name: string;
@@ -46,7 +46,7 @@ export class ApiResponseDto<T> {
   message: string;
 }
 
-export class ContactMessageResponseDto {
+export class MessageResponseDto {
   id: string;
   name: string;
   email: string;
@@ -58,11 +58,11 @@ export class ContactMessageResponseDto {
   updated_at: string;
 }
 
-export class ContactMessageWithRepliesResponseDto extends ContactMessageResponseDto {
+export class MessageWithRepliesResponseDto extends MessageResponseDto {
   replies: any[];
 }
 
-export class ContactReplyResponseDto {
+export class ReplyResponseDto {
   id: string;
   message_id: string;
   admin_id: string;

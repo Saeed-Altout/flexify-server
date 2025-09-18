@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
-import { ContactController } from './contact.controller';
-import { ContactService } from './contact.service';
+import { MessagesController } from './messages.controller';
+import { MessagesService } from './messages.service';
 import { EmailService } from './email.service';
 
 import { AuthGuard } from '../auth/guards/auth.guard';
@@ -26,20 +26,20 @@ import { SupabaseService } from '../supabase/supabase.service';
           },
         },
         defaults: {
-          from: `"Portfolio Contact" <${configService.get<string>('SMTP_USER')}>`,
+          from: `"Portfolio Messages" <${configService.get<string>('SMTP_USER')}>`,
         },
       }),
       inject: [ConfigService],
     }),
   ],
-  controllers: [ContactController],
+  controllers: [MessagesController],
   providers: [
-    ContactService,
+    MessagesService,
     EmailService,
     SupabaseService,
     AuthGuard,
     AdminGuard,
   ],
-  exports: [ContactService, EmailService],
+  exports: [MessagesService, EmailService],
 })
-export class ContactModule {}
+export class MessagesModule {}

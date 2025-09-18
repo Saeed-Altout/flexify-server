@@ -71,7 +71,7 @@ async function bootstrap(): Promise<INestApplication> {
       .addTag('auth', 'Authentication and user management')
       .addTag('projects', 'Project management and portfolio')
       .addTag('technologies', 'Technology stack management')
-      .addTag('contact', 'Contact form and message management')
+      .addTag('messages', 'Message management and communication')
       .addTag('File Upload', 'File upload and management')
       .addBearerAuth(
         {
