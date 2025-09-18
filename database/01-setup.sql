@@ -10,30 +10,50 @@
 -- =====================================================
 
 -- User roles
-CREATE TYPE user_role AS ENUM ('USER', 'ADMIN');
+DO $$ BEGIN
+    CREATE TYPE user_role AS ENUM ('USER', 'ADMIN');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- Project status
-CREATE TYPE project_status AS ENUM ('active', 'in_progress', 'completed', 'planning');
+DO $$ BEGIN
+    CREATE TYPE project_status AS ENUM ('active', 'in_progress', 'completed', 'planning');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- Message status
-CREATE TYPE message_status AS ENUM ('unread', 'read', 'replied');
+DO $$ BEGIN
+    CREATE TYPE message_status AS ENUM ('unread', 'read', 'replied');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- =====================================================
 -- 2. CREATE TABLES
 -- =====================================================
 
--- Users table
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+-- Users table (synced with auth.users)
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
+    avatar_url TEXT,
     role user_role DEFAULT 'USER',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Add avatar_url column if it doesn't exist (for existing tables)
+DO $$ BEGIN
+    ALTER TABLE users ADD COLUMN avatar_url TEXT;
+EXCEPTION
+    WHEN duplicate_column THEN null;
+END $$;
+
 -- Technologies table
-CREATE TABLE technologies (
+CREATE TABLE IF NOT EXISTS technologies (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT,
@@ -43,7 +63,7 @@ CREATE TABLE technologies (
 );
 
 -- Projects table
-CREATE TABLE projects (
+CREATE TABLE IF NOT EXISTS projects (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(255) NOT NULL,
     description TEXT,
@@ -54,7 +74,7 @@ CREATE TABLE projects (
 );
 
 -- Messages table
-CREATE TABLE messages (
+CREATE TABLE IF NOT EXISTS messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
@@ -67,7 +87,7 @@ CREATE TABLE messages (
 );
 
 -- Message replies table
-CREATE TABLE message_replies (
+CREATE TABLE IF NOT EXISTS message_replies (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     message_id UUID REFERENCES messages(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -81,22 +101,22 @@ CREATE TABLE message_replies (
 -- =====================================================
 
 -- Users indexes
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 
 -- Projects indexes
-CREATE INDEX idx_projects_user_id ON projects(user_id);
-CREATE INDEX idx_projects_status ON projects(status);
-CREATE INDEX idx_projects_created_at ON projects(created_at);
+CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id);
+CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
+CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at);
 
 -- Messages indexes
-CREATE INDEX idx_messages_user_id ON messages(user_id);
-CREATE INDEX idx_messages_status ON messages(status);
-CREATE INDEX idx_messages_created_at ON messages(created_at);
+CREATE INDEX IF NOT EXISTS idx_messages_user_id ON messages(user_id);
+CREATE INDEX IF NOT EXISTS idx_messages_status ON messages(status);
+CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
 
 -- Message replies indexes
-CREATE INDEX idx_message_replies_message_id ON message_replies(message_id);
-CREATE INDEX idx_message_replies_user_id ON message_replies(user_id);
+CREATE INDEX IF NOT EXISTS idx_message_replies_message_id ON message_replies(message_id);
+CREATE INDEX IF NOT EXISTS idx_message_replies_user_id ON message_replies(user_id);
 
 -- =====================================================
 -- 4. CREATE FUNCTIONS
@@ -115,27 +135,55 @@ $$ LANGUAGE plpgsql;
 -- 5. CREATE TRIGGERS
 -- =====================================================
 
+-- Function to handle new user creation from auth.users
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.users (id, email, name, avatar_url, role)
+    VALUES (
+        NEW.id,
+        NEW.email,
+        COALESCE(NEW.raw_user_meta_data->>'name', NEW.email),
+        NEW.raw_user_meta_data->>'avatar_url',
+        COALESCE((NEW.raw_user_meta_data->>'role')::user_role, 'USER')
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to automatically create user profile when auth.users is created
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW
+    EXECUTE FUNCTION handle_new_user();
+
 -- Update triggers for all tables
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
 CREATE TRIGGER update_users_updated_at
     BEFORE UPDATE ON users
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_technologies_updated_at ON technologies;
 CREATE TRIGGER update_technologies_updated_at
     BEFORE UPDATE ON technologies
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_projects_updated_at ON projects;
 CREATE TRIGGER update_projects_updated_at
     BEFORE UPDATE ON projects
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_messages_updated_at ON messages;
 CREATE TRIGGER update_messages_updated_at
     BEFORE UPDATE ON messages
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_message_replies_updated_at ON message_replies;
 CREATE TRIGGER update_message_replies_updated_at
     BEFORE UPDATE ON message_replies
     FOR EACH ROW
@@ -157,109 +205,132 @@ ALTER TABLE message_replies ENABLE ROW LEVEL SECURITY;
 -- =====================================================
 
 -- Users policies
+DROP POLICY IF EXISTS "Users can view own profile" ON users;
 CREATE POLICY "Users can view own profile" ON users
-    FOR SELECT USING (auth.uid()::text = id::text);
+    FOR SELECT USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can update own profile" ON users;
 CREATE POLICY "Users can update own profile" ON users
-    FOR UPDATE USING (auth.uid()::text = id::text);
+    FOR UPDATE USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Admins can view all users" ON users;
 CREATE POLICY "Admins can view all users" ON users
     FOR SELECT USING (
         EXISTS (
-            SELECT 1 FROM users 
-            WHERE id::text = auth.uid()::text 
+            SELECT 1 FROM users
+            WHERE id = auth.uid()
             AND role = 'ADMIN'
         )
     );
 
+DROP POLICY IF EXISTS "Admins can update all users" ON users;
 CREATE POLICY "Admins can update all users" ON users
     FOR UPDATE USING (
         EXISTS (
-            SELECT 1 FROM users 
-            WHERE id::text = auth.uid()::text 
+            SELECT 1 FROM users
+            WHERE id = auth.uid()
             AND role = 'ADMIN'
         )
     );
 
+-- Allow service role to manage users (for triggers)
+DROP POLICY IF EXISTS "Service role can manage users" ON users;
+CREATE POLICY "Service role can manage users" ON users
+    FOR ALL USING (auth.role() = 'service_role');
+
 -- Technologies policies (public read, admin write)
+DROP POLICY IF EXISTS "Anyone can view technologies" ON technologies;
 CREATE POLICY "Anyone can view technologies" ON technologies
     FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Admins can manage technologies" ON technologies;
 CREATE POLICY "Admins can manage technologies" ON technologies
     FOR ALL USING (
         EXISTS (
-            SELECT 1 FROM users 
-            WHERE id::text = auth.uid()::text 
+            SELECT 1 FROM users
+            WHERE id = auth.uid()
             AND role = 'ADMIN'
         )
     );
 
 -- Projects policies
+DROP POLICY IF EXISTS "Users can view own projects" ON projects;
 CREATE POLICY "Users can view own projects" ON projects
-    FOR SELECT USING (auth.uid()::text = user_id::text);
+    FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can create projects" ON projects;
 CREATE POLICY "Users can create projects" ON projects
-    FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own projects" ON projects;
 CREATE POLICY "Users can update own projects" ON projects
-    FOR UPDATE USING (auth.uid()::text = user_id::text);
+    FOR UPDATE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete own projects" ON projects;
 CREATE POLICY "Users can delete own projects" ON projects
-    FOR DELETE USING (auth.uid()::text = user_id::text);
+    FOR DELETE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Admins can view all projects" ON projects;
 CREATE POLICY "Admins can view all projects" ON projects
     FOR SELECT USING (
         EXISTS (
-            SELECT 1 FROM users 
-            WHERE id::text = auth.uid()::text 
+            SELECT 1 FROM users
+            WHERE id = auth.uid()
             AND role = 'ADMIN'
         )
     );
 
 -- Messages policies
+DROP POLICY IF EXISTS "Users can view own messages" ON messages;
 CREATE POLICY "Users can view own messages" ON messages
-    FOR SELECT USING (auth.uid()::text = user_id::text);
+    FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Anyone can create messages" ON messages;
 CREATE POLICY "Anyone can create messages" ON messages
     FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Admins can view all messages" ON messages;
 CREATE POLICY "Admins can view all messages" ON messages
     FOR SELECT USING (
         EXISTS (
-            SELECT 1 FROM users 
-            WHERE id::text = auth.uid()::text 
+            SELECT 1 FROM users
+            WHERE id = auth.uid()
             AND role = 'ADMIN'
         )
     );
 
+DROP POLICY IF EXISTS "Admins can update all messages" ON messages;
 CREATE POLICY "Admins can update all messages" ON messages
     FOR UPDATE USING (
         EXISTS (
-            SELECT 1 FROM users 
-            WHERE id::text = auth.uid()::text 
+            SELECT 1 FROM users
+            WHERE id = auth.uid()
             AND role = 'ADMIN'
         )
     );
 
 -- Message replies policies
+DROP POLICY IF EXISTS "Users can view replies to their messages" ON message_replies;
 CREATE POLICY "Users can view replies to their messages" ON message_replies
     FOR SELECT USING (
-        auth.uid()::text = user_id::text OR
+        auth.uid() = user_id OR
         EXISTS (
-            SELECT 1 FROM messages 
-            WHERE id = message_id 
-            AND user_id::text = auth.uid()::text
+            SELECT 1 FROM messages
+            WHERE id = message_id
+            AND user_id = auth.uid()
         )
     );
 
+DROP POLICY IF EXISTS "Users can create replies" ON message_replies;
 CREATE POLICY "Users can create replies" ON message_replies
-    FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Admins can view all replies" ON message_replies;
 CREATE POLICY "Admins can view all replies" ON message_replies
     FOR SELECT USING (
         EXISTS (
-            SELECT 1 FROM users 
-            WHERE id::text = auth.uid()::text 
+            SELECT 1 FROM users
+            WHERE id = auth.uid()
             AND role = 'ADMIN'
         )
     );
@@ -268,9 +339,8 @@ CREATE POLICY "Admins can view all replies" ON message_replies
 -- 8. INSERT INITIAL DATA
 -- =====================================================
 
--- Insert default admin user
-INSERT INTO users (id, email, name, role) VALUES 
-('00000000-0000-0000-0000-000000000001', 'admin@flexify.com', 'Admin User', 'ADMIN');
+-- Note: Admin user will be created automatically when auth.users is created
+-- The trigger will handle creating the corresponding record in the users table
 
 -- Insert sample technologies
 INSERT INTO technologies (name, description, category) VALUES 

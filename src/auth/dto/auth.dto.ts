@@ -38,6 +38,8 @@ export class UserProfileDto {
 
   name?: string;
 
+  avatar_url?: string;
+
   role: 'ADMIN' | 'USER';
 
   created_at: string;

@@ -8,18 +8,22 @@
 -- =====================================================
 -- 1. INSERT SAMPLE USERS
 -- =====================================================
+-- Note: In production, users are created through Supabase Auth
+-- and automatically synced to the users table via triggers.
+-- These sample users are for testing purposes only.
 
-INSERT INTO users (id, email, name, role) VALUES 
-('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'john.doe@example.com', 'John Doe', 'USER'),
-('b2c3d4e5-f6a7-8901-bcde-f12345678901', 'jane.smith@example.com', 'Jane Smith', 'USER'),
-('c3d4e5f6-a7b8-9012-cdef-123456789012', 'bob.wilson@example.com', 'Bob Wilson', 'USER'),
-('d4e5f6a7-b8c9-0123-def0-234567890123', 'alice.brown@example.com', 'Alice Brown', 'USER'),
-('e5f6a7b8-c9d0-1234-ef01-345678901234', 'charlie.davis@example.com', 'Charlie Davis', 'USER'),
-('f6a7b8c9-d0e1-2345-f012-456789012345', 'sarah.johnson@example.com', 'Sarah Johnson', 'USER'),
-('a7b8c9d0-e1f2-3456-0123-567890123456', 'mike.chen@example.com', 'Mike Chen', 'USER'),
-('b8c9d0e1-f2a3-4567-1234-678901234567', 'lisa.wang@example.com', 'Lisa Wang', 'USER'),
-('c9d0e1f2-a3b4-5678-2345-789012345678', 'david.kim@example.com', 'David Kim', 'USER'),
-('d0e1f2a3-b4c5-6789-3456-890123456789', 'emma.taylor@example.com', 'Emma Taylor', 'USER');
+INSERT INTO users (id, email, name, avatar_url, role) VALUES 
+('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'john.doe@example.com', 'John Doe', 'https://api.dicebear.com/7.x/avataaars/svg?seed=John', 'USER'),
+('b2c3d4e5-f6a7-8901-bcde-f12345678901', 'jane.smith@example.com', 'Jane Smith', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane', 'USER'),
+('c3d4e5f6-a7b8-9012-cdef-123456789012', 'bob.wilson@example.com', 'Bob Wilson', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob', 'USER'),
+('d4e5f6a7-b8c9-0123-def0-234567890123', 'alice.brown@example.com', 'Alice Brown', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice', 'USER'),
+('e5f6a7b8-c9d0-1234-ef01-345678901234', 'charlie.davis@example.com', 'Charlie Davis', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Charlie', 'USER'),
+('f6a7b8c9-d0e1-2345-f012-456789012345', 'sarah.johnson@example.com', 'Sarah Johnson', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', 'USER'),
+('a7b8c9d0-e1f2-3456-0123-567890123456', 'mike.chen@example.com', 'Mike Chen', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike', 'USER'),
+('b8c9d0e1-f2a3-4567-1234-678901234567', 'lisa.wang@example.com', 'Lisa Wang', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa', 'USER'),
+('c9d0e1f2-a3b4-5678-2345-789012345678', 'david.kim@example.com', 'David Kim', 'https://api.dicebear.com/7.x/avataaars/svg?seed=David', 'USER'),
+('d0e1f2a3-b4c5-6789-3456-890123456789', 'emma.taylor@example.com', 'Emma Taylor', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma', 'USER')
+ON CONFLICT (id) DO NOTHING;
 
 -- =====================================================
 -- 2. INSERT ADDITIONAL TECHNOLOGIES
@@ -45,7 +49,8 @@ INSERT INTO technologies (name, description, category) VALUES
 ('AWS', 'Cloud computing platform', 'Cloud'),
 ('Google Cloud', 'Cloud computing services', 'Cloud'),
 ('Azure', 'Microsoft cloud computing platform', 'Cloud'),
-('Vercel', 'Cloud platform for static sites and serverless functions', 'Cloud');
+('Vercel', 'Cloud platform for static sites and serverless functions', 'Cloud')
+ON CONFLICT (name) DO NOTHING;
 
 -- =====================================================
 -- 3. INSERT SAMPLE PROJECTS
@@ -83,7 +88,8 @@ INSERT INTO projects (id, title, description, status, user_id) VALUES
 
 -- Mike Chen's projects
 ('d8e9f0a1-b2c3-4567-2345-789012345678', 'Stock Trading Platform', 'Real-time stock trading platform with live market data, portfolio management, and risk analysis. Built with Angular and Node.js.', 'in_progress', 'a7b8c9d0-e1f2-3456-0123-567890123456'),
-('e9f0a1b2-c3d4-5678-3456-890123456789', 'Cryptocurrency Wallet', 'Secure cryptocurrency wallet with multi-coin support, transaction history, and hardware wallet integration. Built with React and Python.', 'planning', 'a7b8c9d0-e1f2-3456-0123-567890123456');
+('e9f0a1b2-c3d4-5678-3456-890123456789', 'Cryptocurrency Wallet', 'Secure cryptocurrency wallet with multi-coin support, transaction history, and hardware wallet integration. Built with React and Python.', 'planning', 'a7b8c9d0-e1f2-3456-0123-567890123456')
+ON CONFLICT (id) DO NOTHING;
 
 -- =====================================================
 -- 4. INSERT SAMPLE MESSAGES
@@ -113,7 +119,8 @@ INSERT INTO messages (id, name, email, subject, message, status, user_id) VALUES
 -- Messages for Charlie Davis
 ('f2a3b4c5-d6e7-8901-6789-123456789012', 'Jennifer Liu', 'jennifer.liu@example.com', 'IoT System Integration', 'Hi Charlie! Your IoT monitoring system is very impressive! I am working on a similar project for our manufacturing facility and I would love to discuss the sensor data processing and alert system. Could you share some insights about the scalability and real-time data handling?', 'unread', 'e5f6a7b8-c9d0-1234-ef01-345678901234'),
 ('a3b4c5d6-e7f8-9012-7890-234567890123', 'Robert Johnson', 'robert.johnson@example.com', 'Blockchain Explorer', 'Hello Charlie! Your blockchain explorer project looks very professional! I am interested in the transaction history and address lookup features. Could you share some technical details about the data indexing and search optimization?', 'read', 'e5f6a7b8-c9d0-1234-ef01-345678901234'),
-('b4c5d6e7-f8a9-0123-8901-345678901234', 'Amanda Davis', 'amanda.davis@example.com', 'AI Chatbot Development', 'Hi Charlie! Your AI chatbot project sounds very interesting! I am working on a similar project for customer support and I would love to discuss the natural language processing implementation and context awareness features. Could we collaborate on this project?', 'replied', 'e5f6a7b8-c9d0-1234-ef01-345678901234');
+('b4c5d6e7-f8a9-0123-8901-345678901234', 'Amanda Davis', 'amanda.davis@example.com', 'AI Chatbot Development', 'Hi Charlie! Your AI chatbot project sounds very interesting! I am working on a similar project for customer support and I would love to discuss the natural language processing implementation and context awareness features. Could we collaborate on this project?', 'replied', 'e5f6a7b8-c9d0-1234-ef01-345678901234')
+ON CONFLICT (id) DO NOTHING;
 
 -- =====================================================
 -- 5. INSERT SAMPLE MESSAGE REPLIES
@@ -137,7 +144,8 @@ INSERT INTO message_replies (id, message_id, user_id, reply) VALUES
 
 -- Replies to Charlie Davis's messages
 ('d2e3f4a5-b6c7-8901-6789-123456789012', 'b4c5d6e7-f8a9-0123-8901-345678901234', 'e5f6a7b8-c9d0-1234-ef01-345678901234', 'Hi Amanda! Thank you for your interest in my AI chatbot project. The natural language processing is implemented using TensorFlow and spaCy for text preprocessing and intent recognition. The context awareness system uses a combination of conversation history and user profile data to maintain context across multiple interactions.'),
-('e3f4a5b6-c7d8-9012-7890-234567890123', 'b4c5d6e7-f8a9-0123-8901-345678901234', 'e5f6a7b8-c9d0-1234-ef01-345678901234', 'I also implemented a learning system that allows the chatbot to improve its responses based on user feedback and conversation outcomes. The system supports multiple languages and can be easily integrated into existing customer support workflows. I would love to collaborate on this project and share the technical implementation details with you.');
+('e3f4a5b6-c7d8-9012-7890-234567890123', 'b4c5d6e7-f8a9-0123-8901-345678901234', 'e5f6a7b8-c9d0-1234-ef01-345678901234', 'I also implemented a learning system that allows the chatbot to improve its responses based on user feedback and conversation outcomes. The system supports multiple languages and can be easily integrated into existing customer support workflows. I would love to collaborate on this project and share the technical implementation details with you.')
+ON CONFLICT (id) DO NOTHING;
 
 -- =====================================================
 -- 6. COMPLETION MESSAGE

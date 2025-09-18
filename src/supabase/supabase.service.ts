@@ -125,7 +125,9 @@ export class SupabaseService {
       return {
         id: user.id,
         email: user.email!,
-        name: (user.user_metadata?.name as string) || name,
+        name: profile?.name || (user.user_metadata?.name as string) || name,
+        avatar_url:
+          profile?.avatar_url || (user.user_metadata?.avatar_url as string),
         role: profile?.role || (user.user_metadata?.role as UserRole) || 'USER',
         created_at: user.created_at,
         updated_at: user.updated_at!,
@@ -190,8 +192,11 @@ export class SupabaseService {
           id: data.user.id,
           email: data.user.email!,
           name:
-            (data.user.user_metadata?.name as string | undefined) ??
-            profile?.name,
+            profile?.name ||
+            (data.user.user_metadata?.name as string | undefined),
+          avatar_url:
+            profile?.avatar_url ||
+            (data.user.user_metadata?.avatar_url as string | undefined),
           role:
             (profile?.role || (data.user.user_metadata?.role as UserRole)) ??
             'USER',
@@ -244,7 +249,10 @@ export class SupabaseService {
       return {
         id: user.id,
         email: user.email!,
-        name: (user.user_metadata?.name as string | undefined) ?? profile?.name,
+        name: profile?.name || (user.user_metadata?.name as string | undefined),
+        avatar_url:
+          profile?.avatar_url ||
+          (user.user_metadata?.avatar_url as string | undefined),
         role: profile?.role || (user.user_metadata?.role as UserRole) || 'USER',
         created_at: user.created_at,
         updated_at: user.updated_at!,
@@ -293,7 +301,10 @@ export class SupabaseService {
       return {
         id: user.id,
         email: user.email!,
-        name: (user.user_metadata?.name as string | undefined) ?? profile?.name,
+        name: profile?.name || (user.user_metadata?.name as string | undefined),
+        avatar_url:
+          profile?.avatar_url ||
+          (user.user_metadata?.avatar_url as string | undefined),
         role: profile?.role || (user.user_metadata?.role as UserRole) || 'USER',
         created_at: user.created_at,
         updated_at: user.updated_at!,
@@ -381,7 +392,10 @@ export class SupabaseService {
       return {
         id: user.id,
         email: user.email!,
-        name: (user.user_metadata?.name as string | undefined) ?? profile?.name,
+        name: profile?.name || (user.user_metadata?.name as string | undefined),
+        avatar_url:
+          profile?.avatar_url ||
+          (user.user_metadata?.avatar_url as string | undefined),
         role: profile?.role || (user.user_metadata?.role as UserRole) || 'USER',
         created_at: user.created_at,
         updated_at: user.updated_at!,
@@ -453,11 +467,11 @@ export class SupabaseService {
       this.logger.warn(`Failed to delete asset ${path}: ${error.message}`);
     }
   }
-  // Fetch minimal user profile (name and role) from public.user_profiles
+  // Fetch user profile from public.users table
   // Returns null if not found or on error
   private async fetchUserProfile(
     userId: string,
-  ): Promise<{ name?: string; role: UserRole } | null> {
+  ): Promise<{ name?: string; role: UserRole; avatar_url?: string } | null> {
     try {
       if (
         this.isDevelopmentMode ||
@@ -466,8 +480,8 @@ export class SupabaseService {
         return { name: 'Development User', role: 'USER' };
       }
       const { data, error } = await this.supabase
-        .from('user_profiles')
-        .select('name, role')
+        .from('users')
+        .select('name, role, avatar_url')
         .eq('id', userId)
         .single();
 
@@ -478,6 +492,7 @@ export class SupabaseService {
       return {
         name: data?.name as string,
         role: (data?.role as UserRole) ?? 'USER',
+        avatar_url: data?.avatar_url as string,
       };
     } catch (err: any) {
       const msg =

@@ -4,11 +4,12 @@ Complete database setup for the Flexify Server project.
 
 ## 📁 Files
 
-| File                 | Description                | When to Use                       |
-| -------------------- | -------------------------- | --------------------------------- |
-| `01-setup.sql`       | Complete database setup    | First time setup                  |
-| `02-sample-data.sql` | Sample data for testing    | After setup, for development      |
-| `03-cleanup.sql`     | Remove all data and tables | When you need to reset everything |
+| File                       | Description                            | When to Use                          |
+| -------------------------- | -------------------------------------- | ------------------------------------ |
+| `01-setup.sql`             | Complete database setup                | First time setup                     |
+| `02-sample-data.sql`       | Sample data for testing (idempotent)   | After setup, for development         |
+| `03-cleanup.sql`           | Remove all data and tables             | When you need to reset everything    |
+| `05-migrate-auth-sync.sql` | Migrate existing database to auth sync | If you have existing data to migrate |
 
 ## 🚀 Quick Start
 
@@ -34,15 +35,45 @@ Complete database setup for the Flexify Server project.
 -- Then run 01-setup.sql again
 ```
 
+## 🔐 Authentication System
+
+The database uses a **hybrid authentication approach** that combines Supabase Auth with a custom users table:
+
+### **How It Works:**
+
+1. **Supabase Auth (`auth.users`)**:
+   - Handles user authentication, passwords, and sessions
+   - Built-in Supabase table (read-only)
+   - Contains core auth data: `id`, `email`, `password`, `created_at`, etc.
+
+2. **Custom Users Table (`public.users`)**:
+   - Stores additional user profile data
+   - Contains: `id`, `email`, `name`, `avatar_url`, `role`, `created_at`, `updated_at`
+   - **Foreign key relationship** with `auth.users(id)`
+
+3. **Automatic Synchronization**:
+   - **Database triggers** automatically create user profiles when new users sign up
+   - **Real-time sync** between `auth.users` and `public.users`
+   - **No manual intervention** required
+
+### **Key Benefits:**
+
+- ✅ **Complete user data** (including `avatar_url`, `role`, etc.)
+- ✅ **Automatic sync** - no manual data management
+- ✅ **Supabase Auth integration** - secure authentication
+- ✅ **Custom fields** - extend user profiles as needed
+- ✅ **Data consistency** - foreign key constraints ensure integrity
+
 ## 🏗️ Database Schema
 
 ### Tables
 
 #### `users`
 
-- **Purpose**: User accounts and authentication
-- **Key Fields**: `id`, `email`, `name`, `role`
-- **Default Admin**: `admin@flexify.com`
+- **Purpose**: User profiles and extended data (synced with Supabase Auth)
+- **Key Fields**: `id`, `email`, `name`, `avatar_url`, `role`
+- **Relationship**: Foreign key to `auth.users(id)`
+- **Auto-sync**: Automatically created when users sign up via Supabase Auth
 
 #### `technologies`
 

@@ -275,22 +275,22 @@
                 <div class="api-title">Available API Endpoints</div>
                 <ul class="api-list">
                     <li class="api-item">
-                        <span class="api-method get">GET</span> /api/health
+                        <span class="api-method get">GET</span> /api/v1/health
                     </li>
                     <li class="api-item">
-                        <span class="api-method get">GET</span> /api/technologies
+                        <span class="api-method get">GET</span> /api/v1/technologies
                     </li>
                     <li class="api-item">
-                        <span class="api-method post">POST</span> /api/auth/signup
+                        <span class="api-method post">POST</span> /api/v1/auth/sign-up
                     </li>
                     <li class="api-item">
-                        <span class="api-method post">POST</span> /api/auth/signin
+                        <span class="api-method post">POST</span> /api/v1/auth/sign-in
                     </li>
                     <li class="api-item">
-                        <span class="api-method get">GET</span> /api/projects
+                        <span class="api-method get">GET</span> /api/v1/projects
                     </li>
                     <li class="api-item">
-                        <span class="api-method post">POST</span> /api/messages
+                        <span class="api-method post">POST</span> /api/v1/messages
                     </li>
                     <li class="api-item">
                         <span class="api-method get">GET</span> /api/docs
@@ -313,7 +313,7 @@
                 serverStatus.textContent = 'Checking...';
 
                 // Try to fetch from the health endpoint
-                const response = await fetch(`${baseUrl}/api/health`, {
+                const response = await fetch(`${baseUrl}/api/v1/health`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
