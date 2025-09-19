@@ -11,6 +11,11 @@ export interface User {
   cv_file_name?: string;
   cv_file_size?: number;
   cv_uploaded_at?: string;
+  theme?: string;
+  timezone?: string;
+  time_format?: string;
+  language?: string;
+  date_format?: string;
   role: UserRole;
   is_active: boolean;
   email_verified: boolean;

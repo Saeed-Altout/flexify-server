@@ -7,6 +7,7 @@ import { ProjectsModule } from './projects/projects.module';
 import { MessagesModule } from './messages/messages.module';
 import { TechnologiesModule } from './technologies/technologies.module';
 import { FileUploadModule } from './file-upload/file-upload.module';
+import { AppearanceModule } from './appearance/appearance.module';
 import { SupabaseModule } from './supabase/supabase.module';
 import { HealthModule } from './health/health.module';
 import configuration from './config/configuration';
@@ -23,6 +24,7 @@ import configuration from './config/configuration';
     ProjectsModule,
     MessagesModule,
     FileUploadModule,
+    AppearanceModule,
     HealthModule,
   ],
   controllers: [AppController],
