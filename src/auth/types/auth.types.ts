@@ -29,17 +29,13 @@ export interface Session {
 export interface AuthResponse {
   user: Omit<User, 'password_hash'>;
   access_token: string;
-  refresh_token?: string;
-}
-
-export interface SignInResponse {
-  message: string;
-  status: string;
-}
-
-export interface SignUpResponse {
-  message: string;
-  status: string;
+  session: {
+    isActive: boolean;
+    expiresAt: string;
+    createdAt: string;
+    ipAddress?: string;
+    userAgent?: string;
+  };
 }
 
 export interface SignUpRequest {

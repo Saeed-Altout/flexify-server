@@ -16,8 +16,6 @@ import {
   SignOutRequest,
   ChangePasswordRequest,
   UpdateProfileRequest,
-  SignInResponse,
-  SignUpResponse,
 } from './types/auth.types';
 import { StandardResponseDto } from './dto/auth.dto';
 
@@ -36,7 +34,7 @@ export class AuthService {
 
   async signUp(
     signUpDto: SignUpRequest,
-  ): Promise<StandardResponseDto<SignUpResponse>> {
+  ): Promise<StandardResponseDto<Omit<User, 'password_hash'>>> {
     try {
       this.logger.log(
         `Attempting to sign up user with email: ${signUpDto.email}`,
@@ -59,11 +57,11 @@ export class AuthService {
 
       this.logger.log(`Successfully signed up user: ${user.id}`);
 
+      // Return user without password
+      const { password_hash, ...userWithoutPassword } = user;
+
       return {
-        data: {
-          message: 'User signed up successfully',
-          status: 'success',
-        },
+        data: userWithoutPassword,
         message: 'User signed up successfully',
         status: 'success',
       };
@@ -79,12 +77,7 @@ export class AuthService {
     signInDto: SignInRequest,
     ipAddress?: string,
     userAgent?: string,
-  ): Promise<
-    StandardResponseDto<SignInResponse> & {
-      tokens: { access_token: string };
-      userData: Omit<User, 'password_hash'>;
-    }
-  > {
+  ): Promise<StandardResponseDto<AuthResponse>> {
     try {
       this.logger.log(
         `Attempting to sign in user with email: ${signInDto.email}`,
@@ -143,15 +136,18 @@ export class AuthService {
 
       return {
         data: {
-          message: 'User signed in successfully',
-          status: 'success',
+          user: userWithoutPassword,
+          access_token: accessToken,
+          session: {
+            isActive: true,
+            expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+            createdAt: new Date().toISOString(),
+            ipAddress,
+            userAgent,
+          },
         },
         message: 'User signed in successfully',
         status: 'success',
-        tokens: {
-          access_token: accessToken,
-        },
-        userData: userWithoutPassword,
       };
     } catch (error: any) {
       const errorMessage =

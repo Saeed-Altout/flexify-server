@@ -18,7 +18,6 @@ import {
   ApiBody,
   ApiConsumes,
 } from '@nestjs/swagger';
-import type { Response as ExpressResponse } from 'express';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './guards/auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -31,8 +30,6 @@ import {
   AuthResponseDto,
   UserDto,
   StandardResponseDto,
-  SignInResponseDto,
-  SignUpResponseDto,
 } from './dto/auth.dto';
 import type { User } from './types/auth.types';
 
@@ -54,7 +51,7 @@ export class AuthController {
     schema: {
       type: 'object',
       properties: {
-        data: { $ref: '#/components/schemas/SignUpResponseDto' },
+        data: { $ref: '#/components/schemas/UserDto' },
         message: { type: 'string', example: 'User signed up successfully' },
         status: { type: 'string', example: 'success' },
       },
@@ -70,7 +67,7 @@ export class AuthController {
   })
   async signUp(
     @Body() signUpDto: SignUpDto,
-  ): Promise<StandardResponseDto<SignUpResponseDto>> {
+  ): Promise<StandardResponseDto<UserDto>> {
     return this.authService.signUp(signUpDto);
   }
 
@@ -79,7 +76,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'User Login',
     description:
-      'Authenticate user with email and password. Access and refresh tokens are set as HTTP-only cookies.',
+      'Authenticate user with email and password. Returns user data, access token, and session information.',
   })
   @ApiBody({ type: SignInDto })
   @ApiResponse({
@@ -88,7 +85,7 @@ export class AuthController {
     schema: {
       type: 'object',
       properties: {
-        data: { $ref: '#/components/schemas/SignInResponseDto' },
+        data: { $ref: '#/components/schemas/AuthResponseDto' },
         message: { type: 'string', example: 'User signed in successfully' },
         status: { type: 'string', example: 'success' },
       },
@@ -105,61 +102,11 @@ export class AuthController {
   async signIn(
     @Body() signInDto: SignInDto,
     @Request() req: any,
-    @Response({ passthrough: true }) res: ExpressResponse,
-  ): Promise<StandardResponseDto<SignInResponseDto>> {
+  ): Promise<StandardResponseDto<AuthResponseDto>> {
     const ipAddress = req.ip || req.connection.remoteAddress;
     const userAgent = req.get('User-Agent');
 
-    const result = await this.authService.signIn(
-      signInDto,
-      ipAddress,
-      userAgent,
-    );
-
-    // Set HTTP-only cookies with NEXT_CWS_ prefix
-    res.cookie('NEXT_CWS_TOKEN', result.tokens.access_token, {
-      httpOnly: true,
-      secure: true, // Required for SameSite=None
-      sameSite: 'none',
-      maxAge: 15 * 60 * 1000, // 15 minutes
-      path: '/',
-      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
-    });
-
-    // Set user object cookie (non-HTTP-only for frontend access)
-    res.cookie('NEXT_CWS_USER', JSON.stringify(result.userData), {
-      httpOnly: false, // Allow frontend to read user data
-      secure: true, // Required for SameSite=None
-      sameSite: 'none',
-      maxAge: 15 * 60 * 1000, // 15 minutes
-      path: '/',
-      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
-    });
-
-    // Set session info cookie
-    res.cookie(
-      'NEXT_CWS_SESSION',
-      JSON.stringify({
-        isActive: true,
-        expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-        createdAt: new Date().toISOString(),
-      }),
-      {
-        httpOnly: true,
-        secure: true, // Required for SameSite=None
-        sameSite: 'none',
-        maxAge: 15 * 60 * 1000, // 15 minutes
-        path: '/',
-        domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
-      },
-    );
-
-    // Return only the response data without tokens
-    return {
-      data: result.data,
-      message: result.message,
-      status: result.status,
-    };
+    return this.authService.signIn(signInDto, ipAddress, userAgent);
   }
 
   @Post('sign-out')
@@ -190,45 +137,8 @@ export class AuthController {
   async signOut(
     @Body() signOutDto: SignOutDto,
     @CurrentUser() user: User,
-    @Response({ passthrough: true }) res: ExpressResponse,
   ): Promise<StandardResponseDto<null>> {
-    const result = await this.authService.signOut(signOutDto, user.id);
-
-    // Clear all cookies
-    res.clearCookie('NEXT_CWS_TOKEN', {
-      httpOnly: true,
-      secure: true, // Required for SameSite=None
-      sameSite: 'none',
-      path: '/',
-      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
-    });
-
-    res.clearCookie('NEXT_CWS_USER', {
-      httpOnly: false,
-      secure: true, // Required for SameSite=None
-      sameSite: 'none',
-      path: '/',
-      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
-    });
-
-    res.clearCookie('NEXT_CWS_SESSION', {
-      httpOnly: true,
-      secure: true, // Required for SameSite=None
-      sameSite: 'none',
-      path: '/',
-      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
-    });
-
-    // Clear old cookie for backward compatibility
-    res.clearCookie('access_token', {
-      httpOnly: true,
-      secure: true, // Required for SameSite=None
-      sameSite: 'none',
-      path: '/',
-      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
-    });
-
-    return result;
+    return this.authService.signOut(signOutDto, user.id);
   }
 
   @Get('me')

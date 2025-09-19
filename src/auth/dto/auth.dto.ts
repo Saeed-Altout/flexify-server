@@ -172,6 +172,29 @@ export class UserDto {
   updated_at: string;
 }
 
+export class SessionDto {
+  @ApiProperty({ example: true, description: 'Is session active' })
+  isActive: boolean;
+
+  @ApiProperty({
+    example: '2023-01-01T00:15:00Z',
+    description: 'Session expiration time',
+  })
+  expiresAt: string;
+
+  @ApiProperty({
+    example: '2023-01-01T00:00:00Z',
+    description: 'Session creation time',
+  })
+  createdAt: string;
+
+  @ApiPropertyOptional({ example: '192.168.1.1', description: 'IP address' })
+  ipAddress?: string;
+
+  @ApiPropertyOptional({ example: 'Mozilla/5.0...', description: 'User agent' })
+  userAgent?: string;
+}
+
 export class AuthResponseDto {
   @ApiProperty({ type: UserDto, description: 'User information' })
   user: UserDto;
@@ -179,33 +202,8 @@ export class AuthResponseDto {
   @ApiProperty({ example: 'jwt_token_here', description: 'Access token' })
   access_token: string;
 
-  @ApiPropertyOptional({
-    example: 'refresh_token_here',
-    description: 'Refresh token',
-  })
-  refresh_token?: string;
-}
-
-export class SignInResponseDto {
-  @ApiProperty({
-    example: 'User signed in successfully',
-    description: 'Success message',
-  })
-  message: string;
-
-  @ApiProperty({ example: 'success', description: 'Response status' })
-  status: string;
-}
-
-export class SignUpResponseDto {
-  @ApiProperty({
-    example: 'User signed up successfully',
-    description: 'Success message',
-  })
-  message: string;
-
-  @ApiProperty({ example: 'success', description: 'Response status' })
-  status: string;
+  @ApiProperty({ type: SessionDto, description: 'Session information' })
+  session: SessionDto;
 }
 
 export class StandardResponseDto<T> {
