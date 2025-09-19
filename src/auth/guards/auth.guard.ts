@@ -40,10 +40,16 @@ export class AuthGuard implements CanActivate {
   }
 
   private extractTokenFromRequest(request: Request): string | undefined {
-    // First try to get from cookie (preferred for session-based auth)
-    const cookieToken = request.cookies?.access_token;
+    // First try to get from NEXT_CWS_TOKEN cookie (preferred for session-based auth)
+    const cookieToken = request.cookies?.NEXT_CWS_TOKEN;
     if (cookieToken) {
       return cookieToken;
+    }
+
+    // Fallback to old cookie name for backward compatibility
+    const oldCookieToken = request.cookies?.access_token;
+    if (oldCookieToken) {
+      return oldCookieToken;
     }
 
     // Fallback to Authorization header for backward compatibility
@@ -52,6 +58,32 @@ export class AuthGuard implements CanActivate {
   }
 
   private clearAuthCookies(response: Response): void {
+    // Clear new cookies
+    response.clearCookie('NEXT_CWS_TOKEN', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
+    });
+
+    response.clearCookie('NEXT_CWS_USER', {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
+    });
+
+    response.clearCookie('NEXT_CWS_SESSION', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
+    });
+
+    // Clear old cookies for backward compatibility
     response.clearCookie('access_token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

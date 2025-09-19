@@ -88,12 +88,12 @@ async function bootstrap() {
       },
       'JWT-auth',
     )
-    .addCookieAuth('access_token', {
+    .addCookieAuth('NEXT_CWS_TOKEN', {
       type: 'apiKey',
       in: 'cookie',
-      name: 'access_token',
+      name: 'NEXT_CWS_TOKEN',
       description:
-        'HTTP-only access token cookie (automatically set on login/signup) - Recommended for web applications',
+        'HTTP-only access token cookie with NEXT_CWS_ prefix (automatically set on login/signup) - Recommended for web applications',
     })
     .addServer('http://localhost:3000', 'Development server')
     .addServer('https://flexify-server.vercel.app', 'Production server')

@@ -151,10 +151,30 @@
         function checkCookies() {
             const cookies = document.cookie;
             const cookieData = cookies ? cookies.split(';').map(c => c.trim()) : [];
+            
+            // Parse NEXT_CWS cookies
+            const nextCwsCookies = {};
+            cookieData.forEach(cookie => {
+                const [name, value] = cookie.split('=');
+                if (name && name.startsWith('NEXT_CWS_')) {
+                    try {
+                        nextCwsCookies[name] = name === 'NEXT_CWS_USER' || name === 'NEXT_CWS_SESSION' 
+                            ? JSON.parse(decodeURIComponent(value)) 
+                            : decodeURIComponent(value);
+                    } catch (e) {
+                        nextCwsCookies[name] = decodeURIComponent(value);
+                    }
+                }
+            });
+            
             displayResult('cookiesResult', {
                 rawCookies: cookies,
                 parsedCookies: cookieData,
-                hasAccessToken: cookies.includes('access_token'),
+                nextCwsCookies: nextCwsCookies,
+                hasNextCwsToken: cookies.includes('NEXT_CWS_TOKEN'),
+                hasNextCwsUser: cookies.includes('NEXT_CWS_USER'),
+                hasNextCwsSession: cookies.includes('NEXT_CWS_SESSION'),
+                hasAccessToken: cookies.includes('access_token'), // Legacy
                 cookieCount: cookieData.length
             });
         }

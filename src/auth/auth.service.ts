@@ -82,6 +82,7 @@ export class AuthService {
   ): Promise<
     StandardResponseDto<SignInResponse> & {
       tokens: { access_token: string };
+      userData: Omit<User, 'password_hash'>;
     }
   > {
     try {
@@ -137,6 +138,9 @@ export class AuthService {
 
       this.logger.log(`Successfully signed in user: ${user.id}`);
 
+      // Return user without password
+      const { password_hash, ...userWithoutPassword } = user;
+
       return {
         data: {
           message: 'User signed in successfully',
@@ -147,6 +151,7 @@ export class AuthService {
         tokens: {
           access_token: accessToken,
         },
+        userData: userWithoutPassword,
       };
     } catch (error: any) {
       const errorMessage =
