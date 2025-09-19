@@ -353,7 +353,7 @@ export class SupabaseService {
   // =====================================================
 
   generateAccessToken(payload: any): string {
-    return jwt.sign(payload, this.jwtSecret, { expiresIn: '15m' });
+    return jwt.sign(payload, this.jwtSecret, { expiresIn: '30d' });
   }
 
   generateRefreshToken(payload: any): string {

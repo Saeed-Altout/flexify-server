@@ -113,7 +113,7 @@ export class AuthService {
       // Create session with access token
       const tokenHash = this.supabaseService.generateTokenHash(accessToken);
       const expiresAt = new Date(
-        Date.now() + 15 * 60 * 1000, // 15 minutes
+        Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
       ).toISOString();
 
       await this.supabaseService.createSession(
@@ -140,7 +140,9 @@ export class AuthService {
           access_token: accessToken,
           session: {
             isActive: true,
-            expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+            expiresAt: new Date(
+              Date.now() + 30 * 24 * 60 * 60 * 1000,
+            ).toISOString(),
             createdAt: new Date().toISOString(),
             ipAddress,
             userAgent,

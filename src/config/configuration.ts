@@ -15,7 +15,7 @@ export default () => ({
     refreshSecret:
       process.env.JWT_REFRESH_SECRET ||
       'your-super-secret-refresh-key-change-in-production',
-    expiresIn: process.env.JWT_EXPIRES_IN || '15m',
+    expiresIn: process.env.JWT_EXPIRES_IN || '30d',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
 

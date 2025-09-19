@@ -191,7 +191,7 @@ npm run start:prod
 | `SUPABASE_ANON_KEY`      | Supabase anonymous key   | -                   | Yes      |
 | `JWT_SECRET`             | JWT secret key           | -                   | Yes      |
 | `JWT_REFRESH_SECRET`     | JWT refresh secret       | -                   | Yes      |
-| `JWT_EXPIRES_IN`         | JWT expiration           | 15m                 | No       |
+| `JWT_EXPIRES_IN`         | JWT expiration           | 30d                 | No       |
 | `JWT_REFRESH_EXPIRES_IN` | Refresh token expiration | 7d                  | No       |
 | `ALLOWED_ORIGINS`        | CORS allowed origins     | localhost:3000,3001 | No       |
 | `SMTP_HOST`              | SMTP host                | smtp.gmail.com      | No       |
