@@ -95,6 +95,25 @@ export class FileUploadService {
     );
   }
 
+  async uploadCVFile(
+    file: UploadedFile,
+    userId: string,
+  ): Promise<FileUploadResult> {
+    return this.uploadFile(
+      file,
+      'cv-files',
+      `user-${userId}`,
+      [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain',
+        'application/rtf',
+      ],
+      5 * 1024 * 1024, // 5MB limit
+    );
+  }
+
   private async uploadFile(
     file: UploadedFile,
     bucket: string,

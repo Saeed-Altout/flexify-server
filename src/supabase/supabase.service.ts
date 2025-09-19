@@ -196,6 +196,38 @@ export class SupabaseService {
     }
   }
 
+  async updateUserAvatar(id: string, avatarUrl: string): Promise<User> {
+    try {
+      return await this.updateUser(id, {
+        avatar_url: avatarUrl,
+        updated_at: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      this.logger.error(`Error updating user avatar: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async updateUserCVFile(
+    id: string,
+    cvFileUrl: string,
+    cvFileName: string,
+    cvFileSize: number,
+  ): Promise<User> {
+    try {
+      return await this.updateUser(id, {
+        cv_file_url: cvFileUrl,
+        cv_file_name: cvFileName,
+        cv_file_size: cvFileSize,
+        cv_uploaded_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      this.logger.error(`Error updating user CV file: ${error.message}`);
+      throw error;
+    }
+  }
+
   async verifyPassword(password: string, hash: string): Promise<boolean> {
     try {
       return await bcrypt.compare(password, hash);

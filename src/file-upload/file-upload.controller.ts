@@ -20,6 +20,7 @@ import {
 } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { FileUploadService } from './file-upload.service';
+import { SupabaseService } from '../supabase/supabase.service';
 import type { User } from '../auth/types/auth.types';
 
 // File interface for multer
@@ -35,7 +36,10 @@ interface MulterFile {
 @UseGuards(AuthGuard)
 @ApiBearerAuth()
 export class FileUploadController {
-  constructor(private readonly fileUploadService: FileUploadService) {}
+  constructor(
+    private readonly fileUploadService: FileUploadService,
+    private readonly supabaseService: SupabaseService,
+  ) {}
 
   @Post('profile-picture')
   @UseInterceptors(FileInterceptor('file'))
@@ -99,6 +103,9 @@ export class FileUploadController {
       },
       req.user.id,
     );
+
+    // Update user record with avatar URL
+    await this.supabaseService.updateUserAvatar(req.user.id, result.url);
 
     return {
       data: result,
@@ -179,6 +186,83 @@ export class FileUploadController {
     return {
       data: result,
       message: 'Project image uploaded successfully',
+      status: 'success',
+    };
+  }
+
+  @Post('cv-file')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Upload CV file' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'CV file (PDF, DOC, DOCX, TXT, RTF formats, max 5MB)',
+        },
+      },
+      required: ['file'],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'CV file uploaded successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          properties: {
+            url: {
+              type: 'string',
+              description: 'Public URL of the uploaded file',
+            },
+            path: { type: 'string', description: 'Storage path of the file' },
+            filename: { type: 'string', description: 'Generated filename' },
+          },
+        },
+        message: { type: 'string' },
+        status: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - invalid file' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async uploadCVFile(
+    @Request() req: { user: User },
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
+        ],
+      }),
+    )
+    file: MulterFile,
+  ) {
+    const result = await this.fileUploadService.uploadCVFile(
+      {
+        originalname: file.originalname,
+        buffer: file.buffer,
+        mimetype: file.mimetype,
+        size: file.size,
+      },
+      req.user.id,
+    );
+
+    // Update user record with CV file information
+    await this.supabaseService.updateUserCVFile(
+      req.user.id,
+      result.url,
+      file.originalname,
+      file.size,
+    );
+
+    return {
+      data: result,
+      message: 'CV file uploaded successfully',
       status: 'success',
     };
   }

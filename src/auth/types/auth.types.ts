@@ -6,6 +6,10 @@ export interface User {
   name: string;
   password_hash: string;
   avatar_url?: string;
+  cv_file_url?: string;
+  cv_file_name?: string;
+  cv_file_size?: number;
+  cv_uploaded_at?: string;
   role: UserRole;
   is_active: boolean;
   email_verified: boolean;
@@ -61,6 +65,10 @@ export interface ChangePasswordRequest {
 export interface UpdateProfileRequest {
   name?: string;
   avatar_url?: string;
+  cv_file_url?: string;
+  cv_file_name?: string;
+  cv_file_size?: number;
+  cv_uploaded_at?: string;
 }
 
 export interface ForgotPasswordRequest {
