@@ -6,8 +6,25 @@ import {
   MinLength,
   MaxLength,
   IsBoolean,
+  Validate,
+  ValidationArguments,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
 } from 'class-validator';
 import type { UserRole } from '../types/auth.types';
+
+@ValidatorConstraint({ name: 'MatchPassword', async: false })
+export class MatchPasswordConstraint implements ValidatorConstraintInterface {
+  validate(confirmPassword: string, args: ValidationArguments) {
+    const [relatedPropertyName] = args.constraints;
+    const relatedValue = (args.object as any)[relatedPropertyName];
+    return confirmPassword === relatedValue;
+  }
+
+  defaultMessage(args: ValidationArguments) {
+    return 'Confirm password must match new password';
+  }
+}
 
 export class SignUpDto {
   @ApiProperty({
@@ -60,6 +77,16 @@ export class ChangePasswordDto {
   @MinLength(8)
   @MaxLength(100)
   new_password: string;
+
+  @ApiProperty({
+    example: 'newPassword123',
+    description: 'Confirm new password (must match new_password)',
+  })
+  @IsString()
+  @MinLength(8)
+  @MaxLength(100)
+  @Validate(MatchPasswordConstraint, ['new_password'])
+  confirm_password: string;
 }
 
 export class UpdateProfileDto {

@@ -250,17 +250,22 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Change Password',
-    description: 'Change user password (requires current password)',
+    description:
+      'Change user password (requires current password and confirm password). User will be signed out after successful password change.',
   })
   @ApiBody({ type: ChangePasswordDto })
   @ApiResponse({
     status: 200,
-    description: 'Password changed successfully',
+    description: 'Password changed successfully and user signed out',
     schema: {
       type: 'object',
       properties: {
         data: { type: 'null' },
-        message: { type: 'string', example: 'Password changed successfully' },
+        message: {
+          type: 'string',
+          example:
+            'Password changed successfully. You have been signed out for security reasons.',
+        },
         status: { type: 'string', example: 'success' },
       },
     },
@@ -271,7 +276,23 @@ export class AuthController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Invalid current password',
+    description: 'Invalid input or password validation failed',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'null' },
+        message: {
+          type: 'string',
+          examples: [
+            'Current password is incorrect',
+            'New password and confirm password do not match',
+            'New password must be different from current password',
+            'Validation failed',
+          ],
+        },
+        status: { type: 'string', example: 'error' },
+      },
+    },
   })
   async changePassword(
     @Body() changePasswordDto: ChangePasswordDto,

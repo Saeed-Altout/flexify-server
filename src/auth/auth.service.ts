@@ -288,6 +288,26 @@ export class AuthService {
         throw new BadRequestException('Current password is incorrect');
       }
 
+      // Validate that new password and confirm password match
+      if (
+        changePasswordDto.new_password !== changePasswordDto.confirm_password
+      ) {
+        throw new BadRequestException(
+          'New password and confirm password do not match',
+        );
+      }
+
+      // Check if new password is different from current password
+      const isSamePassword = await this.supabaseService.verifyPassword(
+        changePasswordDto.new_password,
+        user.password_hash,
+      );
+      if (isSamePassword) {
+        throw new BadRequestException(
+          'New password must be different from current password',
+        );
+      }
+
       // Hash new password
       const saltRounds = 12;
       const newPasswordHash = await require('bcrypt').hash(
@@ -298,16 +318,20 @@ export class AuthService {
       // Update password
       await this.supabaseService.updateUser(userId, {
         password_hash: newPasswordHash,
+        updated_at: new Date().toISOString(),
       });
 
-      // Invalidate all sessions
+      // Invalidate all sessions (this will sign out the user)
       await this.supabaseService.invalidateUserSessions(userId);
 
-      this.logger.log(`Successfully changed password for user: ${userId}`);
+      this.logger.log(
+        `Successfully changed password and signed out user: ${userId}`,
+      );
 
       return {
         data: null,
-        message: 'Password changed successfully',
+        message:
+          'Password changed successfully. You have been signed out for security reasons.',
         status: 'success',
       };
     } catch (error: any) {
