@@ -52,7 +52,11 @@ export class AuthGuard implements CanActivate {
   }
 
   private clearAuthCookies(response: Response): void {
-    response.clearCookie('access_token');
-    response.clearCookie('refresh_token');
+    response.clearCookie('access_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      path: '/',
+    });
   }
 }

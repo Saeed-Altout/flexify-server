@@ -7,19 +7,27 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS
+  // Enable CORS with credentials support
   app.enableCors({
     origin: process.env.ALLOWED_ORIGINS?.split(',') || [
       'http://localhost:3000',
       'http://localhost:3001',
+      'http://localhost:5173', // Vite default
+      'http://localhost:8080', // Common dev port
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-API-Key',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+    ],
+    exposedHeaders: ['Set-Cookie'],
+    optionsSuccessStatus: 200,
   });
-
-  // Enable credentials for cross-origin requests
-  app.enableCors({ credentials: true });
 
   // Allow all HTTP methods
   console.log(
@@ -37,6 +45,18 @@ async function bootstrap() {
 
   // Cookie parser middleware
   app.use(cookieParser());
+
+  // Debug middleware for cookies (development only)
+  if (process.env.NODE_ENV !== 'production') {
+    app.use((req, res, next) => {
+      if (req.path.includes('/auth/')) {
+        console.log('🍪 Cookies received:', req.cookies);
+        console.log('🌐 Origin:', req.headers.origin);
+        console.log('🔗 Referer:', req.headers.referer);
+      }
+      next();
+    });
+  }
 
   // Global API prefix
   app.setGlobalPrefix('api/v1');
@@ -65,12 +85,12 @@ async function bootstrap() {
       },
       'JWT-auth',
     )
-    .addCookieAuth('session_token', {
+    .addCookieAuth('access_token', {
       type: 'apiKey',
       in: 'cookie',
-      name: 'session_token',
+      name: 'access_token',
       description:
-        'HTTP-only session cookie (automatically set on login/signup) - Recommended for web applications',
+        'HTTP-only access token cookie (automatically set on login/signup) - Recommended for web applications',
     })
     .addServer('http://localhost:3000', 'Development server')
     .addServer('https://flexify-server.vercel.app', 'Production server')

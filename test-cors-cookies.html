@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS & Cookies Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🍪 CORS & Cookies Test</h1>
+    
+    <div class="test-section">
+        <h3>Test Configuration</h3>
+        <p><strong>API Base URL:</strong> <span id="apiUrl">http://localhost:3000/api/v1</span></p>
+        <p><strong>With Credentials:</strong> <span id="withCredentials">true</span></p>
+    </div>
+
+    <div class="test-section">
+        <h3>1. Test Sign Up</h3>
+        <button onclick="testSignUp()">Sign Up Test User</button>
+        <div id="signupResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. Test Sign In</h3>
+        <button onclick="testSignIn()">Sign In Test User</button>
+        <div id="signinResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. Test Protected Route</h3>
+        <button onclick="testProtectedRoute()">Get Current User</button>
+        <div id="protectedResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>4. Test Sign Out</h3>
+        <button onclick="testSignOut()">Sign Out</button>
+        <div id="signoutResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>5. Check Cookies</h3>
+        <button onclick="checkCookies()">Check Browser Cookies</button>
+        <div id="cookiesResult"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api/v1';
+        
+        // Configure axios with credentials
+        const apiClient = axios.create({
+            baseURL: API_BASE,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            withCredentials: true,
+        });
+
+        function displayResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            element.className = isError ? 'error' : 'success';
+        }
+
+        async function testSignUp() {
+            try {
+                const response = await apiClient.post('/auth/sign-up', {
+                    email: 'test@example.com',
+                    name: 'Test User',
+                    password: 'password123'
+                });
+                displayResult('signupResult', response.data);
+            } catch (error) {
+                displayResult('signupResult', {
+                    error: error.message,
+                    response: error.response?.data,
+                    status: error.response?.status
+                }, true);
+            }
+        }
+
+        async function testSignIn() {
+            try {
+                const response = await apiClient.post('/auth/sign-in', {
+                    email: 'test@example.com',
+                    password: 'password123'
+                });
+                displayResult('signinResult', response.data);
+            } catch (error) {
+                displayResult('signinResult', {
+                    error: error.message,
+                    response: error.response?.data,
+                    status: error.response?.status
+                }, true);
+            }
+        }
+
+        async function testProtectedRoute() {
+            try {
+                const response = await apiClient.get('/auth/me');
+                displayResult('protectedResult', response.data);
+            } catch (error) {
+                displayResult('protectedResult', {
+                    error: error.message,
+                    response: error.response?.data,
+                    status: error.response?.status
+                }, true);
+            }
+        }
+
+        async function testSignOut() {
+            try {
+                const response = await apiClient.post('/auth/sign-out', {});
+                displayResult('signoutResult', response.data);
+            } catch (error) {
+                displayResult('signoutResult', {
+                    error: error.message,
+                    response: error.response?.data,
+                    status: error.response?.status
+                }, true);
+            }
+        }
+
+        function checkCookies() {
+            const cookies = document.cookie;
+            const cookieData = cookies ? cookies.split(';').map(c => c.trim()) : [];
+            displayResult('cookiesResult', {
+                rawCookies: cookies,
+                parsedCookies: cookieData,
+                hasAccessToken: cookies.includes('access_token')
+            });
+        }
+
+        // Check cookies on page load
+        window.onload = function() {
+            checkCookies();
+        };
+    </script>
+    
+    <!-- Include Axios from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</body>
+</html>

@@ -120,8 +120,9 @@ export class AuthController {
     res.cookie('access_token', result.tokens.access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
       maxAge: 15 * 60 * 1000, // 15 minutes
+      path: '/',
     });
 
     // Return only the response data without tokens
@@ -165,7 +166,12 @@ export class AuthController {
     const result = await this.authService.signOut(signOutDto, user.id);
 
     // Clear cookie
-    res.clearCookie('access_token');
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      path: '/',
+    });
 
     return result;
   }
