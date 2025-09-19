@@ -28,6 +28,7 @@ import {
   ChangePasswordDto,
   UpdateProfileDto,
   AuthResponseDto,
+  SignUpResponseDto,
   UserDto,
   StandardResponseDto,
 } from './dto/auth.dto';
@@ -67,7 +68,7 @@ export class AuthController {
   })
   async signUp(
     @Body() signUpDto: SignUpDto,
-  ): Promise<StandardResponseDto<UserDto>> {
+  ): Promise<StandardResponseDto<SignUpResponseDto>> {
     return this.authService.signUp(signUpDto);
   }
 

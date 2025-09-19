@@ -195,6 +195,11 @@ export class SessionDto {
   userAgent?: string;
 }
 
+export class SignUpResponseDto {
+  @ApiProperty({ type: UserDto, description: 'User information' })
+  user: UserDto;
+}
+
 export class AuthResponseDto {
   @ApiProperty({ type: UserDto, description: 'User information' })
   user: UserDto;

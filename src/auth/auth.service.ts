@@ -17,7 +17,7 @@ import {
   ChangePasswordRequest,
   UpdateProfileRequest,
 } from './types/auth.types';
-import { StandardResponseDto } from './dto/auth.dto';
+import { StandardResponseDto, SignUpResponseDto } from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -34,7 +34,7 @@ export class AuthService {
 
   async signUp(
     signUpDto: SignUpRequest,
-  ): Promise<StandardResponseDto<Omit<User, 'password_hash'>>> {
+  ): Promise<StandardResponseDto<SignUpResponseDto>> {
     try {
       this.logger.log(
         `Attempting to sign up user with email: ${signUpDto.email}`,
@@ -61,7 +61,9 @@ export class AuthService {
       const { password_hash, ...userWithoutPassword } = user;
 
       return {
-        data: userWithoutPassword,
+        data: {
+          user: userWithoutPassword,
+        },
         message: 'User signed up successfully',
         status: 'success',
       };
