@@ -119,8 +119,8 @@ export class AuthController {
     // Set HTTP-only cookies with NEXT_CWS_ prefix
     res.cookie('NEXT_CWS_TOKEN', result.tokens.access_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true, // Required for SameSite=None
+      sameSite: 'none',
       maxAge: 15 * 60 * 1000, // 15 minutes
       path: '/',
       domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
@@ -129,8 +129,8 @@ export class AuthController {
     // Set user object cookie (non-HTTP-only for frontend access)
     res.cookie('NEXT_CWS_USER', JSON.stringify(result.userData), {
       httpOnly: false, // Allow frontend to read user data
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true, // Required for SameSite=None
+      sameSite: 'none',
       maxAge: 15 * 60 * 1000, // 15 minutes
       path: '/',
       domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
@@ -146,8 +146,8 @@ export class AuthController {
       }),
       {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: true, // Required for SameSite=None
+        sameSite: 'none',
         maxAge: 15 * 60 * 1000, // 15 minutes
         path: '/',
         domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
@@ -197,24 +197,24 @@ export class AuthController {
     // Clear all cookies
     res.clearCookie('NEXT_CWS_TOKEN', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true, // Required for SameSite=None
+      sameSite: 'none',
       path: '/',
       domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
     });
 
     res.clearCookie('NEXT_CWS_USER', {
       httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true, // Required for SameSite=None
+      sameSite: 'none',
       path: '/',
       domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
     });
 
     res.clearCookie('NEXT_CWS_SESSION', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true, // Required for SameSite=None
+      sameSite: 'none',
       path: '/',
       domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
     });
@@ -222,8 +222,8 @@ export class AuthController {
     // Clear old cookie for backward compatibility
     res.clearCookie('access_token', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true, // Required for SameSite=None
+      sameSite: 'none',
       path: '/',
       domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
     });

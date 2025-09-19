@@ -7,13 +7,16 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS with credentials support
+  // Enable CORS with credentials support for SameSite=None
   app.enableCors({
     origin: process.env.ALLOWED_ORIGINS?.split(',') || [
       'http://localhost:3000',
       'http://localhost:3001',
       'http://localhost:5173', // Vite default
       'http://localhost:8080', // Common dev port
+      'https://localhost:3000', // HTTPS for SameSite=None
+      'https://localhost:3001',
+      'https://localhost:5173',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
@@ -27,11 +30,15 @@ async function bootstrap() {
     ],
     exposedHeaders: ['Set-Cookie'],
     optionsSuccessStatus: 200,
+    preflightContinue: false,
   });
 
   // Allow all HTTP methods
   console.log(
     '📋 All HTTP methods allowed: GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD',
+  );
+  console.log(
+    '🍪 Cookie settings: SameSite=None; Secure=true (requires HTTPS for proper functionality)',
   );
 
   // Global validation pipe

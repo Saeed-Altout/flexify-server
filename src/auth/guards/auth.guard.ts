@@ -61,24 +61,24 @@ export class AuthGuard implements CanActivate {
     // Clear new cookies
     response.clearCookie('NEXT_CWS_TOKEN', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true, // Required for SameSite=None
+      sameSite: 'none',
       path: '/',
       domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
     });
 
     response.clearCookie('NEXT_CWS_USER', {
       httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true, // Required for SameSite=None
+      sameSite: 'none',
       path: '/',
       domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
     });
 
     response.clearCookie('NEXT_CWS_SESSION', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true, // Required for SameSite=None
+      sameSite: 'none',
       path: '/',
       domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
     });
@@ -86,8 +86,8 @@ export class AuthGuard implements CanActivate {
     // Clear old cookies for backward compatibility
     response.clearCookie('access_token', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true, // Required for SameSite=None
+      sameSite: 'none',
       path: '/',
       domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
     });
