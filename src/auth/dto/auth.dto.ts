@@ -71,12 +71,22 @@ export class UpdateProfileDto {
   name?: string;
 
   @ApiPropertyOptional({
-    example: 'https://example.com/avatar.jpg',
-    description: 'Avatar URL',
+    example: 'user@example.com',
+    description: 'User email address',
+  })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @ApiPropertyOptional({
+    example:
+      'Passionate developer with 5+ years of experience in full-stack development. Love creating innovative solutions and learning new technologies.',
+    description: 'User biography/description',
   })
   @IsOptional()
   @IsString()
-  avatar_url?: string;
+  @MaxLength(500)
+  bio?: string;
 }
 
 export class ForgotPasswordDto {
@@ -135,10 +145,41 @@ export class UserDto {
   name: string;
 
   @ApiPropertyOptional({
+    example:
+      'Passionate developer with 5+ years of experience in full-stack development. Love creating innovative solutions and learning new technologies.',
+    description: 'User biography/description',
+  })
+  bio?: string;
+
+  @ApiPropertyOptional({
     example: 'https://example.com/avatar.jpg',
     description: 'Avatar URL',
   })
   avatar_url?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://example.com/cv.pdf',
+    description: 'CV file URL',
+  })
+  cv_file_url?: string;
+
+  @ApiPropertyOptional({
+    example: 'resume.pdf',
+    description: 'CV file name',
+  })
+  cv_file_name?: string;
+
+  @ApiPropertyOptional({
+    example: 1024000,
+    description: 'CV file size in bytes',
+  })
+  cv_file_size?: number;
+
+  @ApiPropertyOptional({
+    example: '2023-01-01T00:00:00Z',
+    description: 'CV upload timestamp',
+  })
+  cv_uploaded_at?: string;
 
   @ApiProperty({
     example: 'USER',

@@ -214,7 +214,8 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Update User Profile',
-    description: 'Update user profile information (name, avatar)',
+    description:
+      'Update user profile information (name, email, bio). Note: Avatar and CV files should be updated via file upload endpoints.',
   })
   @ApiBody({ type: UpdateProfileDto })
   @ApiResponse({

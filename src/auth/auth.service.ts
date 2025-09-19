@@ -224,9 +224,25 @@ export class AuthService {
     try {
       this.logger.log(`Updating profile for user: ${userId}`);
 
+      // If email is being updated, check if it's already taken by another user
+      if (updateProfileDto.email) {
+        const existingUser = await this.supabaseService.getUserByEmail(
+          updateProfileDto.email,
+        );
+        if (existingUser && existingUser.id !== userId) {
+          throw new BadRequestException(
+            'Email is already taken by another user',
+          );
+        }
+      }
+
+      // Only allow email, name, and bio fields to be updated
+      const { email, name, bio } = updateProfileDto;
+      const allowedUpdates = { email, name, bio };
+
       const user = await this.supabaseService.updateUser(
         userId,
-        updateProfileDto,
+        allowedUpdates,
       );
       if (!user) {
         throw new BadRequestException('User not found');

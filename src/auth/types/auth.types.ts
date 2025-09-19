@@ -4,6 +4,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  bio?: string;
   password_hash: string;
   avatar_url?: string;
   cv_file_url?: string;
@@ -64,11 +65,8 @@ export interface ChangePasswordRequest {
 
 export interface UpdateProfileRequest {
   name?: string;
-  avatar_url?: string;
-  cv_file_url?: string;
-  cv_file_name?: string;
-  cv_file_size?: number;
-  cv_uploaded_at?: string;
+  email?: string;
+  bio?: string;
 }
 
 export interface ForgotPasswordRequest {
