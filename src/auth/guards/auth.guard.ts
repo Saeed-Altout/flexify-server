@@ -55,8 +55,9 @@ export class AuthGuard implements CanActivate {
     response.clearCookie('access_token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      sameSite: 'lax',
       path: '/',
+      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
     });
   }
 }

@@ -52,6 +52,25 @@
         <div id="cookiesResult"></div>
     </div>
 
+    <div class="test-section">
+        <h3>6. Test Navigation Simulation</h3>
+        <button onclick="simulateNavigation()">Simulate Page Navigation</button>
+        <button onclick="simulateRefresh()">Simulate Page Refresh</button>
+        <div id="navigationResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>7. Cookie Persistence Test</h3>
+        <button onclick="testCookiePersistence()">Test Cookie Persistence</button>
+        <div id="persistenceResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>8. Debug Server Cookies</h3>
+        <button onclick="debugServerCookies()">Check Server Cookie Debug</button>
+        <div id="debugResult"></div>
+    </div>
+
     <script>
         const API_BASE = 'http://localhost:3000/api/v1';
         
@@ -135,8 +154,96 @@
             displayResult('cookiesResult', {
                 rawCookies: cookies,
                 parsedCookies: cookieData,
-                hasAccessToken: cookies.includes('access_token')
+                hasAccessToken: cookies.includes('access_token'),
+                cookieCount: cookieData.length
             });
+        }
+
+        function simulateNavigation() {
+            // Simulate what happens when navigating between pages
+            const beforeCookies = document.cookie;
+            displayResult('navigationResult', {
+                message: 'Simulating page navigation...',
+                cookiesBefore: beforeCookies,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Simulate a small delay like page navigation
+            setTimeout(() => {
+                const afterCookies = document.cookie;
+                displayResult('navigationResult', {
+                    message: 'Navigation simulation complete',
+                    cookiesBefore: beforeCookies,
+                    cookiesAfter: afterCookies,
+                    cookiesPersisted: beforeCookies === afterCookies,
+                    timestamp: new Date().toISOString()
+                });
+            }, 100);
+        }
+
+        function simulateRefresh() {
+            const beforeCookies = document.cookie;
+            displayResult('navigationResult', {
+                message: 'Simulating page refresh...',
+                cookiesBefore: beforeCookies,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Actually refresh the page
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
+
+        async function testCookiePersistence() {
+            try {
+                // First, sign in
+                const signInResponse = await apiClient.post('/auth/sign-in', {
+                    email: 'test@example.com',
+                    password: 'password123'
+                });
+                
+                const cookiesAfterSignIn = document.cookie;
+                
+                // Wait a bit
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Check if cookies are still there
+                const cookiesAfterDelay = document.cookie;
+                
+                // Try to access protected route
+                const meResponse = await apiClient.get('/auth/me');
+                
+                displayResult('persistenceResult', {
+                    signInSuccess: signInResponse.status === 200,
+                    cookiesAfterSignIn: cookiesAfterSignIn,
+                    cookiesAfterDelay: cookiesAfterDelay,
+                    cookiesPersisted: cookiesAfterSignIn === cookiesAfterDelay,
+                    protectedRouteSuccess: meResponse.status === 200,
+                    userData: meResponse.data
+                });
+                
+            } catch (error) {
+                displayResult('persistenceResult', {
+                    error: error.message,
+                    response: error.response?.data,
+                    status: error.response?.status,
+                    cookies: document.cookie
+                }, true);
+            }
+        }
+
+        async function debugServerCookies() {
+            try {
+                const response = await apiClient.get('/auth/debug-cookies');
+                displayResult('debugResult', response.data);
+            } catch (error) {
+                displayResult('debugResult', {
+                    error: error.message,
+                    response: error.response?.data,
+                    status: error.response?.status
+                }, true);
+            }
         }
 
         // Check cookies on page load

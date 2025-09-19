@@ -53,6 +53,9 @@ async function bootstrap() {
         console.log('🍪 Cookies received:', req.cookies);
         console.log('🌐 Origin:', req.headers.origin);
         console.log('🔗 Referer:', req.headers.referer);
+        console.log('📱 User-Agent:', req.headers['user-agent']);
+        console.log('🔒 Secure:', req.secure);
+        console.log('🌍 Host:', req.headers.host);
       }
       next();
     });

@@ -120,9 +120,10 @@ export class AuthController {
     res.cookie('access_token', result.tokens.access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      sameSite: 'lax', // Changed to 'lax' for better cross-page compatibility
       maxAge: 15 * 60 * 1000, // 15 minutes
       path: '/',
+      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost', // Explicit domain for dev
     });
 
     // Return only the response data without tokens
@@ -169,8 +170,9 @@ export class AuthController {
     res.clearCookie('access_token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      sameSite: 'lax',
       path: '/',
+      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
     });
 
     return result;
@@ -203,6 +205,35 @@ export class AuthController {
     @CurrentUser() user: User,
   ): Promise<StandardResponseDto<UserDto>> {
     return this.authService.getCurrentUser(user.id);
+  }
+
+  @Get('debug-cookies')
+  @ApiOperation({
+    summary: 'Debug Cookies',
+    description:
+      'Debug endpoint to check cookie information (development only)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Cookie debug information',
+  })
+  async debugCookies(@Request() req: any): Promise<any> {
+    if (process.env.NODE_ENV === 'production') {
+      return { message: 'Debug endpoint not available in production' };
+    }
+
+    return {
+      cookies: req.cookies,
+      headers: {
+        cookie: req.headers.cookie,
+        origin: req.headers.origin,
+        referer: req.headers.referer,
+        userAgent: req.headers['user-agent'],
+        host: req.headers.host,
+      },
+      secure: req.secure,
+      timestamp: new Date().toISOString(),
+    };
   }
 
   @Put('profile')
