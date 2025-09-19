@@ -4,7 +4,7 @@ import {
   ExecutionContext,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { AuthService } from '../auth.service';
 import { User } from '../types/auth.types';
 
@@ -14,6 +14,7 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
+    const response = context.switchToHttp().getResponse<Response>();
     const token = this.extractTokenFromRequest(request);
 
     if (!token) {
@@ -23,14 +24,18 @@ export class AuthGuard implements CanActivate {
     try {
       const user = await this.authService.validateToken(token);
       if (!user) {
-        throw new UnauthorizedException('Invalid token');
+        // Session expired or invalid, clear cookies
+        this.clearAuthCookies(response);
+        throw new UnauthorizedException('Session expired or invalid');
       }
 
       // Attach user to request object
       request['user'] = user;
       return true;
     } catch (error) {
-      throw new UnauthorizedException('Invalid token');
+      // Clear cookies on any error
+      this.clearAuthCookies(response);
+      throw new UnauthorizedException('Session expired or invalid');
     }
   }
 
@@ -44,5 +49,10 @@ export class AuthGuard implements CanActivate {
     // Fallback to Authorization header for backward compatibility
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
+  }
+
+  private clearAuthCookies(response: Response): void {
+    response.clearCookie('access_token');
+    response.clearCookie('refresh_token');
   }
 }

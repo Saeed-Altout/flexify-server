@@ -14,15 +14,24 @@
 
 ### Session-based Authentication (Recommended)
 
-The API uses HTTP-only cookies for session management. When you sign in or sign up, a session token is automatically set as a cookie.
+The API uses HTTP-only cookies for session management. When you sign in or sign up, an access token is automatically set as a secure cookie. No user data or tokens are returned in the response body. When the session expires (15 minutes), the user is automatically logged out and cookies are cleared.
 
-### Bearer Token Authentication
+**Session Details:**
 
-You can also use JWT tokens in the Authorization header:
+- `access_token`: HTTP-only cookie with 15-minute expiration
+- Session expires automatically after 15 minutes
+- Cookies are cleared on logout or session expiration
+- Secure in production with strict SameSite policy
+
+### Bearer Token Authentication (Legacy)
+
+You can also use JWT tokens in the Authorization header for backward compatibility:
 
 ```
 Authorization: Bearer <your-jwt-token>
 ```
+
+**Note:** The auth guard will first check for cookies, then fall back to the Authorization header.
 
 ## 📋 API Endpoints
 

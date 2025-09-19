@@ -26,12 +26,13 @@ import {
   SignUpDto,
   SignInDto,
   SignOutDto,
-  RefreshTokenDto,
   ChangePasswordDto,
   UpdateProfileDto,
   AuthResponseDto,
   UserDto,
   StandardResponseDto,
+  SignInResponseDto,
+  SignUpResponseDto,
 } from './dto/auth.dto';
 import type { User } from './types/auth.types';
 
@@ -53,7 +54,7 @@ export class AuthController {
     schema: {
       type: 'object',
       properties: {
-        data: { $ref: '#/components/schemas/UserDto' },
+        data: { $ref: '#/components/schemas/SignUpResponseDto' },
         message: { type: 'string', example: 'User signed up successfully' },
         status: { type: 'string', example: 'success' },
       },
@@ -69,7 +70,7 @@ export class AuthController {
   })
   async signUp(
     @Body() signUpDto: SignUpDto,
-  ): Promise<StandardResponseDto<UserDto>> {
+  ): Promise<StandardResponseDto<SignUpResponseDto>> {
     return this.authService.signUp(signUpDto);
   }
 
@@ -78,7 +79,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'User Login',
     description:
-      'Authenticate user with email and password, returns access and refresh tokens',
+      'Authenticate user with email and password. Access and refresh tokens are set as HTTP-only cookies.',
   })
   @ApiBody({ type: SignInDto })
   @ApiResponse({
@@ -87,7 +88,7 @@ export class AuthController {
     schema: {
       type: 'object',
       properties: {
-        data: { $ref: '#/components/schemas/AuthResponseDto' },
+        data: { $ref: '#/components/schemas/SignInResponseDto' },
         message: { type: 'string', example: 'User signed in successfully' },
         status: { type: 'string', example: 'success' },
       },
@@ -105,7 +106,7 @@ export class AuthController {
     @Body() signInDto: SignInDto,
     @Request() req: any,
     @Response({ passthrough: true }) res: ExpressResponse,
-  ): Promise<StandardResponseDto<AuthResponseDto>> {
+  ): Promise<StandardResponseDto<SignInResponseDto>> {
     const ipAddress = req.ip || req.connection.remoteAddress;
     const userAgent = req.get('User-Agent');
 
@@ -115,22 +116,20 @@ export class AuthController {
       userAgent,
     );
 
-    // Set HTTP-only cookies
-    res.cookie('access_token', result.data.access_token, {
+    // Set HTTP-only cookie for access token
+    res.cookie('access_token', result.tokens.access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
-    res.cookie('refresh_token', result.data.refresh_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-
-    return result;
+    // Return only the response data without tokens
+    return {
+      data: result.data,
+      message: result.message,
+      status: result.status,
+    };
   }
 
   @Post('sign-out')
@@ -165,49 +164,8 @@ export class AuthController {
   ): Promise<StandardResponseDto<null>> {
     const result = await this.authService.signOut(signOutDto, user.id);
 
-    // Clear cookies
+    // Clear cookie
     res.clearCookie('access_token');
-    res.clearCookie('refresh_token');
-
-    return result;
-  }
-
-  @Post('refresh')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Refresh Access Token',
-    description: 'Get a new access token using a valid refresh token',
-  })
-  @ApiBody({ type: RefreshTokenDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Token refreshed successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        data: { $ref: '#/components/schemas/AuthResponseDto' },
-        message: { type: 'string', example: 'Token refreshed successfully' },
-        status: { type: 'string', example: 'success' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Invalid refresh token',
-  })
-  async refreshToken(
-    @Body() refreshTokenDto: RefreshTokenDto,
-    @Response({ passthrough: true }) res: ExpressResponse,
-  ): Promise<StandardResponseDto<AuthResponseDto>> {
-    const result = await this.authService.refreshToken(refreshTokenDto);
-
-    // Set new access token cookie
-    res.cookie('access_token', result.data.access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 15 * 60 * 1000, // 15 minutes
-    });
 
     return result;
   }

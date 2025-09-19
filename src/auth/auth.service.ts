@@ -14,9 +14,10 @@ import {
   SignUpRequest,
   SignInRequest,
   SignOutRequest,
-  RefreshTokenRequest,
   ChangePasswordRequest,
   UpdateProfileRequest,
+  SignInResponse,
+  SignUpResponse,
 } from './types/auth.types';
 import { StandardResponseDto } from './dto/auth.dto';
 
@@ -35,7 +36,7 @@ export class AuthService {
 
   async signUp(
     signUpDto: SignUpRequest,
-  ): Promise<StandardResponseDto<Omit<User, 'password_hash'>>> {
+  ): Promise<StandardResponseDto<SignUpResponse>> {
     try {
       this.logger.log(
         `Attempting to sign up user with email: ${signUpDto.email}`,
@@ -58,11 +59,11 @@ export class AuthService {
 
       this.logger.log(`Successfully signed up user: ${user.id}`);
 
-      // Return user without password
-      const { password_hash, ...userWithoutPassword } = user;
-
       return {
-        data: userWithoutPassword,
+        data: {
+          message: 'User signed up successfully',
+          status: 'success',
+        },
         message: 'User signed up successfully',
         status: 'success',
       };
@@ -78,7 +79,11 @@ export class AuthService {
     signInDto: SignInRequest,
     ipAddress?: string,
     userAgent?: string,
-  ): Promise<StandardResponseDto<AuthResponse>> {
+  ): Promise<
+    StandardResponseDto<SignInResponse> & {
+      tokens: { access_token: string };
+    }
+  > {
     try {
       this.logger.log(
         `Attempting to sign in user with email: ${signInDto.email}`,
@@ -104,23 +109,18 @@ export class AuthService {
         throw new UnauthorizedException('Invalid credentials');
       }
 
-      // Generate tokens
+      // Generate access token
       const accessToken = this.supabaseService.generateAccessToken({
         sub: user.id,
         email: user.email,
         role: user.role,
       });
 
-      const refreshToken = this.supabaseService.generateRefreshToken({
-        sub: user.id,
-        type: 'refresh',
-      });
-
-      // Create session
-      const tokenHash = this.supabaseService.generateTokenHash(refreshToken);
+      // Create session with access token
+      const tokenHash = this.supabaseService.generateTokenHash(accessToken);
       const expiresAt = new Date(
-        Date.now() + 7 * 24 * 60 * 60 * 1000,
-      ).toISOString(); // 7 days
+        Date.now() + 15 * 60 * 1000, // 15 minutes
+      ).toISOString();
 
       await this.supabaseService.createSession(
         user.id,
@@ -137,17 +137,16 @@ export class AuthService {
 
       this.logger.log(`Successfully signed in user: ${user.id}`);
 
-      // Return user without password
-      const { password_hash, ...userWithoutPassword } = user;
-
       return {
         data: {
-          user: userWithoutPassword,
-          access_token: accessToken,
-          refresh_token: refreshToken,
+          message: 'User signed in successfully',
+          status: 'success',
         },
         message: 'User signed in successfully',
         status: 'success',
+        tokens: {
+          access_token: accessToken,
+        },
       };
     } catch (error: any) {
       const errorMessage =
@@ -164,18 +163,7 @@ export class AuthService {
     try {
       this.logger.log('Attempting to sign out user');
 
-      if (signOutDto.refresh_token) {
-        // Invalidate specific session
-        const tokenHash = this.supabaseService.generateTokenHash(
-          signOutDto.refresh_token,
-        );
-        const session =
-          await this.supabaseService.getSessionByTokenHash(tokenHash);
-
-        if (session) {
-          await this.supabaseService.invalidateSession(session.id);
-        }
-      } else if (userId) {
+      if (userId) {
         // Invalidate all user sessions
         await this.supabaseService.invalidateUserSessions(userId);
       }
@@ -191,72 +179,6 @@ export class AuthService {
       const errorMessage =
         error instanceof Error ? error.message : JSON.stringify(error);
       this.logger.error(`Error in signOut: ${errorMessage}`);
-      throw error instanceof Error ? error : new Error(errorMessage);
-    }
-  }
-
-  async refreshToken(
-    refreshTokenDto: RefreshTokenRequest,
-  ): Promise<StandardResponseDto<AuthResponse>> {
-    try {
-      this.logger.log('Attempting to refresh token');
-
-      // Verify refresh token
-      const decoded = this.supabaseService.verifyRefreshToken(
-        refreshTokenDto.refresh_token,
-      );
-      if (!decoded || decoded.type !== 'refresh') {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
-
-      // Get session
-      const tokenHash = this.supabaseService.generateTokenHash(
-        refreshTokenDto.refresh_token,
-      );
-      const session =
-        await this.supabaseService.getSessionByTokenHash(tokenHash);
-
-      if (!session || !session.is_active) {
-        throw new UnauthorizedException('Invalid session');
-      }
-
-      // Check if session is expired
-      if (new Date(session.expires_at) < new Date()) {
-        await this.supabaseService.invalidateSession(session.id);
-        throw new UnauthorizedException('Session expired');
-      }
-
-      // Get user
-      const user = await this.supabaseService.getUserById(session.user_id);
-      if (!user || !user.is_active) {
-        throw new UnauthorizedException('User not found or inactive');
-      }
-
-      // Generate new access token
-      const accessToken = this.supabaseService.generateAccessToken({
-        sub: user.id,
-        email: user.email,
-        role: user.role,
-      });
-
-      this.logger.log(`Successfully refreshed token for user: ${user.id}`);
-
-      // Return user without password
-      const { password_hash, ...userWithoutPassword } = user;
-
-      return {
-        data: {
-          user: userWithoutPassword,
-          access_token: accessToken,
-          refresh_token: refreshTokenDto.refresh_token,
-        },
-        message: 'Token refreshed successfully',
-        status: 'success',
-      };
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof Error ? error.message : JSON.stringify(error);
-      this.logger.error(`Error in refreshToken: ${errorMessage}`);
       throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
@@ -383,6 +305,22 @@ export class AuthService {
     try {
       const decoded = this.supabaseService.verifyAccessToken(token);
       if (!decoded || !decoded.sub) {
+        return null;
+      }
+
+      // Check if session exists and is active
+      const tokenHash = this.supabaseService.generateTokenHash(token);
+      const session =
+        await this.supabaseService.getSessionByTokenHash(tokenHash);
+
+      if (!session || !session.is_active) {
+        return null;
+      }
+
+      // Check if session is expired
+      if (new Date(session.expires_at) < new Date()) {
+        // Session expired, invalidate it
+        await this.supabaseService.invalidateSession(session.id);
         return null;
       }
 

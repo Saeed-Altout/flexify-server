@@ -44,19 +44,7 @@ export class SignInDto {
 }
 
 export class SignOutDto {
-  @ApiPropertyOptional({
-    example: 'refresh_token_here',
-    description: 'Refresh token',
-  })
-  @IsOptional()
-  @IsString()
-  refresh_token?: string;
-}
-
-export class RefreshTokenDto {
-  @ApiProperty({ example: 'refresh_token_here', description: 'Refresh token' })
-  @IsString()
-  refresh_token: string;
+  // No additional fields needed for session-based auth
 }
 
 export class ChangePasswordDto {
@@ -196,6 +184,28 @@ export class AuthResponseDto {
     description: 'Refresh token',
   })
   refresh_token?: string;
+}
+
+export class SignInResponseDto {
+  @ApiProperty({
+    example: 'User signed in successfully',
+    description: 'Success message',
+  })
+  message: string;
+
+  @ApiProperty({ example: 'success', description: 'Response status' })
+  status: string;
+}
+
+export class SignUpResponseDto {
+  @ApiProperty({
+    example: 'User signed up successfully',
+    description: 'Success message',
+  })
+  message: string;
+
+  @ApiProperty({ example: 'success', description: 'Response status' })
+  status: string;
 }
 
 export class StandardResponseDto<T> {

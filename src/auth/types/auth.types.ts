@@ -32,6 +32,16 @@ export interface AuthResponse {
   refresh_token?: string;
 }
 
+export interface SignInResponse {
+  message: string;
+  status: string;
+}
+
+export interface SignUpResponse {
+  message: string;
+  status: string;
+}
+
 export interface SignUpRequest {
   email: string;
   name: string;
@@ -44,11 +54,7 @@ export interface SignInRequest {
 }
 
 export interface SignOutRequest {
-  refresh_token?: string;
-}
-
-export interface RefreshTokenRequest {
-  refresh_token: string;
+  // No additional fields needed for session-based auth
 }
 
 export interface ChangePasswordRequest {
