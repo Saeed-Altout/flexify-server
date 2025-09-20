@@ -114,6 +114,32 @@ export class FileUploadService {
     );
   }
 
+  async uploadTechnologyIcon(
+    file: UploadedFile,
+    technologyId: string,
+  ): Promise<FileUploadResult> {
+    return this.uploadFile(
+      file,
+      'technology-icons',
+      `tech-${technologyId}`,
+      [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/webp',
+        'image/gif',
+        'image/bmp',
+        'image/tiff',
+        'image/svg+xml',
+        'image/avif',
+        'image/heic',
+        'image/heif',
+        'image/ico',
+      ],
+      2 * 1024 * 1024, // 2MB limit for icons
+    );
+  }
+
   private async uploadFile(
     file: UploadedFile,
     bucket: string,

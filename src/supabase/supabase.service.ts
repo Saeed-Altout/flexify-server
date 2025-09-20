@@ -492,4 +492,51 @@ export class SupabaseService {
 
     return await queryBuilder;
   }
+
+  // =====================================================
+  // TECHNOLOGY ICON OPERATIONS
+  // =====================================================
+
+  async updateTechnologyIcon(
+    id: string,
+    iconUrl: string,
+    iconFilename: string,
+    iconSize: number,
+  ): Promise<any> {
+    try {
+      return await this.update(
+        'technologies',
+        {
+          icon_url: iconUrl,
+          icon_filename: iconFilename,
+          icon_size: iconSize,
+          icon_uploaded_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        { id },
+      );
+    } catch (error: any) {
+      this.logger.error(`Error updating technology icon: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async getTechnologyById(id: string): Promise<any> {
+    try {
+      const { data, error } = await this.supabase
+        .from('technologies')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    } catch (error: any) {
+      this.logger.error(`Error getting technology by ID: ${error.message}`);
+      throw error;
+    }
+  }
 }

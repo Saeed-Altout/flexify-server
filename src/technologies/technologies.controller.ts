@@ -10,6 +10,9 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,9 +20,16 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiQuery,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ParseFilePipe, MaxFileSizeValidator } from '@nestjs/common';
 import { TechnologiesService } from './technologies.service';
 import { AuthGuard } from '../auth/guards/auth.guard';
+import { FileUploadService } from '../file-upload/file-upload.service';
+import { SupabaseService } from '../supabase/supabase.service';
+import type { User } from '../auth/types/auth.types';
 import {
   CreateTechnologyDto,
   UpdateTechnologyDto,
@@ -32,15 +42,50 @@ import {
 @ApiTags('technologies')
 @Controller('technologies')
 export class TechnologiesController {
-  constructor(private readonly technologiesService: TechnologiesService) {}
+  constructor(
+    private readonly technologiesService: TechnologiesService,
+    private readonly fileUploadService: FileUploadService,
+    private readonly supabaseService: SupabaseService,
+  ) {}
 
   @Post()
+  @UseInterceptors(FileInterceptor('icon'))
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Create Technology',
-    description: 'Create a new technology (Admin only)',
+    description:
+      'Create a new technology with optional icon upload (Admin only)',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          example: 'React',
+          description: 'Technology name',
+        },
+        description: {
+          type: 'string',
+          example: 'A JavaScript library for building user interfaces',
+          description: 'Technology description',
+        },
+        category: {
+          type: 'string',
+          example: 'Frontend',
+          description: 'Technology category',
+        },
+        icon: {
+          type: 'string',
+          format: 'binary',
+          description: 'Technology icon image (PNG, JPG, SVG, etc., max 2MB)',
+        },
+      },
+      required: ['name'],
+    },
   })
   @ApiResponse({
     status: 201,
@@ -64,8 +109,17 @@ export class TechnologiesController {
   })
   async createTechnology(
     @Body() createDto: CreateTechnologyDto,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 2 * 1024 * 1024 }), // 2MB
+        ],
+        fileIsRequired: false, // Icon is optional
+      }),
+    )
+    iconFile?: Express.Multer.File,
   ): Promise<StandardResponseDto<TechnologyDto>> {
-    return this.technologiesService.createTechnology(createDto);
+    return this.technologiesService.createTechnology(createDto, iconFile);
   }
 
   @Get()
@@ -226,11 +280,45 @@ export class TechnologiesController {
   }
 
   @Put(':id')
+  @UseInterceptors(FileInterceptor('icon'))
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Update Technology',
-    description: 'Update a technology (Admin only)',
+    description: 'Update a technology with optional icon upload (Admin only)',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          example: 'React',
+          description: 'Technology name',
+        },
+        description: {
+          type: 'string',
+          example: 'A JavaScript library for building user interfaces',
+          description: 'Technology description',
+        },
+        category: {
+          type: 'string',
+          example: 'Frontend',
+          description: 'Technology category',
+        },
+        is_active: {
+          type: 'boolean',
+          example: true,
+          description: 'Is technology active',
+        },
+        icon: {
+          type: 'string',
+          format: 'binary',
+          description: 'Technology icon image (PNG, JPG, SVG, etc., max 2MB)',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 200,
@@ -259,8 +347,17 @@ export class TechnologiesController {
   async updateTechnology(
     @Param('id') id: string,
     @Body() updateDto: UpdateTechnologyDto,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 2 * 1024 * 1024 }), // 2MB
+        ],
+        fileIsRequired: false, // Icon is optional
+      }),
+    )
+    iconFile?: Express.Multer.File,
   ): Promise<StandardResponseDto<TechnologyDto>> {
-    return this.technologiesService.updateTechnology(id, updateDto);
+    return this.technologiesService.updateTechnology(id, updateDto, iconFile);
   }
 
   @Delete(':id')
@@ -287,5 +384,103 @@ export class TechnologiesController {
     @Param('id') id: string,
   ): Promise<StandardResponseDto<null>> {
     return this.technologiesService.deleteTechnology(id);
+  }
+
+  @Post(':id/icon')
+  @UseInterceptors(FileInterceptor('file'))
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Upload Technology Icon',
+    description: 'Upload an icon for a technology (Admin only)',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description:
+            'Technology icon image (PNG, JPG, SVG, ICO, etc., max 2MB)',
+        },
+      },
+      required: ['file'],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Technology icon uploaded successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          properties: {
+            url: {
+              type: 'string',
+              description: 'Public URL of the uploaded icon',
+            },
+            path: { type: 'string', description: 'Storage path of the icon' },
+            filename: { type: 'string', description: 'Generated filename' },
+          },
+        },
+        message: { type: 'string' },
+        status: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - invalid file' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Technology not found' })
+  async uploadTechnologyIcon(
+    @Param('id') id: string,
+    @Request() req: { user: User },
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 2 * 1024 * 1024 }), // 2MB
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ): Promise<
+    StandardResponseDto<{
+      url: string;
+      path: string;
+      filename: string;
+    }>
+  > {
+    // Check if technology exists
+    const technology = await this.supabaseService.getTechnologyById(id);
+    if (!technology) {
+      throw new Error('Technology not found');
+    }
+
+    // Upload the icon file
+    const result = await this.fileUploadService.uploadTechnologyIcon(
+      {
+        originalname: file.originalname,
+        buffer: file.buffer,
+        mimetype: file.mimetype,
+        size: file.size,
+      },
+      id,
+    );
+
+    // Update technology record with icon information
+    await this.supabaseService.updateTechnologyIcon(
+      id,
+      result.url,
+      file.originalname,
+      file.size,
+    );
+
+    return {
+      data: result,
+      message: 'Technology icon uploaded successfully',
+      status: 'success',
+    };
   }
 }

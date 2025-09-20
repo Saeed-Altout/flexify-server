@@ -2,11 +2,13 @@ import { Module } from '@nestjs/common';
 import { TechnologiesController } from './technologies.controller';
 import { TechnologiesService } from './technologies.service';
 import { AuthModule } from '../auth/auth.module';
+import { FileUploadModule } from '../file-upload/file-upload.module';
+import { SupabaseModule } from '../supabase/supabase.module';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, FileUploadModule, SupabaseModule],
   controllers: [TechnologiesController],
-  providers: [TechnologiesService],
+  providers: [TechnologiesService, FileUploadService],
   exports: [TechnologiesService],
 })
 export class TechnologiesModule {}

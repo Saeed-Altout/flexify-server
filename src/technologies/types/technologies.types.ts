@@ -4,6 +4,9 @@ export interface Technology {
   description?: string;
   category?: string;
   icon_url?: string;
+  icon_filename?: string;
+  icon_size?: number;
+  icon_uploaded_at?: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
