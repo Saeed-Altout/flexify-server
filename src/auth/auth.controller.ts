@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Put,
+  Delete,
   Body,
   Param,
   Query,
@@ -23,6 +24,7 @@ import {
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './guards/auth.guard';
+import { AdminGuard } from './guards/admin.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import {
   SignUpDto,
@@ -315,7 +317,7 @@ export class AuthController {
   // =====================================================
 
   @Get('users')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get All Users',
@@ -392,7 +394,7 @@ export class AuthController {
   }
 
   @Get('users/stats')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get User Statistics',
@@ -426,7 +428,7 @@ export class AuthController {
   }
 
   @Get('users/:id')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get User by ID',
@@ -463,7 +465,7 @@ export class AuthController {
   }
 
   @Get('users/:id/sessions')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get User Sessions',
@@ -524,7 +526,7 @@ export class AuthController {
   }
 
   @Put('users/:id/status')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Update User Status',
@@ -567,7 +569,7 @@ export class AuthController {
   }
 
   @Put('users/:id/role')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Update User Role',
@@ -613,7 +615,7 @@ export class AuthController {
   }
 
   @Post('users/:id/logout')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Force Logout User',
@@ -648,5 +650,42 @@ export class AuthController {
     @Param('id') id: string,
   ): Promise<StandardResponseDto<null>> {
     return this.authService.forceLogoutUser(id);
+  }
+
+  @Delete('users/:id')
+  @UseGuards(AuthGuard, AdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Delete User',
+    description: 'Permanently delete a user account (Admin only)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User deleted successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'null' },
+        message: { type: 'string', example: 'User deleted successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+  })
+  async deleteUser(
+    @Param('id') id: string,
+  ): Promise<StandardResponseDto<null>> {
+    return this.authService.deleteUser(id);
   }
 }

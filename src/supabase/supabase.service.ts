@@ -889,6 +889,35 @@ export class SupabaseService {
     }
   }
 
+  async deleteUser(userId: string): Promise<{ error: any }> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('deleteUser called in development mode');
+        return { error: null };
+      }
+
+      // First, invalidate all user sessions
+      await this.forceLogoutUser(userId);
+
+      // Delete user from users table (this will cascade to related tables)
+      const { error } = await this.supabase
+        .from('users')
+        .delete()
+        .eq('id', userId);
+
+      if (error) {
+        this.logger.error(`Error deleting user: ${error.message}`);
+        throw new Error(`Failed to delete user: ${error.message}`);
+      }
+
+      this.logger.log(`Successfully deleted user: ${userId}`);
+      return { error: null };
+    } catch (error: any) {
+      this.logger.error(`Error in deleteUser: ${error.message}`);
+      throw error;
+    }
+  }
+
   // =====================================================
   // TECHNOLOGY ICON OPERATIONS
   // =====================================================

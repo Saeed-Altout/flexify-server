@@ -438,6 +438,48 @@ POST /api/v1/auth/users/123e4567-e89b-12d3-a456-426614174000/logout
 
 ---
 
+### 8. 🔒 **Delete User (Admin Only)**
+
+**Endpoint**: `DELETE /api/v1/auth/users/:id`
+
+**Authentication**: Required (Admin)
+
+**Description**: Permanently delete a user account and all associated data.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <admin_jwt_token>
+```
+
+**Path Parameters**:
+
+- `id` (string, required): User UUID
+
+**Example Request**:
+
+```
+DELETE /api/v1/auth/users/123e4567-e89b-12d3-a456-426614174000
+```
+
+**Response (200 OK)**:
+
+```json
+{
+  "data": null,
+  "message": "User deleted successfully",
+  "status": "success"
+}
+```
+
+**Error Responses**:
+
+- `401 Unauthorized`: Missing or invalid JWT token
+- `403 Forbidden`: Admin access required
+- `404 Not Found`: User not found
+
+---
+
 ## 📊 Data Models
 
 ### User Entity
@@ -584,6 +626,13 @@ curl -X PUT "http://localhost:3000/api/v1/auth/users/123e4567-e89b-12d3-a456-426
 
 ```bash
 curl -X POST "http://localhost:3000/api/v1/auth/users/123e4567-e89b-12d3-a456-426614174000/logout" \
+  -H "Authorization: Bearer YOUR_ADMIN_JWT_TOKEN"
+```
+
+### 8. Delete User
+
+```bash
+curl -X DELETE "http://localhost:3000/api/v1/auth/users/123e4567-e89b-12d3-a456-426614174000" \
   -H "Authorization: Bearer YOUR_ADMIN_JWT_TOKEN"
 ```
 

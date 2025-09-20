@@ -638,6 +638,37 @@ export class AuthService {
     }
   }
 
+  async deleteUser(userId: string): Promise<StandardResponseDto<null>> {
+    try {
+      this.logger.log(`Deleting user: ${userId}`);
+
+      // Check if user exists
+      const user = await this.supabaseService.getUserById(userId);
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
+      // Delete user
+      const { error } = await this.supabaseService.deleteUser(userId);
+      if (error) {
+        throw new Error(`Failed to delete user: ${error.message}`);
+      }
+
+      this.logger.log(`Successfully deleted user: ${userId}`);
+
+      return {
+        data: null,
+        message: 'User deleted successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in deleteUser: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
   // =====================================================
   // CLEANUP METHODS
   // =====================================================
