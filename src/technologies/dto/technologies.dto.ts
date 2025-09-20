@@ -38,6 +38,14 @@ export class CreateTechnologyDto {
   @IsOptional()
   @IsString()
   icon_url?: string;
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Is technology active',
+  })
+  @IsOptional()
+  @IsBoolean()
+  is_active?: boolean;
 }
 
 export class UpdateTechnologyDto {

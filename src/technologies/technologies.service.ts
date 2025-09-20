@@ -48,7 +48,7 @@ export class TechnologiesService {
           description: createDto.description,
           category: createDto.category,
           icon_url: createDto.icon_url,
-          is_active: true,
+          is_active: createDto.is_active ?? true,
         },
       );
 

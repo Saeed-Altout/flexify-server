@@ -17,6 +17,7 @@ export interface CreateTechnologyRequest {
   description?: string;
   category?: string;
   icon_url?: string;
+  is_active?: boolean;
 }
 
 export interface UpdateTechnologyRequest {
