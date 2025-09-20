@@ -6,6 +6,7 @@ import {
   MinLength,
   MaxLength,
   IsBoolean,
+  IsNumber,
   Validate,
   ValidationArguments,
   ValidatorConstraint,
@@ -277,6 +278,211 @@ export class AuthResponseDto {
 
   @ApiProperty({ type: SessionDto, description: 'Session information' })
   session: SessionDto;
+}
+
+// =====================================================
+// USER MANAGEMENT DTOs (Admin Only)
+// =====================================================
+
+export class UserQueryDto {
+  @ApiPropertyOptional({
+    example: 'USER',
+    enum: ['USER', 'ADMIN'],
+    description: 'Filter by user role',
+  })
+  @IsOptional()
+  @IsString()
+  role?: 'USER' | 'ADMIN';
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Filter by active status',
+  })
+  @IsOptional()
+  @IsBoolean()
+  is_active?: boolean;
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Filter by email verification status',
+  })
+  @IsOptional()
+  @IsBoolean()
+  email_verified?: boolean;
+
+  @ApiPropertyOptional({
+    example: 'john',
+    description: 'Search term for name or email',
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Page number',
+    minimum: 1,
+  })
+  @IsOptional()
+  @IsNumber()
+  page?: number;
+
+  @ApiPropertyOptional({
+    example: 10,
+    description: 'Items per page',
+    minimum: 1,
+    maximum: 100,
+  })
+  @IsOptional()
+  @IsNumber()
+  limit?: number;
+
+  @ApiPropertyOptional({
+    example: 'created_at',
+    enum: ['name', 'email', 'role', 'is_active', 'created_at', 'last_login_at'],
+    description: 'Sort by field',
+  })
+  @IsOptional()
+  @IsString()
+  sort_by?:
+    | 'name'
+    | 'email'
+    | 'role'
+    | 'is_active'
+    | 'created_at'
+    | 'last_login_at';
+
+  @ApiPropertyOptional({
+    example: 'desc',
+    enum: ['asc', 'desc'],
+    description: 'Sort order',
+  })
+  @IsOptional()
+  @IsString()
+  sort_order?: 'asc' | 'desc';
+}
+
+export class UpdateUserStatusDto {
+  @ApiProperty({
+    example: true,
+    description: 'User active status',
+  })
+  @IsBoolean()
+  is_active: boolean;
+}
+
+export class UpdateUserRoleDto {
+  @ApiProperty({
+    example: 'ADMIN',
+    enum: ['USER', 'ADMIN'],
+    description: 'User role',
+  })
+  @IsString()
+  role: 'USER' | 'ADMIN';
+}
+
+export class UserListResponseDto {
+  @ApiProperty({ type: [UserDto], description: 'List of users' })
+  users: UserDto[];
+
+  @ApiProperty({ example: 50, description: 'Total number of users' })
+  total: number;
+
+  @ApiProperty({ example: 1, description: 'Current page number' })
+  page: number;
+
+  @ApiProperty({ example: 10, description: 'Items per page' })
+  limit: number;
+
+  @ApiProperty({ example: 5, description: 'Total number of pages' })
+  total_pages: number;
+}
+
+export class UserStatsDto {
+  @ApiProperty({ example: 100, description: 'Total users' })
+  total: number;
+
+  @ApiProperty({ example: 80, description: 'Active users' })
+  active: number;
+
+  @ApiProperty({ example: 20, description: 'Inactive users' })
+  inactive: number;
+
+  @ApiProperty({ example: 5, description: 'Admin users' })
+  admins: number;
+
+  @ApiProperty({ example: 95, description: 'Regular users' })
+  users: number;
+
+  @ApiProperty({ example: 90, description: 'Verified users' })
+  verified: number;
+
+  @ApiProperty({ example: 10, description: 'Unverified users' })
+  unverified: number;
+
+  @ApiProperty({ example: 5, description: 'New users today' })
+  today: number;
+
+  @ApiProperty({ example: 20, description: 'New users this week' })
+  this_week: number;
+
+  @ApiProperty({ example: 80, description: 'New users this month' })
+  this_month: number;
+}
+
+export class UserSessionDto {
+  @ApiProperty({
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    description: 'Session ID',
+  })
+  id: string;
+
+  @ApiProperty({
+    example: 'user-id-here',
+    description: 'User ID',
+  })
+  user_id: string;
+
+  @ApiProperty({
+    example: '2023-01-01T00:00:00Z',
+    description: 'Session expiration time',
+  })
+  expires_at: string;
+
+  @ApiProperty({ example: true, description: 'Is session active' })
+  is_active: boolean;
+
+  @ApiPropertyOptional({
+    example: '192.168.1.1',
+    description: 'IP address',
+  })
+  ip_address?: string;
+
+  @ApiPropertyOptional({
+    example: 'Mozilla/5.0...',
+    description: 'User agent',
+  })
+  user_agent?: string;
+
+  @ApiProperty({
+    example: '2023-01-01T00:00:00Z',
+    description: 'Session creation time',
+  })
+  created_at: string;
+
+  @ApiProperty({
+    example: '2023-01-01T00:00:00Z',
+    description: 'Last update time',
+  })
+  updated_at: string;
+}
+
+export class UserWithSessionsDto extends UserDto {
+  @ApiProperty({
+    type: [UserSessionDto],
+    description: 'User active sessions',
+  })
+  sessions: UserSessionDto[];
 }
 
 export class StandardResponseDto<T> {

@@ -382,6 +382,263 @@ export class AuthService {
   }
 
   // =====================================================
+  // USER MANAGEMENT METHODS (Admin Only)
+  // =====================================================
+
+  async getAllUsers(query: {
+    role?: 'USER' | 'ADMIN';
+    is_active?: boolean;
+    email_verified?: boolean;
+    search?: string;
+    page?: number;
+    limit?: number;
+    sort_by?:
+      | 'name'
+      | 'email'
+      | 'role'
+      | 'is_active'
+      | 'created_at'
+      | 'last_login_at';
+    sort_order?: 'asc' | 'desc';
+  }): Promise<
+    StandardResponseDto<{
+      users: Omit<User, 'password_hash'>[];
+      total: number;
+      page: number;
+      limit: number;
+      total_pages: number;
+    }>
+  > {
+    try {
+      this.logger.log('Getting all users with filters');
+
+      const {
+        data: users,
+        count,
+        error,
+      } = await this.supabaseService.getAllUsers(query);
+
+      if (error) {
+        throw new Error(`Failed to get users: ${error.message}`);
+      }
+
+      const page = query.page || 1;
+      const limit = query.limit || 10;
+      const totalPages = Math.ceil((count || 0) / limit);
+
+      // Remove password_hash from all users
+      const usersWithoutPassword = users.map(
+        ({ password_hash, ...user }) => user,
+      );
+
+      return {
+        data: {
+          users: usersWithoutPassword,
+          total: count || 0,
+          page,
+          limit,
+          total_pages: totalPages,
+        },
+        message: 'Users retrieved successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in getAllUsers: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async getUserStats(): Promise<
+    StandardResponseDto<{
+      total: number;
+      active: number;
+      inactive: number;
+      admins: number;
+      users: number;
+      verified: number;
+      unverified: number;
+      today: number;
+      this_week: number;
+      this_month: number;
+    }>
+  > {
+    try {
+      this.logger.log('Getting user statistics');
+
+      const { data, error } = await this.supabaseService.getUserStats();
+
+      if (error) {
+        throw new Error(`Failed to get user stats: ${error.message}`);
+      }
+
+      return {
+        data,
+        message: 'User statistics retrieved successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in getUserStats: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async getUserById(
+    userId: string,
+  ): Promise<StandardResponseDto<Omit<User, 'password_hash'>>> {
+    try {
+      this.logger.log(`Getting user by ID: ${userId}`);
+
+      const user = await this.supabaseService.getUserById(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Return user without password
+      const { password_hash, ...userWithoutPassword } = user;
+
+      return {
+        data: userWithoutPassword,
+        message: 'User retrieved successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in getUserById: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async getUserWithSessions(userId: string): Promise<
+    StandardResponseDto<{
+      user: Omit<User, 'password_hash'>;
+      sessions: any[];
+    }>
+  > {
+    try {
+      this.logger.log(`Getting user with sessions: ${userId}`);
+
+      const user = await this.supabaseService.getUserById(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const { data: sessions, error } =
+        await this.supabaseService.getUserSessions(userId);
+      if (error) {
+        throw new Error(`Failed to get user sessions: ${error.message}`);
+      }
+
+      // Return user without password
+      const { password_hash, ...userWithoutPassword } = user;
+
+      return {
+        data: {
+          user: userWithoutPassword,
+          sessions: sessions || [],
+        },
+        message: 'User with sessions retrieved successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in getUserWithSessions: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async updateUserStatus(
+    userId: string,
+    isActive: boolean,
+  ): Promise<StandardResponseDto<Omit<User, 'password_hash'>>> {
+    try {
+      this.logger.log(
+        `Updating user status: ${userId} to ${isActive ? 'active' : 'inactive'}`,
+      );
+
+      const { data, error } = await this.supabaseService.updateUserStatus(
+        userId,
+        isActive,
+      );
+      if (error) {
+        throw new Error(`Failed to update user status: ${error.message}`);
+      }
+
+      // Return user without password
+      const { password_hash, ...userWithoutPassword } = data;
+
+      return {
+        data: userWithoutPassword,
+        message: `User ${isActive ? 'activated' : 'deactivated'} successfully`,
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in updateUserStatus: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async updateUserRole(
+    userId: string,
+    role: 'USER' | 'ADMIN',
+  ): Promise<StandardResponseDto<Omit<User, 'password_hash'>>> {
+    try {
+      this.logger.log(`Updating user role: ${userId} to ${role}`);
+
+      const { data, error } = await this.supabaseService.updateUserRole(
+        userId,
+        role,
+      );
+      if (error) {
+        throw new Error(`Failed to update user role: ${error.message}`);
+      }
+
+      // Return user without password
+      const { password_hash, ...userWithoutPassword } = data;
+
+      return {
+        data: userWithoutPassword,
+        message: `User role updated to ${role} successfully`,
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in updateUserRole: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async forceLogoutUser(userId: string): Promise<StandardResponseDto<null>> {
+    try {
+      this.logger.log(`Force logging out user: ${userId}`);
+
+      const { error } = await this.supabaseService.forceLogoutUser(userId);
+      if (error) {
+        throw new Error(`Failed to force logout user: ${error.message}`);
+      }
+
+      return {
+        data: null,
+        message: 'User logged out successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in forceLogoutUser: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  // =====================================================
   // CLEANUP METHODS
   // =====================================================
 

@@ -494,6 +494,402 @@ export class SupabaseService {
   }
 
   // =====================================================
+  // USER MANAGEMENT OPERATIONS (Admin Only)
+  // =====================================================
+
+  async getAllUsers(query: {
+    role?: string;
+    is_active?: boolean;
+    email_verified?: boolean;
+    search?: string;
+    page?: number;
+    limit?: number;
+    sort_by?: string;
+    sort_order?: string;
+  }): Promise<{ data: User[]; count: number; error: any }> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('getAllUsers called in development mode');
+        return {
+          data: [
+            {
+              id: 'dev-user-1',
+              email: 'admin@example.com',
+              name: 'Admin User',
+              password_hash: 'dev-hash',
+              role: 'ADMIN',
+              is_active: true,
+              email_verified: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+            {
+              id: 'dev-user-2',
+              email: 'user@example.com',
+              name: 'Regular User',
+              password_hash: 'dev-hash',
+              role: 'USER',
+              is_active: true,
+              email_verified: false,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          ],
+          count: 2,
+          error: null,
+        };
+      }
+
+      const page = query.page || 1;
+      const limit = Math.min(query.limit || 10, 100);
+      const offset = (page - 1) * limit;
+
+      let queryBuilder = this.supabase
+        .from('users')
+        .select('*', { count: 'exact' });
+
+      // Apply filters
+      if (query.role) {
+        queryBuilder = queryBuilder.eq('role', query.role);
+      }
+      if (query.is_active !== undefined) {
+        queryBuilder = queryBuilder.eq('is_active', query.is_active);
+      }
+      if (query.email_verified !== undefined) {
+        queryBuilder = queryBuilder.eq('email_verified', query.email_verified);
+      }
+      if (query.search) {
+        queryBuilder = queryBuilder.or(
+          `name.ilike.%${query.search}%,email.ilike.%${query.search}%`,
+        );
+      }
+
+      // Apply sorting
+      const sortBy = query.sort_by || 'created_at';
+      const sortOrder = query.sort_order || 'desc';
+      queryBuilder = queryBuilder.order(sortBy, {
+        ascending: sortOrder === 'asc',
+      });
+
+      // Apply pagination
+      queryBuilder = queryBuilder.range(offset, offset + limit - 1);
+
+      const { data, count, error } = await queryBuilder;
+
+      if (error) {
+        this.logger.error(`Error getting all users: ${error.message}`);
+        throw new Error(`Failed to get users: ${error.message}`);
+      }
+
+      return { data: data || [], count: count || 0, error: null };
+    } catch (error: any) {
+      this.logger.error(`Error in getAllUsers: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async getUserStats(): Promise<{
+    data: {
+      total: number;
+      active: number;
+      inactive: number;
+      admins: number;
+      users: number;
+      verified: number;
+      unverified: number;
+      today: number;
+      this_week: number;
+      this_month: number;
+    };
+    error: any;
+  }> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('getUserStats called in development mode');
+        return {
+          data: {
+            total: 100,
+            active: 80,
+            inactive: 20,
+            admins: 5,
+            users: 95,
+            verified: 90,
+            unverified: 10,
+            today: 5,
+            this_week: 20,
+            this_month: 80,
+          },
+          error: null,
+        };
+      }
+
+      const now = new Date();
+      const startOfDay = new Date(now.setHours(0, 0, 0, 0)).toISOString();
+      const startOfWeek = new Date(
+        now.setDate(now.getDate() - 7),
+      ).toISOString();
+      const startOfMonth = new Date(
+        now.setMonth(now.getMonth() - 1),
+      ).toISOString();
+
+      // Get total users
+      const { count: total, error: totalError } = await this.supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true });
+
+      if (totalError) throw totalError;
+
+      // Get active users
+      const { count: active, error: activeError } = await this.supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', true);
+
+      if (activeError) throw activeError;
+
+      // Get inactive users
+      const { count: inactive, error: inactiveError } = await this.supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', false);
+
+      if (inactiveError) throw inactiveError;
+
+      // Get admin users
+      const { count: admins, error: adminsError } = await this.supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'ADMIN');
+
+      if (adminsError) throw adminsError;
+
+      // Get regular users
+      const { count: users, error: usersError } = await this.supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'USER');
+
+      if (usersError) throw usersError;
+
+      // Get verified users
+      const { count: verified, error: verifiedError } = await this.supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .eq('email_verified', true);
+
+      if (verifiedError) throw verifiedError;
+
+      // Get unverified users
+      const { count: unverified, error: unverifiedError } = await this.supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .eq('email_verified', false);
+
+      if (unverifiedError) throw unverifiedError;
+
+      // Get today's new users
+      const { count: todayCount, error: todayError } = await this.supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startOfDay);
+
+      if (todayError) throw todayError;
+
+      // Get this week's new users
+      const { count: this_week, error: weekError } = await this.supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startOfWeek);
+
+      if (weekError) throw weekError;
+
+      // Get this month's new users
+      const { count: this_month, error: monthError } = await this.supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startOfMonth);
+
+      if (monthError) throw monthError;
+
+      return {
+        data: {
+          total: total || 0,
+          active: active || 0,
+          inactive: inactive || 0,
+          admins: admins || 0,
+          users: users || 0,
+          verified: verified || 0,
+          unverified: unverified || 0,
+          today: todayCount || 0,
+          this_week: this_week || 0,
+          this_month: this_month || 0,
+        },
+        error: null,
+      };
+    } catch (error: any) {
+      this.logger.error(`Error in getUserStats: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async getUserSessions(userId: string): Promise<{ data: any[]; error: any }> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('getUserSessions called in development mode');
+        return {
+          data: [
+            {
+              id: 'dev-session-1',
+              user_id: userId,
+              expires_at: new Date(
+                Date.now() + 30 * 24 * 60 * 60 * 1000,
+              ).toISOString(),
+              is_active: true,
+              ip_address: '192.168.1.1',
+              user_agent: 'Mozilla/5.0...',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          ],
+          error: null,
+        };
+      }
+
+      const { data, error } = await this.supabase
+        .from('sessions')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        this.logger.error(`Error getting user sessions: ${error.message}`);
+        throw new Error(`Failed to get user sessions: ${error.message}`);
+      }
+
+      return { data: data || [], error: null };
+    } catch (error: any) {
+      this.logger.error(`Error in getUserSessions: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async updateUserStatus(
+    userId: string,
+    isActive: boolean,
+  ): Promise<{ data: User; error: any }> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('updateUserStatus called in development mode');
+        return {
+          data: {
+            id: userId,
+            email: 'user@example.com',
+            name: 'Test User',
+            password_hash: 'dev-hash',
+            role: 'USER',
+            is_active: isActive,
+            email_verified: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          error: null,
+        };
+      }
+
+      const { data, error } = await this.supabase
+        .from('users')
+        .update({
+          is_active: isActive,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        this.logger.error(`Error updating user status: ${error.message}`);
+        throw new Error(`Failed to update user status: ${error.message}`);
+      }
+
+      return { data, error: null };
+    } catch (error: any) {
+      this.logger.error(`Error in updateUserStatus: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async updateUserRole(
+    userId: string,
+    role: UserRole,
+  ): Promise<{ data: User; error: any }> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('updateUserRole called in development mode');
+        return {
+          data: {
+            id: userId,
+            email: 'user@example.com',
+            name: 'Test User',
+            password_hash: 'dev-hash',
+            role: role,
+            is_active: true,
+            email_verified: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          error: null,
+        };
+      }
+
+      const { data, error } = await this.supabase
+        .from('users')
+        .update({
+          role: role,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        this.logger.error(`Error updating user role: ${error.message}`);
+        throw new Error(`Failed to update user role: ${error.message}`);
+      }
+
+      return { data, error: null };
+    } catch (error: any) {
+      this.logger.error(`Error in updateUserRole: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async forceLogoutUser(userId: string): Promise<{ error: any }> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('forceLogoutUser called in development mode');
+        return { error: null };
+      }
+
+      // Invalidate all user sessions
+      const { error } = await this.supabase
+        .from('sessions')
+        .update({ is_active: false })
+        .eq('user_id', userId);
+
+      if (error) {
+        this.logger.error(`Error force logging out user: ${error.message}`);
+        throw new Error(`Failed to force logout user: ${error.message}`);
+      }
+
+      return { error: null };
+    } catch (error: any) {
+      this.logger.error(`Error in forceLogoutUser: ${error.message}`);
+      throw error;
+    }
+  }
+
+  // =====================================================
   // TECHNOLOGY ICON OPERATIONS
   // =====================================================
 

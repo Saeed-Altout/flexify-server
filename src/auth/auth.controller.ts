@@ -4,6 +4,8 @@ import {
   Get,
   Put,
   Body,
+  Param,
+  Query,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -17,6 +19,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiConsumes,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './guards/auth.guard';
@@ -31,6 +34,12 @@ import {
   SignUpResponseDto,
   UserDto,
   StandardResponseDto,
+  UserQueryDto,
+  UpdateUserStatusDto,
+  UpdateUserRoleDto,
+  UserListResponseDto,
+  UserStatsDto,
+  UserWithSessionsDto,
 } from './dto/auth.dto';
 import type { User } from './types/auth.types';
 
@@ -299,5 +308,345 @@ export class AuthController {
     @CurrentUser() user: User,
   ): Promise<StandardResponseDto<null>> {
     return this.authService.changePassword(user.id, changePasswordDto);
+  }
+
+  // =====================================================
+  // USER MANAGEMENT ENDPOINTS (Admin Only)
+  // =====================================================
+
+  @Get('users')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get All Users',
+    description:
+      'Get a paginated list of all users with optional filtering (Admin only)',
+  })
+  @ApiQuery({
+    name: 'role',
+    required: false,
+    description: 'Filter by user role',
+    enum: ['USER', 'ADMIN'],
+  })
+  @ApiQuery({
+    name: 'is_active',
+    required: false,
+    description: 'Filter by active status',
+  })
+  @ApiQuery({
+    name: 'email_verified',
+    required: false,
+    description: 'Filter by email verification status',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Search term for name or email',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Items per page',
+  })
+  @ApiQuery({
+    name: 'sort_by',
+    required: false,
+    description: 'Sort by field',
+    enum: ['name', 'email', 'role', 'is_active', 'created_at', 'last_login_at'],
+  })
+  @ApiQuery({
+    name: 'sort_order',
+    required: false,
+    description: 'Sort order',
+    enum: ['asc', 'desc'],
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Users retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/UserListResponseDto' },
+        message: { type: 'string', example: 'Users retrieved successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
+  async getAllUsers(
+    @Query() query: UserQueryDto,
+  ): Promise<StandardResponseDto<UserListResponseDto>> {
+    return this.authService.getAllUsers(query);
+  }
+
+  @Get('users/stats')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get User Statistics',
+    description: 'Get user statistics and analytics (Admin only)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User statistics retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/UserStatsDto' },
+        message: {
+          type: 'string',
+          example: 'User statistics retrieved successfully',
+        },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
+  async getUserStats(): Promise<StandardResponseDto<UserStatsDto>> {
+    return this.authService.getUserStats();
+  }
+
+  @Get('users/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get User by ID',
+    description: 'Get a specific user by their ID (Admin only)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/UserDto' },
+        message: { type: 'string', example: 'User retrieved successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+  })
+  async getUserById(
+    @Param('id') id: string,
+  ): Promise<StandardResponseDto<UserDto>> {
+    return this.authService.getUserById(id);
+  }
+
+  @Get('users/:id/sessions')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get User Sessions',
+    description: 'Get all active sessions for a specific user (Admin only)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User sessions retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          properties: {
+            user: { $ref: '#/components/schemas/UserDto' },
+            sessions: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  user_id: { type: 'string' },
+                  expires_at: { type: 'string' },
+                  is_active: { type: 'boolean' },
+                  ip_address: { type: 'string' },
+                  user_agent: { type: 'string' },
+                  created_at: { type: 'string' },
+                  updated_at: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        message: {
+          type: 'string',
+          example: 'User sessions retrieved successfully',
+        },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+  })
+  async getUserWithSessions(
+    @Param('id') id: string,
+  ): Promise<StandardResponseDto<{ user: UserDto; sessions: any[] }>> {
+    return this.authService.getUserWithSessions(id);
+  }
+
+  @Put('users/:id/status')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Update User Status',
+    description: 'Activate or deactivate a user account (Admin only)',
+  })
+  @ApiBody({ type: UpdateUserStatusDto })
+  @ApiResponse({
+    status: 200,
+    description: 'User status updated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/UserDto' },
+        message: { type: 'string', example: 'User activated successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+  })
+  async updateUserStatus(
+    @Param('id') id: string,
+    @Body() updateUserStatusDto: UpdateUserStatusDto,
+  ): Promise<StandardResponseDto<UserDto>> {
+    return this.authService.updateUserStatus(id, updateUserStatusDto.is_active);
+  }
+
+  @Put('users/:id/role')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Update User Role',
+    description: 'Change user role between USER and ADMIN (Admin only)',
+  })
+  @ApiBody({ type: UpdateUserRoleDto })
+  @ApiResponse({
+    status: 200,
+    description: 'User role updated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/UserDto' },
+        message: {
+          type: 'string',
+          example: 'User role updated to ADMIN successfully',
+        },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+  })
+  async updateUserRole(
+    @Param('id') id: string,
+    @Body() updateUserRoleDto: UpdateUserRoleDto,
+  ): Promise<StandardResponseDto<UserDto>> {
+    return this.authService.updateUserRole(id, updateUserRoleDto.role);
+  }
+
+  @Post('users/:id/logout')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Force Logout User',
+    description:
+      'Force logout a user by invalidating all their sessions (Admin only)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User logged out successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'null' },
+        message: { type: 'string', example: 'User logged out successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+  })
+  async forceLogoutUser(
+    @Param('id') id: string,
+  ): Promise<StandardResponseDto<null>> {
+    return this.authService.forceLogoutUser(id);
   }
 }
