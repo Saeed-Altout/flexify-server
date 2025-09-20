@@ -12,6 +12,7 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import type { UserRole } from '../types/auth.types';
 
 @ValidatorConstraint({ name: 'MatchPassword', async: false })
@@ -299,6 +300,11 @@ export class UserQueryDto {
     description: 'Filter by active status',
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
   @IsBoolean()
   is_active?: boolean;
 
@@ -307,6 +313,11 @@ export class UserQueryDto {
     description: 'Filter by email verification status',
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
   @IsBoolean()
   email_verified?: boolean;
 
@@ -324,6 +335,10 @@ export class UserQueryDto {
     minimum: 1,
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    const parsed = parseInt(value);
+    return isNaN(parsed) ? undefined : parsed;
+  })
   @IsNumber()
   page?: number;
 
@@ -334,6 +349,10 @@ export class UserQueryDto {
     maximum: 100,
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    const parsed = parseInt(value);
+    return isNaN(parsed) ? undefined : parsed;
+  })
   @IsNumber()
   limit?: number;
 
