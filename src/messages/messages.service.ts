@@ -303,14 +303,14 @@ export class MessagesService {
         );
       }
 
-      if (!data || data.length === 0) {
+      if (!data) {
         throw new NotFoundException(`Message with ID ${id} not found`);
       }
 
       this.logger.log(`Successfully updated message status: ${id}`);
 
       return {
-        data: this.convertMessageToDto(data[0]),
+        data: this.convertMessageToDto(data),
         message: 'Message status updated successfully',
         status: 'success',
       };

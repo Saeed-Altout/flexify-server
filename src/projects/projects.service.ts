@@ -358,7 +358,7 @@ export class ProjectsService {
       this.logger.log(`Successfully updated project: ${id}`);
 
       return {
-        data: this.convertProjectToDto(data[0]),
+        data: this.convertProjectToDto(data),
         message: 'Project updated successfully',
         status: 'success',
       };
