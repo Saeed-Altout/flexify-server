@@ -17,7 +17,7 @@ Authorization: Bearer <your_jwt_token>
 ## 🗂️ Base URL
 
 ```
-{{base_url}} = http://localhost:3000/api
+{{base_url}} = http://localhost:3000/api/v1
 ```
 
 ---
@@ -26,7 +26,7 @@ Authorization: Bearer <your_jwt_token>
 
 ### 1. 🔒 **Create Technology (Admin Only)**
 
-**Endpoint**: `POST /technologies`
+**Endpoint**: `POST /api/v1/technologies`
 
 **Authentication**: Required (Admin)
 
@@ -87,7 +87,7 @@ Authorization: Bearer <jwt_token>
 
 ### 2. 🌐 **Get Technologies (Paginated)**
 
-**Endpoint**: `GET /technologies`
+**Endpoint**: `GET /api/v1/technologies`
 
 **Authentication**: Not required
 
@@ -106,10 +106,10 @@ Authorization: Bearer <jwt_token>
 **Example Requests**:
 
 ```
-GET /technologies
-GET /technologies?category=Frontend&is_active=true
-GET /technologies?search=react&page=1&limit=5
-GET /technologies?sort_by=name&sort_order=asc
+GET /api/v1/technologies
+GET /api/v1/technologies?category=Frontend&is_active=true
+GET /api/v1/technologies?search=react&page=1&limit=5
+GET /api/v1/technologies?sort_by=name&sort_order=asc
 ```
 
 **Response (200 OK)**:
@@ -143,7 +143,7 @@ GET /technologies?sort_by=name&sort_order=asc
 
 ### 3. 🌐 **Get Active Technologies**
 
-**Endpoint**: `GET /technologies/active`
+**Endpoint**: `GET /api/v1/technologies/active`
 
 **Authentication**: Not required
 
@@ -174,7 +174,7 @@ GET /technologies?sort_by=name&sort_order=asc
 
 ### 4. 🌐 **Search Technologies**
 
-**Endpoint**: `GET /technologies/search`
+**Endpoint**: `GET /api/v1/technologies/search`
 
 **Authentication**: Not required
 
@@ -187,7 +187,7 @@ GET /technologies?sort_by=name&sort_order=asc
 **Example Request**:
 
 ```
-GET /technologies/search?q=react
+GET /api/v1/technologies/search?q=react
 ```
 
 **Response (200 OK)**:
@@ -215,7 +215,7 @@ GET /technologies/search?q=react
 
 ### 5. 🌐 **Get Technologies by Category**
 
-**Endpoint**: `GET /technologies/category/:category`
+**Endpoint**: `GET /api/v1/technologies/category/:category`
 
 **Authentication**: Not required
 
@@ -228,7 +228,7 @@ GET /technologies/search?q=react
 **Example Request**:
 
 ```
-GET /technologies/category/Frontend
+GET /api/v1/technologies/category/Frontend
 ```
 
 **Response (200 OK)**:
@@ -256,7 +256,7 @@ GET /technologies/category/Frontend
 
 ### 6. 🌐 **Get Technology by ID**
 
-**Endpoint**: `GET /technologies/:id`
+**Endpoint**: `GET /api/v1/technologies/:id`
 
 **Authentication**: Not required
 
@@ -269,7 +269,7 @@ GET /technologies/category/Frontend
 **Example Request**:
 
 ```
-GET /technologies/123e4567-e89b-12d3-a456-426614174000
+GET /api/v1/technologies/123e4567-e89b-12d3-a456-426614174000
 ```
 
 **Response (200 OK)**:
@@ -305,7 +305,7 @@ GET /technologies/123e4567-e89b-12d3-a456-426614174000
 
 ### 7. 🔒 **Update Technology (Admin Only)**
 
-**Endpoint**: `PUT /technologies/:id`
+**Endpoint**: `PUT /api/v1/technologies/:id`
 
 **Authentication**: Required (Admin)
 
@@ -371,7 +371,7 @@ Authorization: Bearer <jwt_token>
 
 ### 8. 🔒 **Delete Technology (Admin Only)**
 
-**Endpoint**: `DELETE /technologies/:id`
+**Endpoint**: `DELETE /api/v1/technologies/:id`
 
 **Authentication**: Required (Admin)
 
@@ -390,7 +390,7 @@ Authorization: Bearer <jwt_token>
 **Example Request**:
 
 ```
-DELETE /technologies/123e4567-e89b-12d3-a456-426614174000
+DELETE /api/v1/technologies/123e4567-e89b-12d3-a456-426614174000
 ```
 
 **Response (204 No Content)**:
@@ -405,7 +405,7 @@ No response body
 
 ### 9. 🔒 **Upload Technology Icon (Admin Only)**
 
-**Endpoint**: `POST /technologies/:id/icon`
+**Endpoint**: `POST /api/v1/technologies/:id/icon`
 
 **Authentication**: Required (Admin)
 
@@ -429,7 +429,7 @@ Authorization: Bearer <jwt_token>
 **Example Request**:
 
 ```
-POST /technologies/123e4567-e89b-12d3-a456-426614174000/icon
+POST /api/v1/technologies/123e4567-e89b-12d3-a456-426614174000/icon
 Content-Type: multipart/form-data
 Authorization: Bearer <jwt_token>
 
@@ -560,7 +560,7 @@ interface StandardResponse<T> {
 ### 1. Create Technology
 
 ```bash
-curl -X POST "http://localhost:3000/api/technologies" \
+curl -X POST "http://localhost:3000/api/v1/technologies" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
@@ -575,21 +575,21 @@ curl -X POST "http://localhost:3000/api/technologies" \
 ### 2. Get Technologies with Filters
 
 ```bash
-curl -X GET "http://localhost:3000/api/technologies?category=Frontend&is_active=true&page=1&limit=5" \
+curl -X GET "http://localhost:3000/api/v1/technologies?category=Frontend&is_active=true&page=1&limit=5" \
   -H "Accept: application/json"
 ```
 
 ### 3. Search Technologies
 
 ```bash
-curl -X GET "http://localhost:3000/api/technologies/search?q=react" \
+curl -X GET "http://localhost:3000/api/v1/technologies/search?q=react" \
   -H "Accept: application/json"
 ```
 
 ### 4. Update Technology
 
 ```bash
-curl -X PUT "http://localhost:3000/api/technologies/123e4567-e89b-12d3-a456-426614174000" \
+curl -X PUT "http://localhost:3000/api/v1/technologies/123e4567-e89b-12d3-a456-426614174000" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
@@ -602,7 +602,7 @@ curl -X PUT "http://localhost:3000/api/technologies/123e4567-e89b-12d3-a456-4266
 ### 5. Upload Technology Icon
 
 ```bash
-curl -X POST "http://localhost:3000/api/technologies/123e4567-e89b-12d3-a456-426614174000/icon" \
+curl -X POST "http://localhost:3000/api/v1/technologies/123e4567-e89b-12d3-a456-426614174000/icon" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -F "file=@/path/to/icon.png"
 ```
@@ -610,7 +610,7 @@ curl -X POST "http://localhost:3000/api/technologies/123e4567-e89b-12d3-a456-426
 ### 6. Delete Technology
 
 ```bash
-curl -X DELETE "http://localhost:3000/api/technologies/123e4567-e89b-12d3-a456-426614174000" \
+curl -X DELETE "http://localhost:3000/api/v1/technologies/123e4567-e89b-12d3-a456-426614174000" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
