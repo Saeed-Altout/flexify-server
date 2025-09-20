@@ -8,7 +8,7 @@ import { SupabaseModule } from '../supabase/supabase.module';
 @Module({
   imports: [AuthModule, FileUploadModule, SupabaseModule],
   controllers: [TechnologiesController],
-  providers: [TechnologiesService, FileUploadService],
+  providers: [TechnologiesService],
   exports: [TechnologiesService],
 })
 export class TechnologiesModule {}

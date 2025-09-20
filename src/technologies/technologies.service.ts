@@ -5,7 +5,6 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
-import { FileUploadService } from '../file-upload/file-upload.service';
 import {
   Technology,
   CreateTechnologyRequest,
@@ -22,10 +21,7 @@ import {
 export class TechnologiesService {
   private readonly logger = new Logger(TechnologiesService.name);
 
-  constructor(
-    private supabaseService: SupabaseService,
-    private fileUploadService: FileUploadService,
-  ) {}
+  constructor(private supabaseService: SupabaseService) {}
 
   // =====================================================
   // CRUD OPERATIONS
@@ -33,7 +29,6 @@ export class TechnologiesService {
 
   async createTechnology(
     createDto: CreateTechnologyRequest,
-    iconFile?: Express.Multer.File,
   ): Promise<StandardResponseDto<Technology>> {
     try {
       this.logger.log(`Creating technology: ${createDto.name}`);
@@ -46,89 +41,31 @@ export class TechnologiesService {
         );
       }
 
-      // Create technology data
-      const technologyData: any = {
-        name: createDto.name,
-        description: createDto.description,
-        category: createDto.category,
-        is_active: true,
-      };
+      const { data, error } = await this.supabaseService.insert(
+        'technologies',
+        {
+          name: createDto.name,
+          description: createDto.description,
+          category: createDto.category,
+          icon_url: createDto.icon_url,
+          is_active: true,
+        },
+      );
 
-      // Handle icon upload if provided
-      if (iconFile) {
-        this.logger.log(`Uploading icon for technology: ${createDto.name}`);
-
-        // First create the technology to get an ID
-        const { data: techData, error: techError } =
-          await this.supabaseService.insert('technologies', technologyData);
-
-        if (techError) {
-          this.logger.error(`Error creating technology: ${techError.message}`);
-          throw new BadRequestException(
-            `Failed to create technology: ${techError.message}`,
-          );
-        }
-
-        // Upload the icon
-        const iconResult = await this.fileUploadService.uploadTechnologyIcon(
-          {
-            originalname: iconFile.originalname,
-            buffer: iconFile.buffer,
-            mimetype: iconFile.mimetype,
-            size: iconFile.size,
-          },
-          techData.id,
+      if (error) {
+        this.logger.error(`Error creating technology: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to create technology: ${error.message}`,
         );
-
-        // Update technology with icon information
-        const { data: updatedData, error: updateError } =
-          await this.supabaseService.updateTechnologyIcon(
-            techData.id,
-            iconResult.url,
-            iconFile.originalname,
-            iconFile.size,
-          );
-
-        if (updateError) {
-          this.logger.error(
-            `Error updating technology with icon: ${updateError.message}`,
-          );
-          throw new BadRequestException(
-            `Failed to update technology with icon: ${updateError.message}`,
-          );
-        }
-
-        this.logger.log(
-          `Successfully created technology with icon: ${techData.id}`,
-        );
-
-        return {
-          data: updatedData.data,
-          message: 'Technology created successfully with icon',
-          status: 'success',
-        };
-      } else {
-        // Create technology without icon
-        const { data, error } = await this.supabaseService.insert(
-          'technologies',
-          technologyData,
-        );
-
-        if (error) {
-          this.logger.error(`Error creating technology: ${error.message}`);
-          throw new BadRequestException(
-            `Failed to create technology: ${error.message}`,
-          );
-        }
-
-        this.logger.log(`Successfully created technology: ${data.id}`);
-
-        return {
-          data: data,
-          message: 'Technology created successfully',
-          status: 'success',
-        };
       }
+
+      this.logger.log(`Successfully created technology: ${data.id}`);
+
+      return {
+        data: data,
+        message: 'Technology created successfully',
+        status: 'success',
+      };
     } catch (error: any) {
       const errorMessage =
         error instanceof Error ? error.message : JSON.stringify(error);
@@ -240,7 +177,6 @@ export class TechnologiesService {
   async updateTechnology(
     id: string,
     updateDto: UpdateTechnologyRequest,
-    iconFile?: Express.Multer.File,
   ): Promise<StandardResponseDto<Technology>> {
     try {
       this.logger.log(`Updating technology: ${id}`);
@@ -261,34 +197,9 @@ export class TechnologiesService {
         }
       }
 
-      // Prepare update data
-      const updateData: any = { ...updateDto };
-
-      // Handle icon upload if provided
-      if (iconFile) {
-        this.logger.log(`Uploading new icon for technology: ${id}`);
-
-        // Upload the new icon
-        const iconResult = await this.fileUploadService.uploadTechnologyIcon(
-          {
-            originalname: iconFile.originalname,
-            buffer: iconFile.buffer,
-            mimetype: iconFile.mimetype,
-            size: iconFile.size,
-          },
-          id,
-        );
-
-        // Add icon information to update data
-        updateData.icon_url = iconResult.url;
-        updateData.icon_filename = iconFile.originalname;
-        updateData.icon_size = iconFile.size;
-        updateData.icon_uploaded_at = new Date().toISOString();
-      }
-
       const { data, error } = await this.supabaseService.update(
         'technologies',
-        updateData,
+        updateDto,
         { id },
       );
 
@@ -303,9 +214,7 @@ export class TechnologiesService {
 
       return {
         data: data,
-        message: iconFile
-          ? 'Technology updated successfully with new icon'
-          : 'Technology updated successfully',
+        message: 'Technology updated successfully',
         status: 'success',
       };
     } catch (error: any) {

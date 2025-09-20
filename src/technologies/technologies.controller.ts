@@ -49,43 +49,12 @@ export class TechnologiesController {
   ) {}
 
   @Post()
-  @UseInterceptors(FileInterceptor('icon'))
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Create Technology',
-    description:
-      'Create a new technology with optional icon upload (Admin only)',
-  })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        name: {
-          type: 'string',
-          example: 'React',
-          description: 'Technology name',
-        },
-        description: {
-          type: 'string',
-          example: 'A JavaScript library for building user interfaces',
-          description: 'Technology description',
-        },
-        category: {
-          type: 'string',
-          example: 'Frontend',
-          description: 'Technology category',
-        },
-        icon: {
-          type: 'string',
-          format: 'binary',
-          description: 'Technology icon image (PNG, JPG, SVG, etc., max 2MB)',
-        },
-      },
-      required: ['name'],
-    },
+    description: 'Create a new technology (Admin only)',
   })
   @ApiResponse({
     status: 201,
@@ -109,17 +78,8 @@ export class TechnologiesController {
   })
   async createTechnology(
     @Body() createDto: CreateTechnologyDto,
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 2 * 1024 * 1024 }), // 2MB
-        ],
-        fileIsRequired: false, // Icon is optional
-      }),
-    )
-    iconFile?: Express.Multer.File,
   ): Promise<StandardResponseDto<TechnologyDto>> {
-    return this.technologiesService.createTechnology(createDto, iconFile);
+    return this.technologiesService.createTechnology(createDto);
   }
 
   @Get()
@@ -280,45 +240,11 @@ export class TechnologiesController {
   }
 
   @Put(':id')
-  @UseInterceptors(FileInterceptor('icon'))
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Update Technology',
-    description: 'Update a technology with optional icon upload (Admin only)',
-  })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        name: {
-          type: 'string',
-          example: 'React',
-          description: 'Technology name',
-        },
-        description: {
-          type: 'string',
-          example: 'A JavaScript library for building user interfaces',
-          description: 'Technology description',
-        },
-        category: {
-          type: 'string',
-          example: 'Frontend',
-          description: 'Technology category',
-        },
-        is_active: {
-          type: 'boolean',
-          example: true,
-          description: 'Is technology active',
-        },
-        icon: {
-          type: 'string',
-          format: 'binary',
-          description: 'Technology icon image (PNG, JPG, SVG, etc., max 2MB)',
-        },
-      },
-    },
+    description: 'Update a technology (Admin only)',
   })
   @ApiResponse({
     status: 200,
@@ -347,17 +273,8 @@ export class TechnologiesController {
   async updateTechnology(
     @Param('id') id: string,
     @Body() updateDto: UpdateTechnologyDto,
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 2 * 1024 * 1024 }), // 2MB
-        ],
-        fileIsRequired: false, // Icon is optional
-      }),
-    )
-    iconFile?: Express.Multer.File,
   ): Promise<StandardResponseDto<TechnologyDto>> {
-    return this.technologiesService.updateTechnology(id, updateDto, iconFile);
+    return this.technologiesService.updateTechnology(id, updateDto);
   }
 
   @Delete(':id')

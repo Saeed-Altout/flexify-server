@@ -168,24 +168,6 @@ export class TechnologyDto {
   })
   icon_url?: string;
 
-  @ApiPropertyOptional({
-    example: 'react-icon.png',
-    description: 'Icon filename',
-  })
-  icon_filename?: string;
-
-  @ApiPropertyOptional({
-    example: 1024,
-    description: 'Icon file size in bytes',
-  })
-  icon_size?: number;
-
-  @ApiPropertyOptional({
-    example: '2023-01-01T00:00:00Z',
-    description: 'Icon upload timestamp',
-  })
-  icon_uploaded_at?: string;
-
   @ApiProperty({ example: true, description: 'Is technology active' })
   is_active: boolean;
 
