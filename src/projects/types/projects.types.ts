@@ -71,3 +71,28 @@ export interface ProjectWithTechnologies extends Project {
     icon_url?: string;
   }>;
 }
+
+// Like/Dislike types
+export interface ProjectLike {
+  id: string;
+  project_id: string;
+  user_id: string;
+  is_like: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectLikesStats {
+  likes_count: number;
+  dislikes_count: number;
+  user_liked?: boolean;
+  user_disliked?: boolean;
+}
+
+export interface LikeProjectRequest {
+  project_id: string;
+}
+
+export interface DislikeProjectRequest {
+  project_id: string;
+}

@@ -13,6 +13,10 @@ import {
   ProjectQuery,
   ProjectListResponse,
   ProjectWithTechnologies,
+  ProjectLike,
+  ProjectLikesStats,
+  LikeProjectRequest,
+  DislikeProjectRequest,
 } from './types/projects.types';
 import {
   StandardResponseDto,
@@ -20,6 +24,8 @@ import {
   ProjectWithTechnologiesDto,
   ProjectDto,
   ProjectStatusEnum,
+  ProjectLikeResponseDto,
+  ProjectLikesStatsDto,
 } from './dto/projects.dto';
 
 @Injectable()
@@ -532,5 +538,358 @@ export class ProjectsService {
       this.logger.error(`Error in getUserProjects: ${errorMessage}`);
       throw error instanceof Error ? error : new Error(errorMessage);
     }
+  }
+
+  // =====================================================
+  // LIKE/DISLIKE OPERATIONS
+  // =====================================================
+
+  async likeProject(
+    projectId: string,
+    userId: string,
+  ): Promise<StandardResponseDto<ProjectLikeResponseDto>> {
+    try {
+      this.logger.log(`User ${userId} liking project ${projectId}`);
+
+      // Check if project exists
+      const { data: project, error: projectError } =
+        await this.supabaseService.select('projects', {
+          eq: { id: projectId },
+        });
+
+      if (projectError) {
+        this.logger.error(`Error fetching project: ${projectError.message}`);
+        throw new BadRequestException(
+          `Failed to fetch project: ${projectError.message}`,
+        );
+      }
+
+      if (!project || project.length === 0) {
+        throw new NotFoundException(`Project with ID ${projectId} not found`);
+      }
+
+      // Check if user already has a like/dislike for this project
+      const { data: existingLike, error: likeError } =
+        await this.supabaseService.select('project_likes', {
+          eq: { project_id: projectId, user_id: userId },
+        });
+
+      if (likeError) {
+        this.logger.error(`Error checking existing like: ${likeError.message}`);
+        throw new BadRequestException(
+          `Failed to check existing like: ${likeError.message}`,
+        );
+      }
+
+      if (existingLike && existingLike.length > 0) {
+        // Update existing like/dislike to like
+        const { data: updatedLike, error: updateError } =
+          await this.supabaseService.update(
+            'project_likes',
+            { is_like: true, updated_at: new Date().toISOString() },
+            { id: existingLike[0].id },
+          );
+
+        if (updateError) {
+          this.logger.error(`Error updating like: ${updateError.message}`);
+          throw new BadRequestException(
+            `Failed to update like: ${updateError.message}`,
+          );
+        }
+
+        this.logger.log(`Successfully updated like for project ${projectId}`);
+
+        return {
+          data: this.convertProjectLikeToDto(updatedLike),
+          message: 'Project liked successfully',
+          status: 'success',
+        };
+      } else {
+        // Create new like
+        const { data: newLike, error: createError } =
+          await this.supabaseService.insert('project_likes', {
+            project_id: projectId,
+            user_id: userId,
+            is_like: true,
+          });
+
+        if (createError) {
+          this.logger.error(`Error creating like: ${createError.message}`);
+          throw new BadRequestException(
+            `Failed to create like: ${createError.message}`,
+          );
+        }
+
+        this.logger.log(`Successfully created like for project ${projectId}`);
+
+        return {
+          data: this.convertProjectLikeToDto(newLike),
+          message: 'Project liked successfully',
+          status: 'success',
+        };
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in likeProject: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async dislikeProject(
+    projectId: string,
+    userId: string,
+  ): Promise<StandardResponseDto<ProjectLikeResponseDto>> {
+    try {
+      this.logger.log(`User ${userId} disliking project ${projectId}`);
+
+      // Check if project exists
+      const { data: project, error: projectError } =
+        await this.supabaseService.select('projects', {
+          eq: { id: projectId },
+        });
+
+      if (projectError) {
+        this.logger.error(`Error fetching project: ${projectError.message}`);
+        throw new BadRequestException(
+          `Failed to fetch project: ${projectError.message}`,
+        );
+      }
+
+      if (!project || project.length === 0) {
+        throw new NotFoundException(`Project with ID ${projectId} not found`);
+      }
+
+      // Check if user already has a like/dislike for this project
+      const { data: existingLike, error: likeError } =
+        await this.supabaseService.select('project_likes', {
+          eq: { project_id: projectId, user_id: userId },
+        });
+
+      if (likeError) {
+        this.logger.error(`Error checking existing like: ${likeError.message}`);
+        throw new BadRequestException(
+          `Failed to check existing like: ${likeError.message}`,
+        );
+      }
+
+      if (existingLike && existingLike.length > 0) {
+        // Update existing like/dislike to dislike
+        const { data: updatedLike, error: updateError } =
+          await this.supabaseService.update(
+            'project_likes',
+            { is_like: false, updated_at: new Date().toISOString() },
+            { id: existingLike[0].id },
+          );
+
+        if (updateError) {
+          this.logger.error(`Error updating dislike: ${updateError.message}`);
+          throw new BadRequestException(
+            `Failed to update dislike: ${updateError.message}`,
+          );
+        }
+
+        this.logger.log(
+          `Successfully updated dislike for project ${projectId}`,
+        );
+
+        return {
+          data: this.convertProjectLikeToDto(updatedLike),
+          message: 'Project disliked successfully',
+          status: 'success',
+        };
+      } else {
+        // Create new dislike
+        const { data: newLike, error: createError } =
+          await this.supabaseService.insert('project_likes', {
+            project_id: projectId,
+            user_id: userId,
+            is_like: false,
+          });
+
+        if (createError) {
+          this.logger.error(`Error creating dislike: ${createError.message}`);
+          throw new BadRequestException(
+            `Failed to create dislike: ${createError.message}`,
+          );
+        }
+
+        this.logger.log(
+          `Successfully created dislike for project ${projectId}`,
+        );
+
+        return {
+          data: this.convertProjectLikeToDto(newLike),
+          message: 'Project disliked successfully',
+          status: 'success',
+        };
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in dislikeProject: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async removeProjectLike(
+    projectId: string,
+    userId: string,
+  ): Promise<StandardResponseDto<null>> {
+    try {
+      this.logger.log(
+        `User ${userId} removing like/dislike for project ${projectId}`,
+      );
+
+      // Check if like exists
+      const { data: existingLike, error: likeError } =
+        await this.supabaseService.select('project_likes', {
+          eq: { project_id: projectId, user_id: userId },
+        });
+
+      if (likeError) {
+        this.logger.error(`Error checking existing like: ${likeError.message}`);
+        throw new BadRequestException(
+          `Failed to check existing like: ${likeError.message}`,
+        );
+      }
+
+      if (!existingLike || existingLike.length === 0) {
+        throw new NotFoundException(
+          'No like or dislike found for this project',
+        );
+      }
+
+      // Delete the like/dislike
+      const { error: deleteError } = await this.supabaseService.delete(
+        'project_likes',
+        {
+          id: existingLike[0].id,
+        },
+      );
+
+      if (deleteError) {
+        this.logger.error(`Error deleting like: ${deleteError.message}`);
+        throw new BadRequestException(
+          `Failed to delete like: ${deleteError.message}`,
+        );
+      }
+
+      this.logger.log(
+        `Successfully removed like/dislike for project ${projectId}`,
+      );
+
+      return {
+        data: null,
+        message: 'Like/dislike removed successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in removeProjectLike: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async getProjectLikesStats(
+    projectId: string,
+    userId?: string,
+  ): Promise<StandardResponseDto<ProjectLikesStatsDto>> {
+    try {
+      this.logger.log(`Getting likes stats for project ${projectId}`);
+
+      // Get likes count
+      const { data: likes, error: likesError } =
+        await this.supabaseService.supabase
+          .from('project_likes')
+          .select('*', { count: 'exact' })
+          .eq('project_id', projectId)
+          .eq('is_like', true);
+
+      if (likesError) {
+        this.logger.error(`Error fetching likes: ${likesError.message}`);
+        throw new BadRequestException(
+          `Failed to fetch likes: ${likesError.message}`,
+        );
+      }
+
+      // Get dislikes count
+      const { data: dislikes, error: dislikesError } =
+        await this.supabaseService.supabase
+          .from('project_likes')
+          .select('*', { count: 'exact' })
+          .eq('project_id', projectId)
+          .eq('is_like', false);
+
+      if (dislikesError) {
+        this.logger.error(`Error fetching dislikes: ${dislikesError.message}`);
+        throw new BadRequestException(
+          `Failed to fetch dislikes: ${dislikesError.message}`,
+        );
+      }
+
+      const likesCount = likes?.length || 0;
+      const dislikesCount = dislikes?.length || 0;
+
+      let userLiked: boolean | undefined;
+      let userDisliked: boolean | undefined;
+
+      // If user is provided, check their like/dislike status
+      if (userId) {
+        const { data: userLike, error: userLikeError } =
+          await this.supabaseService.select('project_likes', {
+            eq: { project_id: projectId, user_id: userId },
+          });
+
+        if (userLikeError) {
+          this.logger.warn(
+            `Error fetching user like status: ${userLikeError.message}`,
+          );
+        } else if (userLike && userLike.length > 0) {
+          userLiked = userLike[0].is_like;
+          userDisliked = !userLike[0].is_like;
+        }
+      }
+
+      const stats: ProjectLikesStats = {
+        likes_count: likesCount,
+        dislikes_count: dislikesCount,
+        user_liked: userLiked,
+        user_disliked: userDisliked,
+      };
+
+      this.logger.log(
+        `Successfully fetched likes stats: ${likesCount} likes, ${dislikesCount} dislikes`,
+      );
+
+      return {
+        data: stats,
+        message: 'Project likes stats retrieved successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in getProjectLikesStats: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  // =====================================================
+  // CONVERSION FUNCTIONS FOR LIKES
+  // =====================================================
+
+  private convertProjectLikeToDto(
+    projectLike: ProjectLike,
+  ): ProjectLikeResponseDto {
+    return {
+      id: projectLike.id,
+      project_id: projectLike.project_id,
+      user_id: projectLike.user_id,
+      is_like: projectLike.is_like,
+      created_at: projectLike.created_at,
+      updated_at: projectLike.updated_at,
+    };
   }
 }

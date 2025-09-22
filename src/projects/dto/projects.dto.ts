@@ -391,6 +391,89 @@ export class ProjectListResponseDto {
   total_pages: number;
 }
 
+// Like/Dislike DTOs
+export class LikeProjectDto {
+  @ApiProperty({
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    description: 'Project ID to like',
+  })
+  @IsUUID('4')
+  project_id: string;
+}
+
+export class DislikeProjectDto {
+  @ApiProperty({
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    description: 'Project ID to dislike',
+  })
+  @IsUUID('4')
+  project_id: string;
+}
+
+export class ProjectLikeResponseDto {
+  @ApiProperty({
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    description: 'Like ID',
+  })
+  id: string;
+
+  @ApiProperty({
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    description: 'Project ID',
+  })
+  project_id: string;
+
+  @ApiProperty({
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    description: 'User ID who liked/disliked',
+  })
+  user_id: string;
+
+  @ApiProperty({
+    example: true,
+    description: 'True for like, false for dislike',
+  })
+  is_like: boolean;
+
+  @ApiProperty({
+    example: '2023-01-01T00:00:00Z',
+    description: 'Creation timestamp',
+  })
+  created_at: string;
+
+  @ApiProperty({
+    example: '2023-01-01T00:00:00Z',
+    description: 'Last update timestamp',
+  })
+  updated_at: string;
+}
+
+export class ProjectLikesStatsDto {
+  @ApiProperty({
+    example: 42,
+    description: 'Total number of likes',
+  })
+  likes_count: number;
+
+  @ApiProperty({
+    example: 5,
+    description: 'Total number of dislikes',
+  })
+  dislikes_count: number;
+
+  @ApiProperty({
+    example: true,
+    description: 'Whether current user has liked this project',
+  })
+  user_liked?: boolean;
+
+  @ApiProperty({
+    example: false,
+    description: 'Whether current user has disliked this project',
+  })
+  user_disliked?: boolean;
+}
+
 export class StandardResponseDto<T> {
   @ApiProperty({ description: 'Response data' })
   data: T;

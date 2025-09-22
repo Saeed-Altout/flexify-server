@@ -30,6 +30,10 @@ import {
   ProjectWithTechnologiesDto,
   ProjectListResponseDto,
   StandardResponseDto,
+  LikeProjectDto,
+  DislikeProjectDto,
+  ProjectLikeResponseDto,
+  ProjectLikesStatsDto,
 } from './dto/projects.dto';
 
 @ApiTags('projects')
@@ -355,11 +359,7 @@ export class ProjectsController {
     @Body() updateDto: UpdateProjectDto,
     @CurrentUser() user: User,
   ): Promise<StandardResponseDto<ProjectDto>> {
-    return this.projectsService.updateProject(
-      id,
-      updateDto,
-      user.id,
-    );
+    return this.projectsService.updateProject(id, updateDto, user.id);
   }
 
   @Delete(':id')
@@ -391,5 +391,148 @@ export class ProjectsController {
     @CurrentUser() user: User,
   ): Promise<StandardResponseDto<null>> {
     return this.projectsService.deleteProject(id, user.id);
+  }
+
+  // =====================================================
+  // LIKE/DISLIKE ENDPOINTS
+  // =====================================================
+
+  @Post('like')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Like Project',
+    description: 'Like a project (requires authentication)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Project liked successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/ProjectLikeResponseDto' },
+        message: { type: 'string', example: 'Project liked successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data or project not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Authentication required',
+  })
+  @HttpCode(HttpStatus.CREATED)
+  async likeProject(
+    @Body() likeDto: LikeProjectDto,
+    @CurrentUser() user: User,
+  ): Promise<StandardResponseDto<ProjectLikeResponseDto>> {
+    return this.projectsService.likeProject(likeDto.project_id, user.id);
+  }
+
+  @Post('dislike')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Dislike Project',
+    description: 'Dislike a project (requires authentication)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Project disliked successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/ProjectLikeResponseDto' },
+        message: { type: 'string', example: 'Project disliked successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data or project not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Authentication required',
+  })
+  @HttpCode(HttpStatus.CREATED)
+  async dislikeProject(
+    @Body() dislikeDto: DislikeProjectDto,
+    @CurrentUser() user: User,
+  ): Promise<StandardResponseDto<ProjectLikeResponseDto>> {
+    return this.projectsService.dislikeProject(dislikeDto.project_id, user.id);
+  }
+
+  @Delete(':id/like')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Remove Like/Dislike',
+    description:
+      'Remove user like or dislike from a project (requires authentication)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Like/dislike removed successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'null' },
+        message: {
+          type: 'string',
+          example: 'Like/dislike removed successfully',
+        },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Authentication required',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'No like or dislike found for this project',
+  })
+  async removeProjectLike(
+    @Param('id') projectId: string,
+    @CurrentUser() user: User,
+  ): Promise<StandardResponseDto<null>> {
+    return this.projectsService.removeProjectLike(projectId, user.id);
+  }
+
+  @Get(':id/likes')
+  @ApiOperation({
+    summary: 'Get Project Likes Stats',
+    description: 'Get likes and dislikes statistics for a project',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Project likes stats retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/ProjectLikesStatsDto' },
+        message: {
+          type: 'string',
+          example: 'Project likes stats retrieved successfully',
+        },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Project not found',
+  })
+  async getProjectLikesStats(
+    @Param('id') projectId: string,
+    @CurrentUser() user?: User,
+  ): Promise<StandardResponseDto<ProjectLikesStatsDto>> {
+    return this.projectsService.getProjectLikesStats(projectId, user?.id);
   }
 }
