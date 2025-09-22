@@ -1,8 +1,20 @@
+export enum TechnologyCategory {
+  FRONTEND = 'Frontend',
+  BACKEND = 'Backend',
+  DATABASE = 'Database',
+  DEVOPS = 'DevOps',
+  MOBILE = 'Mobile',
+  DESKTOP = 'Desktop',
+  CLOUD = 'Cloud',
+  AI_ML = 'AI/ML',
+  OTHER = 'Other',
+}
+
 export interface Technology {
   id: string;
   name: string;
   description?: string;
-  category: string;
+  category: TechnologyCategory;
   icon_url?: string;
   icon_filename?: string;
   icon_size?: number;
@@ -32,7 +44,7 @@ export interface TechnologyListResponse {
 export interface CreateTechnologyRequest {
   name: string;
   description?: string;
-  category: string;
+  category: TechnologyCategory;
   is_active?: boolean;
 }
 
@@ -41,4 +53,7 @@ export interface UpdateTechnologyRequest {
   description?: string;
   category?: string;
   is_active?: boolean;
+  icon_url?: string;
+  icon_filename?: string;
+  icon_size?: number;
 }

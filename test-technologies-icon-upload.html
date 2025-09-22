@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technologies Icon Upload Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1, h3 { color: #333; }
+        button { padding: 10px 15px; margin: 5px 0; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        pre { background-color: #e9e9e9; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .result { margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+        .error { color: red; }
+        .success { color: green; }
+        input[type="text"], input[type="file"] { padding: 8px; margin: 5px 0; width: calc(100% - 16px); border: 1px solid #ddd; border-radius: 4px; }
+        .file-input { margin: 10px 0; }
+        .file-info { margin: 5px 0; font-size: 14px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Technologies Icon Upload Test</h1>
+        <p>This page tests the icon upload functionality for the Technologies module.</p>
+
+        <div class="test-section">
+            <h3>1. Upload Technology Icon</h3>
+            <input type="text" id="techId" placeholder="Technology ID" value="">
+            <input type="text" id="authToken" placeholder="Enter JWT token">
+            
+            <div class="file-input">
+                <label for="iconFile">Select Icon File:</label>
+                <input type="file" id="iconFile" accept="image/*">
+                <div class="file-info" id="fileInfo"></div>
+            </div>
+            
+            <button onclick="testUploadIcon()" id="uploadBtn" disabled>Upload Icon</button>
+            <div id="upload-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Get Technology by ID (to verify icon upload)</h3>
+            <input type="text" id="verifyTechId" placeholder="Technology ID to verify" value="">
+            <button onclick="testGetTechnology()">Get Technology</button>
+            <div id="verify-result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api/v1';
+
+        // Enable upload button when file is selected
+        document.getElementById('iconFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const uploadBtn = document.getElementById('uploadBtn');
+            const fileInfo = document.getElementById('fileInfo');
+            
+            if (file) {
+                uploadBtn.disabled = false;
+                fileInfo.innerHTML = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+            } else {
+                uploadBtn.disabled = true;
+                fileInfo.innerHTML = '';
+            }
+        });
+
+        function displayResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `
+                <h4 class="${isError ? 'error' : 'success'}">${isError ? '❌ Error' : '✅ Success'}</h4>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+        }
+
+        async function testUploadIcon() {
+            const techId = document.getElementById('techId').value;
+            const token = document.getElementById('authToken').value;
+            const fileInput = document.getElementById('iconFile');
+            const file = fileInput.files[0];
+
+            if (!techId) {
+                displayResult('upload-result', { message: 'Please enter a Technology ID' }, true);
+                return;
+            }
+
+            if (!token) {
+                displayResult('upload-result', { message: 'Please enter a JWT token' }, true);
+                return;
+            }
+
+            if (!file) {
+                displayResult('upload-result', { message: 'Please select a file' }, true);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('icon', file);
+
+            try {
+                const response = await fetch(`${API_BASE}/technologies/${techId}/icon`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+                displayResult('upload-result', data, !response.ok);
+                
+                if (response.ok && data.data && data.data.id) {
+                    document.getElementById('verifyTechId').value = data.data.id;
+                }
+            } catch (error) {
+                displayResult('upload-result', { error: error.message }, true);
+            }
+        }
+
+        async function testGetTechnology() {
+            const id = document.getElementById('verifyTechId').value;
+            if (!id) {
+                displayResult('verify-result', { message: 'Please enter a Technology ID' }, true);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/technologies/${id}`);
+                const data = await response.json();
+                displayResult('verify-result', data, !response.ok);
+            } catch (error) {
+                displayResult('verify-result', { error: error.message }, true);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Technology with Icon Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1, h3 { color: #333; }
+        button { padding: 10px 15px; margin: 5px 0; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        pre { background-color: #e9e9e9; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .result { margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+        .error { color: red; }
+        .success { color: green; }
+        input[type="text"], input[type="file"], select { padding: 8px; margin: 5px 0; width: calc(100% - 16px); border: 1px solid #ddd; border-radius: 4px; }
+        .file-input { margin: 10px 0; }
+        .file-info { margin: 5px 0; font-size: 14px; color: #666; }
+        .form-group { margin: 10px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Create Technology with Icon Test</h1>
+        <p>This page tests the create technology endpoint with optional icon upload.</p>
+
+        <div class="test-section">
+            <h3>Create Technology with Icon</h3>
+            
+            <div class="form-group">
+                <label for="authToken">JWT Token:</label>
+                <input type="text" id="authToken" placeholder="Enter JWT token">
+            </div>
+
+            <div class="form-group">
+                <label for="techName">Technology Name:</label>
+                <input type="text" id="techName" placeholder="e.g., React" value="Vue.js">
+            </div>
+
+            <div class="form-group">
+                <label for="techDescription">Description (Optional):</label>
+                <input type="text" id="techDescription" placeholder="e.g., A progressive JavaScript framework" value="A progressive JavaScript framework">
+            </div>
+
+            <div class="form-group">
+                <label for="techCategory">Category:</label>
+                <select id="techCategory">
+                    <option value="Frontend">Frontend</option>
+                    <option value="Backend">Backend</option>
+                    <option value="Database">Database</option>
+                    <option value="DevOps">DevOps</option>
+                    <option value="Mobile">Mobile</option>
+                    <option value="Desktop">Desktop</option>
+                    <option value="Cloud">Cloud</option>
+                    <option value="AI/ML">AI/ML</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="techActive">Is Active:</label>
+                <select id="techActive">
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="iconFile">Icon File (Optional):</label>
+                <input type="file" id="iconFile" accept="image/*">
+                <div class="file-info" id="fileInfo"></div>
+            </div>
+
+            <button onclick="testCreateTechnology()" id="createBtn">Create Technology</button>
+            <div id="create-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Get All Technologies (to verify creation)</h3>
+            <button onclick="testGetTechnologies()">Get All Technologies</button>
+            <div id="get-all-result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api/v1';
+
+        // Enable create button when required fields are filled
+        function checkForm() {
+            const name = document.getElementById('techName').value;
+            const token = document.getElementById('authToken').value;
+            const createBtn = document.getElementById('createBtn');
+            
+            createBtn.disabled = !(name && token);
+        }
+
+        // Add event listeners
+        document.getElementById('techName').addEventListener('input', checkForm);
+        document.getElementById('authToken').addEventListener('input', checkForm);
+
+        // File selection handler
+        document.getElementById('iconFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const fileInfo = document.getElementById('fileInfo');
+            
+            if (file) {
+                fileInfo.innerHTML = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+            } else {
+                fileInfo.innerHTML = '';
+            }
+        });
+
+        function displayResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `
+                <h4 class="${isError ? 'error' : 'success'}">${isError ? '❌ Error' : '✅ Success'}</h4>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+        }
+
+        async function testCreateTechnology() {
+            const name = document.getElementById('techName').value;
+            const description = document.getElementById('techDescription').value;
+            const category = document.getElementById('techCategory').value;
+            const isActive = document.getElementById('techActive').value === 'true';
+            const token = document.getElementById('authToken').value;
+            const fileInput = document.getElementById('iconFile');
+            const file = fileInput.files[0];
+
+            if (!name || !token) {
+                displayResult('create-result', { message: 'Please fill in required fields' }, true);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('name', name);
+            if (description) formData.append('description', description);
+            formData.append('category', category);
+            formData.append('is_active', isActive.toString());
+            if (file) formData.append('icon', file);
+
+            try {
+                const response = await fetch(`${API_BASE}/technologies`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+                displayResult('create-result', data, !response.ok);
+            } catch (error) {
+                displayResult('create-result', { error: error.message }, true);
+            }
+        }
+
+        async function testGetTechnologies() {
+            try {
+                const response = await fetch(`${API_BASE}/technologies`);
+                const data = await response.json();
+                displayResult('get-all-result', data, !response.ok);
+            } catch (error) {
+                displayResult('get-all-result', { error: error.message }, true);
+            }
+        }
+
+        // Initial form check
+        checkForm();
+    </script>
+</body>
+</html>

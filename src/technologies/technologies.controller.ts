@@ -10,6 +10,8 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,8 +19,13 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiQuery,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ParseFilePipe, MaxFileSizeValidator } from '@nestjs/common';
 import { TechnologiesService } from './technologies.service';
+import { FileUploadService } from '../file-upload/file-upload.service';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { User } from '../auth/types/auth.types';
@@ -34,15 +41,64 @@ import {
 @ApiTags('technologies')
 @Controller('technologies')
 export class TechnologiesController {
-  constructor(private readonly technologiesService: TechnologiesService) {}
+  constructor(
+    private readonly technologiesService: TechnologiesService,
+    private readonly fileUploadService: FileUploadService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
+  @UseInterceptors(FileInterceptor('icon'))
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Create Technology',
-    description: 'Create a new technology (Admin only)',
+    description: 'Create a new technology with icon (Admin only)',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'Technology name',
+          example: 'React',
+        },
+        description: {
+          type: 'string',
+          description: 'Technology description',
+          example: 'A JavaScript library for building user interfaces',
+        },
+        category: {
+          type: 'string',
+          enum: [
+            'Frontend',
+            'Backend',
+            'Database',
+            'DevOps',
+            'Mobile',
+            'Desktop',
+            'Cloud',
+            'AI/ML',
+            'Other',
+          ],
+          description: 'Technology category',
+          example: 'Frontend',
+        },
+        is_active: {
+          type: 'boolean',
+          description: 'Whether the technology is active',
+          example: true,
+        },
+        icon: {
+          type: 'string',
+          format: 'binary',
+          description: 'Technology icon file (image)',
+        },
+      },
+      required: ['name', 'category'],
+    },
   })
   @ApiResponse({
     status: 201,
@@ -67,8 +123,128 @@ export class TechnologiesController {
   async createTechnology(
     @Body() createDto: CreateTechnologyDto,
     @CurrentUser() user: User,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 2 * 1024 * 1024 }), // 2MB
+        ],
+        fileIsRequired: false, // Icon is optional
+      }),
+    )
+    icon?: Express.Multer.File,
   ): Promise<StandardResponseDto<TechnologyDto>> {
-    return this.technologiesService.createTechnology(createDto);
+    // Create the technology first
+    const technology =
+      await this.technologiesService.createTechnology(createDto);
+
+    // If icon is provided, upload it and update the technology
+    if (icon && technology.data) {
+      try {
+        const uploadResult = await this.fileUploadService.uploadTechnologyIcon(
+          icon,
+          technology.data.id,
+        );
+
+        // Update technology with icon information
+        const updateData = {
+          icon_url: uploadResult.url,
+          icon_filename: uploadResult.filename,
+          icon_size: icon.size,
+        };
+
+        return this.technologiesService.updateTechnology(
+          technology.data.id,
+          updateData,
+        );
+      } catch (error) {
+        // If icon upload fails, still return the created technology
+        // but log the error
+        console.error('Icon upload failed:', error);
+        return technology;
+      }
+    }
+
+    return technology;
+  }
+
+  @Post(':id/icon')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @UseInterceptors(FileInterceptor('icon'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Upload Technology Icon',
+    description: 'Upload an icon for a technology (Admin only)',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        icon: {
+          type: 'string',
+          format: 'binary',
+          description: 'Technology icon file (image)',
+        },
+      },
+      required: ['icon'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Icon uploaded successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/TechnologyDto' },
+        message: { type: 'string', example: 'Icon uploaded successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid file or technology not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Technology not found',
+  })
+  async uploadTechnologyIcon(
+    @Param('id') id: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 2 * 1024 * 1024 }), // 2MB
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+    @CurrentUser() user: User,
+  ): Promise<StandardResponseDto<TechnologyDto>> {
+    // Check if technology exists
+    const existingTech = await this.technologiesService.getTechnologyById(id);
+    if (!existingTech.data) {
+      throw new Error('Technology not found');
+    }
+
+    // Upload the icon
+    const uploadResult = await this.fileUploadService.uploadTechnologyIcon(
+      file,
+      id,
+    );
+
+    // Update technology with icon information
+    const updateData = {
+      icon_url: uploadResult.url,
+      icon_filename: uploadResult.filename,
+      icon_size: file.size,
+    };
+
+    return this.technologiesService.updateTechnology(id, updateData);
   }
 
   @Get()

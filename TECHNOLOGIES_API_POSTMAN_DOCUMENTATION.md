@@ -273,41 +273,51 @@ GET {{base_url}}/technologies/123e4567-e89b-12d3-a456-426614174000
 **Method:** `POST`  
 **URL:** `{{base_url}}/technologies`  
 **Authentication:** Required (JWT token)  
-**Description:** Create a new technology (Admin only)
+**Description:** Create a new technology with optional icon (Admin only)
 
 #### **Request Body:**
 
-```json
-{
-  "name": "React",
-  "description": "A JavaScript library for building user interfaces",
-  "category": "Frontend",
-  "is_active": true
-}
-```
-
-#### **Request Body Schema:**
+**Content-Type:** `multipart/form-data`
 
 | Field         | Type    | Required | Description                                      |
 | ------------- | ------- | -------- | ------------------------------------------------ |
 | `name`        | string  | Yes      | Technology name                                  |
 | `description` | string  | No       | Technology description                           |
-| `category`    | string  | Yes      | Technology category                              |
+| `category`    | string  | Yes      | Technology category (enum)                       |
 | `is_active`   | boolean | No       | Whether the technology is active (default: true) |
+| `icon`        | file    | No       | Technology icon file (image)                     |
+
+#### **Category Enum Values:**
+
+- `Frontend` - Frontend technologies
+- `Backend` - Backend technologies
+- `Database` - Database technologies
+- `DevOps` - DevOps tools and practices
+- `Mobile` - Mobile development
+- `Desktop` - Desktop applications
+- `Cloud` - Cloud platforms and services
+- `AI/ML` - Artificial Intelligence and Machine Learning
+- `Other` - Other technologies
+
+#### **Supported File Types (for icon):**
+
+- JPEG, JPG, PNG, WebP, GIF, BMP, TIFF
+- SVG, AVIF, HEIC, HEIF, ICO
+- **Max Size:** 2MB
 
 #### **Example Request:**
 
 ```bash
 POST {{base_url}}/technologies
-Content-Type: application/json
+Content-Type: multipart/form-data
 Authorization: Bearer {{auth_token}}
 
-{
-  "name": "Vue.js",
-  "description": "A progressive JavaScript framework",
-  "category": "Frontend",
-  "is_active": true
-}
+Form Data:
+- name: "Vue.js"
+- description: "A progressive JavaScript framework"
+- category: "Frontend"
+- is_active: true
+- icon: [Select File] (e.g., vue-icon.png)
 ```
 
 #### **Response Example:**
@@ -319,6 +329,9 @@ Authorization: Bearer {{auth_token}}
     "name": "Vue.js",
     "description": "A progressive JavaScript framework",
     "category": "Frontend",
+    "icon_url": "https://your-supabase-url.supabase.co/storage/v1/object/public/technology-icons/tech-123e4567-e89b-12d3-a456-426614174000/1703123456789-abc123.png",
+    "icon_filename": "1703123456789-abc123.png",
+    "icon_size": 1024,
     "is_active": true,
     "created_at": "2023-01-01T00:00:00Z",
     "updated_at": "2023-01-01T00:00:00Z"
@@ -397,7 +410,68 @@ Authorization: Bearer {{auth_token}}
 
 ---
 
-### **8. Delete Technology**
+### **8. Upload Technology Icon**
+
+**Method:** `POST`  
+**URL:** `{{base_url}}/technologies/{id}/icon`  
+**Authentication:** Required (JWT token)  
+**Description:** Upload an icon for a technology (Admin only)
+
+#### **Path Parameters:**
+
+| Parameter | Type   | Required | Description     |
+| --------- | ------ | -------- | --------------- |
+| `id`      | string | Yes      | Technology UUID |
+
+#### **Request Body:**
+
+**Content-Type:** `multipart/form-data`
+
+| Field  | Type | Required | Description                  |
+| ------ | ---- | -------- | ---------------------------- |
+| `icon` | file | Yes      | Technology icon file (image) |
+
+#### **Supported File Types:**
+
+- JPEG, JPG, PNG, WebP, GIF, BMP, TIFF
+- SVG, AVIF, HEIC, HEIF, ICO
+- **Max Size:** 2MB
+
+#### **Example Request:**
+
+```bash
+POST {{base_url}}/technologies/123e4567-e89b-12d3-a456-426614174000/icon
+Content-Type: multipart/form-data
+Authorization: Bearer {{auth_token}}
+
+Form Data:
+- icon: [Select File] (e.g., react-icon.png)
+```
+
+#### **Response Example:**
+
+```json
+{
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "name": "React",
+    "description": "A JavaScript library for building user interfaces",
+    "category": "Frontend",
+    "icon_url": "https://your-supabase-url.supabase.co/storage/v1/object/public/technology-icons/tech-123e4567-e89b-12d3-a456-426614174000/1703123456789-abc123.png",
+    "icon_filename": "1703123456789-abc123.png",
+    "icon_size": 1024,
+    "is_active": true,
+    "created_at": "2023-01-01T00:00:00Z",
+    "updated_at": "2023-01-01T12:00:00Z"
+  },
+  "message": "Icon uploaded successfully",
+  "status": "success"
+}
+```
+
+---
+
+### **9. Delete Technology**
 
 **Method:** `DELETE`  
 **URL:** `{{base_url}}/technologies/{id}`  

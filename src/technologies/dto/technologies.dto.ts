@@ -7,8 +7,21 @@ import {
   IsInt,
   Min,
   Max,
+  IsEnum,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
+
+export enum TechnologyCategory {
+  FRONTEND = 'Frontend',
+  BACKEND = 'Backend',
+  DATABASE = 'Database',
+  DEVOPS = 'DevOps',
+  MOBILE = 'Mobile',
+  DESKTOP = 'Desktop',
+  CLOUD = 'Cloud',
+  AI_ML = 'AI/ML',
+  OTHER = 'Other',
+}
 
 export class CreateTechnologyDto {
   @ApiProperty({
@@ -30,9 +43,10 @@ export class CreateTechnologyDto {
   @ApiProperty({
     example: 'Frontend',
     description: 'Technology category',
+    enum: TechnologyCategory,
   })
-  @IsString()
-  category: string;
+  @IsEnum(TechnologyCategory)
+  category: TechnologyCategory;
 
   @ApiProperty({
     example: true,
@@ -81,6 +95,34 @@ export class UpdateTechnologyDto {
   @IsOptional()
   @IsBoolean()
   is_active?: boolean;
+
+  @ApiProperty({
+    example: 'https://example.com/icon.png',
+    description: 'Technology icon URL',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  icon_url?: string;
+
+  @ApiProperty({
+    example: 'react-icon.png',
+    description: 'Technology icon filename',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  icon_filename?: string;
+
+  @ApiProperty({
+    example: 1024,
+    description: 'Technology icon size in bytes',
+    required: false,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  icon_size?: number;
 }
 
 export class TechnologyQueryDto {
