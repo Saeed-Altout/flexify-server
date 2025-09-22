@@ -29,7 +29,8 @@ const imageMimeTypes = [
   'image/heif',
 ];
 
-export const imageMaxSize = 5 * 1024 * 1024;
+export const imageMaxSize = 10 * 1024 * 1024; // 10MB for project images
+export const profileImageMaxSize = 5 * 1024 * 1024; // 5MB for profile images
 
 export const pdfMimeTypes = [
   'application/pdf',
@@ -74,7 +75,7 @@ export class FileUploadService {
       'profile-pictures',
       `user-${userId}`,
       imageMimeTypes,
-      imageMaxSize,
+      profileImageMaxSize,
     );
   }
 
@@ -129,36 +130,52 @@ export class FileUploadService {
     allowedMimeTypes: string[],
     maxSize: number,
   ): Promise<FileUploadResult> {
+    // Validate file type
     if (!allowedMimeTypes.includes(file.mimetype)) {
       throw new BadRequestException(
         `Invalid file type. Allowed: ${allowedMimeTypes.join(', ')}`,
       );
     }
 
+    // Validate file size
     if (file.size > maxSize) {
       throw new BadRequestException(
         `File too large. Max size: ${maxSize / (1024 * 1024)}MB`,
       );
     }
 
+    // Validate file buffer
+    if (!file.buffer || file.buffer.length === 0) {
+      throw new BadRequestException('File buffer is empty');
+    }
+
+    // Generate unique filename
     const timestamp = Date.now();
-    const extension = file.originalname.split('.').pop() || 'jpg';
-    const filename = `${timestamp}-${Math.random().toString(36).substring(2)}.${extension}`;
+    const extension =
+      file.originalname.split('.').pop()?.toLowerCase() || 'jpg';
+    const randomString = Math.random().toString(36).substring(2, 15);
+    const filename = `${timestamp}-${randomString}.${extension}`;
     const filePath = `${folder}/${filename}`;
 
     try {
       const supabase = this.getSupabaseClient();
+
+      // Upload file with proper metadata
       const { error } = await supabase.storage
         .from(bucket)
         .upload(filePath, file.buffer, {
           contentType: file.mimetype,
           cacheControl: '3600',
+          upsert: false, // Don't overwrite existing files
         });
 
       if (error) {
-        throw new BadRequestException('Failed to upload file');
+        throw new BadRequestException(
+          `Failed to upload file: ${error.message}`,
+        );
       }
 
+      // Get public URL
       const { data: urlData } = supabase.storage
         .from(bucket)
         .getPublicUrl(filePath);
@@ -169,7 +186,10 @@ export class FileUploadService {
         filename,
       };
     } catch (error) {
-      throw new BadRequestException('File upload failed');
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(`File upload failed: ${error.message}`);
     }
   }
 
