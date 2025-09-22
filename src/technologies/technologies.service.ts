@@ -278,8 +278,8 @@ export class TechnologiesService {
       this.logger.log(`Updating technology: ${id}`);
 
       // Check if technology exists
-      const existingTech = await this.getTechnologyById(id);
-      if (!existingTech.data) {
+      const existingTechResponse = await this.getTechnologyById(id);
+      if (!existingTechResponse.data) {
         throw new NotFoundException(`Technology with ID ${id} not found`);
       }
 
@@ -319,8 +319,8 @@ export class TechnologiesService {
       this.logger.log(`Deleting technology: ${id}`);
 
       // Check if technology exists
-      const existingTech = await this.getTechnologyById(id);
-      if (!existingTech.data) {
+      const existingTechResponse = await this.getTechnologyById(id);
+      if (!existingTechResponse.data) {
         throw new NotFoundException(`Technology with ID ${id} not found`);
       }
 
