@@ -1,14 +1,4 @@
-export enum TechnologyCategory {
-  FRONTEND = 'Frontend',
-  BACKEND = 'Backend',
-  DATABASE = 'Database',
-  DEVOPS = 'DevOps',
-  MOBILE = 'Mobile',
-  DESKTOP = 'Desktop',
-  CLOUD = 'Cloud',
-  AI_ML = 'AI/ML',
-  OTHER = 'Other',
-}
+import { TechnologyCategory } from '../enums/technologies.enums';
 
 export interface Technology {
   id: string;
@@ -16,15 +6,13 @@ export interface Technology {
   description?: string;
   category: TechnologyCategory;
   icon_url?: string;
-  icon_filename?: string;
-  icon_size?: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
 }
 
-export interface TechnologyQuery {
-  category?: string;
+export interface TechnologiesQuery {
+  category?: TechnologyCategory;
   is_active?: boolean;
   search?: string;
   page?: number;
@@ -33,27 +21,10 @@ export interface TechnologyQuery {
   sort_order?: 'asc' | 'desc';
 }
 
-export interface TechnologyListResponse {
+export interface TechnologiesResponse {
   technologies: Technology[];
   total: number;
   page: number;
   limit: number;
   total_pages: number;
-}
-
-export interface CreateTechnologyRequest {
-  name: string;
-  description?: string;
-  category: TechnologyCategory;
-  is_active?: boolean;
-}
-
-export interface UpdateTechnologyRequest {
-  name?: string;
-  description?: string;
-  category?: string;
-  is_active?: boolean;
-  icon_url?: string;
-  icon_filename?: string;
-  icon_size?: number;
 }

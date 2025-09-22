@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { ConfigService } from '@nestjs/config';
 
@@ -15,9 +15,34 @@ export interface FileUploadResult {
   filename: string;
 }
 
+const imageMimeTypes = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/bmp',
+  'image/tiff',
+  'image/svg+xml',
+  'image/avif',
+  'image/heic',
+  'image/heif',
+];
+
+export const imageMaxSize = 5 * 1024 * 1024;
+
+export const pdfMimeTypes = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+  'application/rtf',
+];
+
+export const pdfMaxSize = 5 * 1024 * 1024;
+
 @Injectable()
 export class FileUploadService {
-  private readonly logger = new Logger(FileUploadService.name);
   private supabase: SupabaseClient | null = null;
 
   constructor(private configService: ConfigService) {}
@@ -48,20 +73,8 @@ export class FileUploadService {
       file,
       'profile-pictures',
       `user-${userId}`,
-      [
-        'image/jpeg',
-        'image/jpg',
-        'image/png',
-        'image/webp',
-        'image/gif',
-        'image/bmp',
-        'image/tiff',
-        'image/svg+xml',
-        'image/avif',
-        'image/heic',
-        'image/heif',
-      ],
-      5 * 1024 * 1024, // 5MB limit
+      imageMimeTypes,
+      imageMaxSize,
     );
   }
 
@@ -78,20 +91,8 @@ export class FileUploadService {
       file,
       'project-images',
       folder,
-      [
-        'image/jpeg',
-        'image/jpg',
-        'image/png',
-        'image/webp',
-        'image/gif',
-        'image/bmp',
-        'image/tiff',
-        'image/svg+xml',
-        'image/avif',
-        'image/heic',
-        'image/heif',
-      ],
-      10 * 1024 * 1024, // 10MB limit
+      imageMimeTypes,
+      imageMaxSize,
     );
   }
 
@@ -103,14 +104,8 @@ export class FileUploadService {
       file,
       'cv-files',
       `user-${userId}`,
-      [
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'text/plain',
-        'application/rtf',
-      ],
-      5 * 1024 * 1024, // 5MB limit
+      pdfMimeTypes,
+      pdfMaxSize,
     );
   }
 
@@ -122,21 +117,8 @@ export class FileUploadService {
       file,
       'technology-icons',
       `tech-${technologyId}`,
-      [
-        'image/jpeg',
-        'image/jpg',
-        'image/png',
-        'image/webp',
-        'image/gif',
-        'image/bmp',
-        'image/tiff',
-        'image/svg+xml',
-        'image/avif',
-        'image/heic',
-        'image/heif',
-        'image/ico',
-      ],
-      2 * 1024 * 1024, // 2MB limit for icons
+      imageMimeTypes,
+      imageMaxSize,
     );
   }
 
@@ -147,21 +129,18 @@ export class FileUploadService {
     allowedMimeTypes: string[],
     maxSize: number,
   ): Promise<FileUploadResult> {
-    // Validate file type
     if (!allowedMimeTypes.includes(file.mimetype)) {
       throw new BadRequestException(
         `Invalid file type. Allowed: ${allowedMimeTypes.join(', ')}`,
       );
     }
 
-    // Validate file size
     if (file.size > maxSize) {
       throw new BadRequestException(
         `File too large. Max size: ${maxSize / (1024 * 1024)}MB`,
       );
     }
 
-    // Generate unique filename
     const timestamp = Date.now();
     const extension = file.originalname.split('.').pop() || 'jpg';
     const filename = `${timestamp}-${Math.random().toString(36).substring(2)}.${extension}`;
@@ -177,11 +156,9 @@ export class FileUploadService {
         });
 
       if (error) {
-        this.logger.error(`Upload error: ${error.message}`);
         throw new BadRequestException('Failed to upload file');
       }
 
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from(bucket)
         .getPublicUrl(filePath);
@@ -192,7 +169,6 @@ export class FileUploadService {
         filename,
       };
     } catch (error) {
-      this.logger.error(`File upload failed: ${error.message}`);
       throw new BadRequestException('File upload failed');
     }
   }
@@ -203,11 +179,9 @@ export class FileUploadService {
       const { error } = await supabase.storage.from(bucket).remove([filePath]);
 
       if (error) {
-        this.logger.error(`Delete error: ${error.message}`);
         throw new BadRequestException('Failed to delete file');
       }
     } catch (error) {
-      this.logger.error(`File deletion failed: ${error.message}`);
       throw new BadRequestException('File deletion failed');
     }
   }
