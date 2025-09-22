@@ -6,6 +6,7 @@ import {
   Max,
   IsUUID,
   IsNotEmpty,
+  IsIn,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 
@@ -25,13 +26,21 @@ export class ImageQueryDto {
 
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
   search?: string;
 
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
   mimetype?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['created_at', 'updated_at', 'filename', 'size', 'mimetype'])
+  sort_by?: 'created_at' | 'updated_at' | 'filename' | 'size' | 'mimetype';
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['asc', 'desc'])
+  sort_order?: 'asc' | 'desc';
 }
 
 export class DeleteImageDto {

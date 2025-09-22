@@ -107,18 +107,23 @@ export class ImagesService {
         .select('*', { count: 'exact' })
         .eq('user_id', userId);
 
-      if (query.search) {
+      if (query.search && query.search.trim() !== '') {
         supabaseQuery = supabaseQuery.or(
           `filename.ilike.%${query.search}%,mimetype.ilike.%${query.search}%`,
         );
       }
 
-      if (query.mimetype) {
+      if (query.mimetype && query.mimetype.trim() !== '') {
         supabaseQuery = supabaseQuery.eq('mimetype', query.mimetype);
       }
 
+      // Handle sorting
+      const sortBy = query.sort_by || 'created_at';
+      const sortOrder = query.sort_order || 'desc';
+      const ascending = sortOrder === 'asc';
+
       supabaseQuery = supabaseQuery
-        .order('created_at', { ascending: false })
+        .order(sortBy, { ascending })
         .range(from, to);
 
       const { data, error, count } = await supabaseQuery;
