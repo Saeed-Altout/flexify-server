@@ -10,9 +10,6 @@ import {
   Project,
   ProjectsResponse,
   ProjectCoverUploadResponse,
-  ProjectImageUploadResponse,
-  ProjectImage,
-  ProjectCover,
 } from './types/projects.types';
 import {
   CreateProjectDto,
@@ -24,14 +21,14 @@ import { ProjectStatus } from './enums';
 
 import { SupabaseService } from '../supabase/supabase.service';
 import { FileUploadService } from '../file-upload/file-upload.service';
-import { ProjectImageService } from './services/project-image.service';
+import { ProjectCoverService } from './services/project-cover.service';
 
 @Injectable()
 export class ProjectsService {
   constructor(
     private supabaseService: SupabaseService,
     private fileUploadService: FileUploadService,
-    private projectImageService: ProjectImageService,
+    private projectCoverService: ProjectCoverService,
   ) {}
 
   async createProject(
@@ -47,8 +44,7 @@ export class ProjectsService {
         user_id: userId,
         likes_count: createDto.likes_count || 0,
         technologies: createDto.technologies || [],
-        cover: createDto.cover,
-        images: createDto.images || [],
+        cover_url: createDto.cover_url,
         demo_url: createDto.demo_url,
         github_url: createDto.github_url,
         is_public: createDto.is_public || false,
@@ -388,7 +384,7 @@ export class ProjectsService {
     userId: string,
   ): Promise<RootResponse<ProjectCoverUploadResponse>> {
     try {
-      const result = await this.projectImageService.uploadProjectCover(
+      const result = await this.projectCoverService.uploadProjectCover(
         projectId,
         file,
         userId,
@@ -406,63 +402,19 @@ export class ProjectsService {
     }
   }
 
-  async uploadProjectImage(
+  async deleteProjectCover(
     projectId: string,
-    file: Express.Multer.File,
     userId: string,
-  ): Promise<RootResponse<ProjectImageUploadResponse>> {
+  ): Promise<RootResponse<{ deleted_cover_url: string }>> {
     try {
-      const result = await this.projectImageService.uploadProjectImage(
+      const result = await this.projectCoverService.deleteProjectCover(
         projectId,
-        file,
         userId,
       );
 
       return {
         data: result,
-        message: 'Project image uploaded successfully',
-        status: 'success',
-      };
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof Error ? error.message : JSON.stringify(error);
-      throw error instanceof Error ? error : new Error(errorMessage);
-    }
-  }
-
-  async deleteProjectImage(
-    projectId: string,
-    imageUrl: string,
-    userId: string,
-  ): Promise<RootResponse<{ deleted_url: string; remaining_images: number }>> {
-    try {
-      const result = await this.projectImageService.deleteProjectImage(
-        projectId,
-        imageUrl,
-        userId,
-      );
-
-      return {
-        data: result,
-        message: 'Project image deleted successfully',
-        status: 'success',
-      };
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof Error ? error.message : JSON.stringify(error);
-      throw error instanceof Error ? error : new Error(errorMessage);
-    }
-  }
-
-  async getProjectImages(
-    projectId: string,
-  ): Promise<RootResponse<ProjectImage[]>> {
-    try {
-      const images = await this.projectImageService.getProjectImages(projectId);
-
-      return {
-        data: images,
-        message: 'Project images retrieved successfully',
+        message: 'Project cover deleted successfully',
         status: 'success',
       };
     } catch (error: any) {
@@ -474,93 +426,16 @@ export class ProjectsService {
 
   async getProjectCover(
     projectId: string,
-  ): Promise<RootResponse<ProjectCover | null>> {
+  ): Promise<RootResponse<string | null>> {
     try {
-      const cover = await this.projectImageService.getProjectCover(projectId);
+      const coverUrl =
+        await this.projectCoverService.getProjectCover(projectId);
 
       return {
-        data: cover,
-        message: cover
+        data: coverUrl,
+        message: coverUrl
           ? 'Project cover retrieved successfully'
           : 'No cover found for this project',
-        status: 'success',
-      };
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof Error ? error.message : JSON.stringify(error);
-      throw error instanceof Error ? error : new Error(errorMessage);
-    }
-  }
-
-  async deleteProjectCover(
-    projectId: string,
-    userId: string,
-  ): Promise<RootResponse<{ deleted_cover: string }>> {
-    try {
-      // Verify project ownership
-      const { data: project, error: projectError } =
-        await this.supabaseService.select('projects', {
-          eq: { id: projectId },
-        });
-
-      if (projectError) {
-        throw new BadRequestException(
-          `Failed to fetch project: ${projectError.message}`,
-        );
-      }
-
-      if (!project || project.length === 0) {
-        throw new NotFoundException(`Project with ID ${projectId} not found`);
-      }
-
-      if (project[0].user_id !== userId) {
-        throw new ForbiddenException('You can only manage your own projects');
-      }
-
-      const currentCover = project[0].cover;
-
-      if (!currentCover) {
-        throw new NotFoundException('No cover found for this project');
-      }
-
-      // Remove cover from project
-      const { error: updateError } = await this.supabaseService.update(
-        'projects',
-        { cover: null },
-        { id: projectId },
-      );
-
-      if (updateError) {
-        throw new BadRequestException(
-          `Failed to remove project cover: ${updateError.message}`,
-        );
-      }
-
-      return {
-        data: { deleted_cover: currentCover },
-        message: 'Project cover deleted successfully',
-        status: 'success',
-      };
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof Error ? error.message : JSON.stringify(error);
-      throw error instanceof Error ? error : new Error(errorMessage);
-    }
-  }
-
-  async clearAllProjectImages(
-    projectId: string,
-    userId: string,
-  ): Promise<RootResponse<{ cleared_count: number }>> {
-    try {
-      const result = await this.projectImageService.clearAllProjectImages(
-        projectId,
-        userId,
-      );
-
-      return {
-        data: result,
-        message: `${result.cleared_count} images cleared successfully`,
         status: 'success',
       };
     } catch (error: any) {

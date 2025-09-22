@@ -25,20 +25,18 @@ src/projects/
 - **Project CRUD Operations**: Create, read, update, and delete projects
 - **Project Status Management**: Planning, Active, In Progress, Completed
 - **Technology Integration**: Associate projects with technologies
-- **Advanced Image Management**: Comprehensive image and cover management system
+- **Simple Cover Management**: Single cover image per project (like technologies icon_url)
 - **Likes System**: Users can like/unlike projects
 - **Search & Filtering**: Advanced search and filtering capabilities
 - **Pagination**: Efficient data pagination for large datasets
 
-### Enhanced Image Management
+### Simplified Cover Management
 
-- **Dedicated Image Service**: Separate service for all image operations
-- **Rich Image Metadata**: Detailed image information with size, type, and upload date
-- **Image Limits**: Configurable maximum images per project (default: 10)
-- **Cover Management**: Separate cover image handling with replacement tracking
-- **Bulk Operations**: Clear all images at once
-- **Image Retrieval**: Get all project images with metadata
-- **Better Error Handling**: Clear error messages for image operations
+- **Single Cover**: One cover image per project (similar to technologies icon_url)
+- **Simple Upload**: Easy cover upload and replacement
+- **Cover Retrieval**: Get project cover URL
+- **Cover Deletion**: Remove project cover
+- **Clean Architecture**: Simple and maintainable code structure
 
 ### Security & Validation
 
@@ -67,17 +65,13 @@ src/projects/
 | ------ | ---------------- | ------------------- | ------------- |
 | POST   | `/projects/like` | Like/unlike project | ✅            |
 
-### File Management
+### Cover Management
 
-| Method | Endpoint                   | Description              | Auth Required | Owner Only |
-| ------ | -------------------------- | ------------------------ | ------------- | ---------- |
-| POST   | `/projects/:id/cover`      | Upload project cover     | ✅            | ✅         |
-| GET    | `/projects/:id/cover`      | Get project cover        | ❌            | -          |
-| DELETE | `/projects/:id/cover`      | Delete project cover     | ✅            | ✅         |
-| POST   | `/projects/:id/images`     | Upload project image     | ✅            | ✅         |
-| GET    | `/projects/:id/images`     | Get project images       | ❌            | -          |
-| DELETE | `/projects/:id/images`     | Delete project image     | ✅            | ✅         |
-| DELETE | `/projects/:id/images/all` | Clear all project images | ✅            | ✅         |
+| Method | Endpoint              | Description          | Auth Required | Owner Only |
+| ------ | --------------------- | -------------------- | ------------- | ---------- |
+| POST   | `/projects/:id/cover` | Upload project cover | ✅            | ✅         |
+| GET    | `/projects/:id/cover` | Get project cover    | ❌            | -          |
+| DELETE | `/projects/:id/cover` | Delete project cover | ✅            | ✅         |
 
 ## 🔧 Data Models
 
@@ -93,8 +87,7 @@ interface Project {
   user_id: string;
   technologies: string[];
   likes_count: number;
-  cover: string;
-  images: string[];
+  cover_url?: string;
   demo_url?: string;
   github_url?: string;
   is_public: boolean;
@@ -115,37 +108,12 @@ enum ProjectStatus {
 }
 ```
 
-### Image Management Types
+### Cover Management Types
 
 ```typescript
-interface ProjectImage {
-  id: string;
-  url: string;
-  filename: string;
-  path: string;
-  size: number;
-  mimetype: string;
-  uploaded_at: string;
-}
-
-interface ProjectCover {
-  url: string;
-  filename: string;
-  path: string;
-  size: number;
-  mimetype: string;
-  uploaded_at: string;
-}
-
-interface ProjectImageUploadResponse {
-  image: ProjectImage;
-  total_images: number;
-  remaining_slots: number;
-}
-
 interface ProjectCoverUploadResponse {
-  cover: ProjectCover;
-  previous_cover?: string;
+  cover_url: string;
+  previous_cover_url?: string;
 }
 ```
 
@@ -186,8 +154,7 @@ Authorization: Bearer <token>
     "user_id": "user-uuid",
     "technologies": ["uuid1", "uuid2"],
     "likes_count": 0,
-    "cover": null,
-    "images": [],
+    "cover_url": null,
     "demo_url": "https://demo.example.com",
     "github_url": "https://github.com/user/repo",
     "is_public": true,
@@ -279,13 +246,13 @@ Authorization: Bearer <token>
 - `created_at`
 - `updated_at`
 
-## 📁 File Upload
+## 📁 Cover Upload
 
 ### Supported File Types
 
 - **Images**: JPEG, JPG, PNG, GIF, WebP
 - **Maximum Size**: 10MB per file
-- **Maximum Images**: 10 images per project
+- **Single Cover**: One cover image per project
 
 ### Upload Project Cover
 
@@ -304,88 +271,10 @@ file: <binary-data>
 ```json
 {
   "data": {
-    "cover": {
-      "url": "https://storage.example.com/path/to/cover.jpg",
-      "filename": "cover.jpg",
-      "path": "user-123/project-456/cover.jpg",
-      "size": 1024000,
-      "mimetype": "image/jpeg",
-      "uploaded_at": "2024-01-01T00:00:00Z"
-    },
-    "previous_cover": "https://old-cover-url.com/old-cover.jpg"
+    "cover_url": "https://storage.example.com/path/to/cover.jpg",
+    "previous_cover_url": "https://old-cover-url.com/old-cover.jpg"
   },
   "message": "Project cover uploaded successfully",
-  "status": "success"
-}
-```
-
-### Upload Project Image
-
-**Request:**
-
-```http
-POST /projects/:id/images
-Content-Type: multipart/form-data
-Authorization: Bearer <token>
-
-file: <binary-data>
-```
-
-**Response:**
-
-```json
-{
-  "data": {
-    "image": {
-      "id": "img-1",
-      "url": "https://storage.example.com/path/to/image.jpg",
-      "filename": "image.jpg",
-      "path": "user-123/project-456/image.jpg",
-      "size": 1024000,
-      "mimetype": "image/jpeg",
-      "uploaded_at": "2024-01-01T00:00:00Z"
-    },
-    "total_images": 3,
-    "remaining_slots": 7
-  },
-  "message": "Project image uploaded successfully",
-  "status": "success"
-}
-```
-
-### Get Project Images
-
-**Request:**
-
-```http
-GET /projects/:id/images
-```
-
-**Response:**
-
-```json
-{
-  "data": [
-    {
-      "id": "img-1",
-      "url": "https://storage.example.com/path/to/image1.jpg",
-      "filename": "image1.jpg",
-      "path": "user-123/project-456/image1.jpg",
-      "size": 0,
-      "mimetype": "image/jpeg",
-      "uploaded_at": "2024-01-01T00:00:00Z"
-    },
-    {
-      "id": "img-2",
-      "url": "https://storage.example.com/path/to/image2.jpg",
-      "filename": "image2.jpg",
-      "path": "user-123/project-456/image2.jpg",
-      "size": 0,
-      "mimetype": "image/jpeg",
-      "uploaded_at": "2024-01-01T00:00:00Z"
-    }
-  ],
-  "message": "Project images retrieved successfully",
   "status": "success"
 }
 ```
@@ -402,52 +291,18 @@ GET /projects/:id/cover
 
 ```json
 {
-  "data": {
-    "url": "https://storage.example.com/path/to/cover.jpg",
-    "filename": "cover.jpg",
-    "path": "user-123/project-456/cover.jpg",
-    "size": 0,
-    "mimetype": "image/jpeg",
-    "uploaded_at": "2024-01-01T00:00:00Z"
-  },
+  "data": "https://storage.example.com/path/to/cover.jpg",
   "message": "Project cover retrieved successfully",
   "status": "success"
 }
 ```
 
-### Delete Project Image
+### Delete Project Cover
 
 **Request:**
 
 ```http
-DELETE /projects/:id/images
-Content-Type: application/json
-Authorization: Bearer <token>
-
-{
-  "image_url": "https://storage.example.com/path/to/image.jpg"
-}
-```
-
-**Response:**
-
-```json
-{
-  "data": {
-    "deleted_url": "https://storage.example.com/path/to/image.jpg",
-    "remaining_images": 2
-  },
-  "message": "Project image deleted successfully",
-  "status": "success"
-}
-```
-
-### Clear All Project Images
-
-**Request:**
-
-```http
-DELETE /projects/:id/images/all
+DELETE /projects/:id/cover
 Authorization: Bearer <token>
 ```
 
@@ -456,9 +311,9 @@ Authorization: Bearer <token>
 ```json
 {
   "data": {
-    "cleared_count": 5
+    "deleted_cover_url": "https://storage.example.com/path/to/cover.jpg"
   },
-  "message": "5 images cleared successfully",
+  "message": "Project cover deleted successfully",
   "status": "success"
 }
 ```
@@ -478,8 +333,7 @@ Authorization: Bearer <token>
 - **Content**: Optional, non-empty string
 - **Status**: Must be valid ProjectStatus enum value
 - **Technologies**: Array of valid UUIDs
-- **Images**: Array of valid URLs, max 10 items
-- **Cover**: Valid URL
+- **Cover URL**: Valid URL format
 - **Demo URL**: Valid URL format
 - **GitHub URL**: Valid URL format
 - **Likes Count**: Non-negative number
@@ -489,7 +343,7 @@ Authorization: Bearer <token>
 
 - File type validation (images only)
 - File size limits (10MB max)
-- Maximum image count per project (10)
+- Single cover per project
 - Secure file storage with unique naming
 
 ## 🔄 Business Logic
@@ -523,12 +377,12 @@ Authorization: Bearer <token>
 4. Update project likes_count field
 5. Return like status
 
-### File Management
+### Cover Management
 
 1. Verify project ownership
 2. Validate file type and size
 3. Upload to secure storage
-4. Update project record with file URL
+4. Update project record with cover URL
 5. Return upload result
 
 ## 🧪 Testing
@@ -541,8 +395,8 @@ Authorization: Bearer <token>
    - Update project (owner vs non-owner)
    - Delete project (owner vs non-owner)
 
-2. **File Upload**
-   - Upload valid image files
+2. **Cover Upload**
+   - Upload valid cover image
    - Upload invalid file types
    - Upload oversized files
    - Upload to non-owned project
@@ -569,6 +423,7 @@ const sampleProject = {
   content: 'Detailed content about the test project',
   status: 'planning',
   technologies: ['tech-uuid-1', 'tech-uuid-2'],
+  cover_url: 'https://storage.example.com/cover.jpg',
   demo_url: 'https://demo.example.com',
   github_url: 'https://github.com/user/repo',
   is_public: true,
@@ -586,15 +441,15 @@ const sampleProject = {
 
 ### File Storage
 
-- Optimized image storage with CDN
+- Optimized cover storage with CDN
 - Unique file naming to prevent conflicts
-- Automatic cleanup of orphaned files
+- Simple cover URL management
 
 ### Caching Strategy
 
 - Project data caching for frequently accessed projects
 - Search result caching for common queries
-- File URL caching for better performance
+- Cover URL caching for better performance
 
 ## 🔧 Configuration
 
@@ -603,11 +458,10 @@ const sampleProject = {
 ```env
 # File Upload Configuration
 MAX_FILE_SIZE=10485760  # 10MB in bytes
-MAX_IMAGES_PER_PROJECT=10
 ALLOWED_IMAGE_TYPES=image/jpeg,image/jpg,image/png,image/gif,image/webp
 
 # Storage Configuration
-STORAGE_BUCKET=project-images
+STORAGE_BUCKET=project-covers
 STORAGE_FOLDER=projects
 ```
 
@@ -615,6 +469,7 @@ STORAGE_FOLDER=projects
 
 - `SupabaseService`: Database operations
 - `FileUploadService`: File management
+- `ProjectCoverService`: Cover management
 - `AuthModule`: Authentication and authorization
 
 ## 📊 Error Handling
@@ -669,7 +524,7 @@ STORAGE_FOLDER=projects
 
 - **Real-time Updates**: WebSocket support for live updates
 - **Advanced Search**: Full-text search with Elasticsearch
-- **Image Processing**: Automatic image optimization and resizing
+- **Cover Processing**: Automatic image optimization and resizing
 - **Version Control**: Project versioning and history
 - **API Rate Limiting**: Enhanced rate limiting for file uploads
 
@@ -689,7 +544,7 @@ When contributing to the Projects module:
 2. Add comprehensive tests for new features
 3. Update this documentation for any changes
 4. Ensure all validations are properly implemented
-5. Test file upload functionality thoroughly
+5. Test cover upload functionality thoroughly
 
 ## 📄 License
 

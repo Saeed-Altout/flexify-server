@@ -9,8 +9,7 @@ export interface Project {
   user_id: string;
   technologies: string[];
   likes_count: number;
-  cover: string;
-  images: string[];
+  cover_url?: string;
   demo_url?: string;
   github_url?: string;
   is_public: boolean;
@@ -36,32 +35,7 @@ export interface LikeProjectResponse {
   updated_at: string;
 }
 
-export interface ProjectImage {
-  id: string;
-  url: string;
-  filename: string;
-  path: string;
-  size: number;
-  mimetype: string;
-  uploaded_at: string;
-}
-
-export interface ProjectCover {
-  url: string;
-  filename: string;
-  path: string;
-  size: number;
-  mimetype: string;
-  uploaded_at: string;
-}
-
-export interface ProjectImageUploadResponse {
-  image: ProjectImage;
-  total_images: number;
-  remaining_slots: number;
-}
-
 export interface ProjectCoverUploadResponse {
-  cover: ProjectCover;
-  previous_cover?: string;
+  cover_url: string;
+  previous_cover_url?: string;
 }

@@ -11,7 +11,6 @@ import {
   IsUUID,
   IsNotEmpty,
   IsUrl,
-  ArrayMaxSize,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ProjectStatus } from '../enums';
@@ -41,16 +40,9 @@ export class CreateProjectDto {
   technologies?: string[];
 
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  @IsUrl({}, { each: true })
-  @ArrayMaxSize(10)
-  images?: string[];
-
-  @IsOptional()
   @IsString()
   @IsUrl()
-  cover?: string;
+  cover_url?: string;
 
   @IsOptional()
   @IsString()
@@ -98,16 +90,9 @@ export class UpdateProjectDto {
   technologies?: string[];
 
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  @IsUrl({}, { each: true })
-  @ArrayMaxSize(10)
-  images?: string[];
-
-  @IsOptional()
   @IsString()
   @IsUrl()
-  cover?: string;
+  cover_url?: string;
 
   @IsOptional()
   @IsString()
@@ -189,15 +174,8 @@ export class LikeProjectDto {
   project_id: string;
 }
 
-export class UploadProjectImageDto {
+export class UploadProjectCoverDto {
   @IsUUID('4')
   @IsNotEmpty()
   project_id: string;
-}
-
-export class DeleteProjectImageDto {
-  @IsString()
-  @IsNotEmpty()
-  @IsUrl()
-  image_url: string;
 }
