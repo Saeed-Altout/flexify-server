@@ -105,7 +105,60 @@ CREATE TABLE project_likes (
 - `400` - Invalid input data or project not found
 - `401` - Unauthorized (authentication required)
 
-### 3. Remove Like/Dislike
+### 3. Toggle Project Like
+
+**Endpoint:** `POST /projects/toggle-like`
+
+**Authentication:** Required (JWT token)
+
+**Request Body:**
+
+```json
+{
+  "project_id": "123e4567-e89b-12d3-a456-426614174000"
+}
+```
+
+**Response (When Adding Like):**
+
+```json
+{
+  "data": {
+    "id": "like-id-here",
+    "project_id": "123e4567-e89b-12d3-a456-426614174000",
+    "user_id": "user-id-here",
+    "is_like": true,
+    "created_at": "2023-01-01T00:00:00Z",
+    "updated_at": "2023-01-01T00:00:00Z"
+  },
+  "message": "Project liked successfully",
+  "status": "success"
+}
+```
+
+**Response (When Removing Like):**
+
+```json
+{
+  "data": null,
+  "message": "Like/dislike removed successfully",
+  "status": "success"
+}
+```
+
+**Status Codes:**
+
+- `201` - Project like toggled successfully
+- `400` - Invalid input data or project not found
+- `401` - Unauthorized (authentication required)
+
+**Toggle Behavior:**
+
+- **If user has NOT liked the project** → Creates a new like
+- **If user has already liked the project** → Removes the like
+- **Simple binary toggle**: Like ↔ No Like
+
+### 4. Remove Like/Dislike
 
 **Endpoint:** `DELETE /projects/:id/like`
 
@@ -127,7 +180,7 @@ CREATE TABLE project_likes (
 - `401` - Unauthorized (authentication required)
 - `404` - No like or dislike found for this project
 
-### 4. Get Project Likes Statistics
+### 5. Get Project Likes Statistics
 
 **Endpoint:** `GET /projects/:id/likes`
 
@@ -226,6 +279,21 @@ const likeProject = async (projectId) => {
   return response.json();
 };
 
+// Toggle like (recommended approach)
+const toggleProjectLike = async (projectId) => {
+  const response = await fetch('/api/projects/toggle-like', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      project_id: projectId,
+    }),
+  });
+  return response.json();
+};
+
 // Get likes statistics
 const getLikesStats = async (projectId) => {
   const response = await fetch(`/api/projects/${projectId}/likes`, {
@@ -242,6 +310,12 @@ const getLikesStats = async (projectId) => {
 ```bash
 # Like a project
 curl -X POST http://localhost:3000/projects/like \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{"project_id": "123e4567-e89b-12d3-a456-426614174000"}'
+
+# Toggle like (recommended)
+curl -X POST http://localhost:3000/projects/toggle-like \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{"project_id": "123e4567-e89b-12d3-a456-426614174000"}'

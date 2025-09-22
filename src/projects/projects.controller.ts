@@ -32,6 +32,7 @@ import {
   StandardResponseDto,
   LikeProjectDto,
   DislikeProjectDto,
+  ToggleProjectLikeDto,
   ProjectLikeResponseDto,
   ProjectLikesStatsDto,
 } from './dto/projects.dto';
@@ -465,6 +466,50 @@ export class ProjectsController {
     @CurrentUser() user: User,
   ): Promise<StandardResponseDto<ProjectLikeResponseDto>> {
     return this.projectsService.dislikeProject(dislikeDto.project_id, user.id);
+  }
+
+  @Post('toggle-like')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Toggle Project Like',
+    description:
+      'Toggle like for a project. If liked, removes like. If not liked, adds like (requires authentication)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Project like toggled successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          oneOf: [
+            { $ref: '#/components/schemas/ProjectLikeResponseDto' },
+            { type: 'null' },
+          ],
+        },
+        message: { type: 'string', example: 'Project liked successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data or project not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Authentication required',
+  })
+  @HttpCode(HttpStatus.CREATED)
+  async toggleProjectLike(
+    @Body() toggleDto: ToggleProjectLikeDto,
+    @CurrentUser() user: User,
+  ): Promise<StandardResponseDto<ProjectLikeResponseDto | null>> {
+    return this.projectsService.toggleProjectLike(
+      toggleDto.project_id,
+      user.id,
+    );
   }
 
   @Delete(':id/like')

@@ -792,6 +792,100 @@ export class ProjectsService {
     }
   }
 
+  async toggleProjectLike(
+    projectId: string,
+    userId: string,
+  ): Promise<StandardResponseDto<ProjectLikeResponseDto | null>> {
+    try {
+      this.logger.log(`User ${userId} toggling like for project ${projectId}`);
+
+      // Check if project exists
+      const { data: project, error: projectError } =
+        await this.supabaseService.select('projects', {
+          eq: { id: projectId },
+        });
+
+      if (projectError) {
+        this.logger.error(`Error fetching project: ${projectError.message}`);
+        throw new BadRequestException(
+          `Failed to fetch project: ${projectError.message}`,
+        );
+      }
+
+      if (!project || project.length === 0) {
+        throw new NotFoundException(`Project with ID ${projectId} not found`);
+      }
+
+      // Check if user already has a like/dislike for this project
+      const { data: existingLike, error: likeError } =
+        await this.supabaseService.select('project_likes', {
+          eq: { project_id: projectId, user_id: userId },
+        });
+
+      if (likeError) {
+        this.logger.error(`Error checking existing like: ${likeError.message}`);
+        throw new BadRequestException(
+          `Failed to check existing like: ${likeError.message}`,
+        );
+      }
+
+      if (existingLike && existingLike.length > 0) {
+        // User already has a like/dislike, remove it
+        const { error: deleteError } = await this.supabaseService.delete(
+          'project_likes',
+          {
+            id: existingLike[0].id,
+          },
+        );
+
+        if (deleteError) {
+          this.logger.error(`Error deleting like: ${deleteError.message}`);
+          throw new BadRequestException(
+            `Failed to delete like: ${deleteError.message}`,
+          );
+        }
+
+        this.logger.log(
+          `Successfully removed like/dislike for project ${projectId}`,
+        );
+
+        return {
+          data: null,
+          message: 'Like/dislike removed successfully',
+          status: 'success',
+        };
+      } else {
+        // User doesn't have a like/dislike, create a new like
+        const { data: newLike, error: createError } =
+          await this.supabaseService.insert('project_likes', {
+            project_id: projectId,
+            user_id: userId,
+            is_like: true, // Always create a like when toggling
+          });
+
+        if (createError) {
+          this.logger.error(`Error creating like: ${createError.message}`);
+          throw new BadRequestException(
+            `Failed to create like: ${createError.message}`,
+          );
+        }
+
+        this.logger.log(`Successfully created like for project ${projectId}`);
+
+        return {
+          data: this.convertProjectLikeToDto(newLike),
+          message: 'Project liked successfully',
+          status: 'success',
+        };
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in toggleProjectLike: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
   async getProjectLikesStats(
     projectId: string,
     userId?: string,
