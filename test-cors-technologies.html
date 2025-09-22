@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test CORS - Technologies API</title>
+    <title>Technologies CORS Test</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -56,162 +56,151 @@
 </head>
 <body>
     <div class="container">
-        <h1>🧪 CORS Test - Technologies API</h1>
-        <p>This page tests CORS functionality for the Technologies API endpoints.</p>
+        <h1>🔧 Technologies CORS Test</h1>
+        <p>This page tests CORS functionality for the technologies module endpoints.</p>
         
         <div class="test-section">
-            <h3>Test 1: GET /api/v1/technologies (Public)</h3>
-            <button onclick="testGetTechnologies()">Test GET Technologies</button>
-            <div id="result1"></div>
+            <h3>1. CORS Test Endpoint</h3>
+            <button onclick="testCorsEndpoint()">Test CORS Endpoint</button>
+            <div id="cors-result"></div>
         </div>
 
         <div class="test-section">
-            <h3>Test 2: GET /api/v1/technologies/active (Public)</h3>
-            <button onclick="testGetActiveTechnologies()">Test GET Active Technologies</button>
-            <div id="result2"></div>
+            <h3>2. Get Technologies (No Auth)</h3>
+            <button onclick="testGetTechnologies()">Get Technologies</button>
+            <div id="technologies-result"></div>
         </div>
 
         <div class="test-section">
-            <h3>Test 3: GET /api/v1/technologies/search (Public)</h3>
-            <button onclick="testSearchTechnologies()">Test Search Technologies</button>
-            <div id="result3"></div>
+            <h3>3. Get Active Technologies</h3>
+            <button onclick="testGetActiveTechnologies()">Get Active Technologies</button>
+            <div id="active-result"></div>
         </div>
 
         <div class="test-section">
-            <h3>Test 4: GET /api/v1/technologies/category/Frontend (Public)</h3>
-            <button onclick="testGetByCategory()">Test Get by Category</button>
-            <div id="result4"></div>
+            <h3>4. Search Technologies</h3>
+            <input type="text" id="searchTerm" placeholder="Enter search term" value="react">
+            <button onclick="testSearchTechnologies()">Search Technologies</button>
+            <div id="search-result"></div>
         </div>
 
         <div class="test-section">
-            <h3>Test 5: POST /api/v1/technologies (Requires Auth)</h3>
-            <button onclick="testCreateTechnology()">Test Create Technology (Should Fail)</button>
-            <div id="result5"></div>
-        </div>
-
-        <div class="test-section">
-            <h3>Test 6: OPTIONS Preflight Request</h3>
-            <button onclick="testOptionsRequest()">Test OPTIONS Request</button>
-            <div id="result6"></div>
+            <h3>5. Test with Authentication</h3>
+            <input type="text" id="authToken" placeholder="Enter JWT token (optional)">
+            <button onclick="testWithAuth()">Test with Auth</button>
+            <div id="auth-result"></div>
         </div>
     </div>
 
     <script>
         const API_BASE = 'http://localhost:3000/api/v1';
         
-        function displayResult(elementId, success, message, data = null) {
+        function displayResult(elementId, data, isError = false) {
             const element = document.getElementById(elementId);
-            element.className = success ? 'test-section success' : 'test-section error';
+            element.className = `test-section ${isError ? 'error' : 'success'}`;
             element.innerHTML = `
-                <h4>${success ? '✅ Success' : '❌ Error'}</h4>
-                <p><strong>Message:</strong> ${message}</p>
-                ${data ? `<pre>${JSON.stringify(data, null, 2)}</pre>` : ''}
+                <h4>${isError ? '❌ Error' : '✅ Success'}</h4>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
             `;
+        }
+
+        async function testCorsEndpoint() {
+            try {
+                const response = await fetch(`${API_BASE}/technologies/cors-test`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                const data = await response.json();
+                displayResult('cors-result', data, !response.ok);
+            } catch (error) {
+                displayResult('cors-result', { error: error.message }, true);
+            }
         }
 
         async function testGetTechnologies() {
             try {
-                const response = await fetch(`${API_BASE}/technologies`);
-                const data = await response.json();
+                const response = await fetch(`${API_BASE}/technologies`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
                 
-                if (response.ok) {
-                    displayResult('result1', true, `Successfully fetched ${data.data.technologies.length} technologies`, data);
-                } else {
-                    displayResult('result1', false, `HTTP ${response.status}: ${data.message || 'Unknown error'}`, data);
-                }
+                const data = await response.json();
+                displayResult('technologies-result', data, !response.ok);
             } catch (error) {
-                displayResult('result1', false, `CORS Error: ${error.message}`);
+                displayResult('technologies-result', { error: error.message }, true);
             }
         }
 
         async function testGetActiveTechnologies() {
             try {
-                const response = await fetch(`${API_BASE}/technologies/active`);
-                const data = await response.json();
+                const response = await fetch(`${API_BASE}/technologies/active`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
                 
-                if (response.ok) {
-                    displayResult('result2', true, `Successfully fetched ${data.data.length} active technologies`, data);
-                } else {
-                    displayResult('result2', false, `HTTP ${response.status}: ${data.message || 'Unknown error'}`, data);
-                }
+                const data = await response.json();
+                displayResult('active-result', data, !response.ok);
             } catch (error) {
-                displayResult('result2', false, `CORS Error: ${error.message}`);
+                displayResult('active-result', { error: error.message }, true);
             }
         }
 
         async function testSearchTechnologies() {
-            try {
-                const response = await fetch(`${API_BASE}/technologies/search?q=react`);
-                const data = await response.json();
-                
-                if (response.ok) {
-                    displayResult('result3', true, `Search found ${data.data.length} results for "react"`, data);
-                } else {
-                    displayResult('result3', false, `HTTP ${response.status}: ${data.message || 'Unknown error'}`, data);
-                }
-            } catch (error) {
-                displayResult('result3', false, `CORS Error: ${error.message}`);
+            const searchTerm = document.getElementById('searchTerm').value;
+            if (!searchTerm) {
+                displayResult('search-result', { error: 'Please enter a search term' }, true);
+                return;
             }
-        }
 
-        async function testGetByCategory() {
             try {
-                const response = await fetch(`${API_BASE}/technologies/category/Frontend`);
-                const data = await response.json();
-                
-                if (response.ok) {
-                    displayResult('result4', true, `Found ${data.data.length} Frontend technologies`, data);
-                } else {
-                    displayResult('result4', false, `HTTP ${response.status}: ${data.message || 'Unknown error'}`, data);
-                }
-            } catch (error) {
-                displayResult('result4', false, `CORS Error: ${error.message}`);
-            }
-        }
-
-        async function testCreateTechnology() {
-            try {
-                const response = await fetch(`${API_BASE}/technologies`, {
-                    method: 'POST',
+                const response = await fetch(`${API_BASE}/technologies/search?q=${encodeURIComponent(searchTerm)}`, {
+                    method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        name: 'Test Technology',
-                        description: 'Test Description'
-                    })
                 });
-                const data = await response.json();
                 
-                if (response.status === 401) {
-                    displayResult('result5', true, `Expected 401 Unauthorized (no auth token provided)`, data);
-                } else {
-                    displayResult('result5', false, `Unexpected response: HTTP ${response.status}`, data);
-                }
+                const data = await response.json();
+                displayResult('search-result', data, !response.ok);
             } catch (error) {
-                displayResult('result5', false, `CORS Error: ${error.message}`);
+                displayResult('search-result', { error: error.message }, true);
             }
         }
 
-        async function testOptionsRequest() {
+        async function testWithAuth() {
+            const token = document.getElementById('authToken').value;
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+            
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
             try {
                 const response = await fetch(`${API_BASE}/technologies`, {
-                    method: 'OPTIONS'
+                    method: 'GET',
+                    headers,
                 });
                 
-                if (response.ok) {
-                    const headers = {};
-                    response.headers.forEach((value, key) => {
-                        headers[key] = value;
-                    });
-                    displayResult('result6', true, `OPTIONS request successful. CORS headers present.`, headers);
-                } else {
-                    displayResult('result6', false, `OPTIONS request failed: HTTP ${response.status}`);
-                }
+                const data = await response.json();
+                displayResult('auth-result', data, !response.ok);
             } catch (error) {
-                displayResult('result6', false, `CORS Error: ${error.message}`);
+                displayResult('auth-result', { error: error.message }, true);
             }
         }
+
+        // Auto-test CORS endpoint on page load
+        window.onload = function() {
+            testCorsEndpoint();
+        };
     </script>
 </body>
 </html>

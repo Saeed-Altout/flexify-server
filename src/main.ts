@@ -27,8 +27,12 @@ async function bootstrap() {
       'X-Requested-With',
       'Accept',
       'Origin',
+      'Access-Control-Allow-Origin',
+      'Access-Control-Allow-Headers',
+      'Access-Control-Allow-Methods',
+      'Access-Control-Allow-Credentials',
     ],
-    exposedHeaders: ['Set-Cookie'],
+    exposedHeaders: ['Set-Cookie', 'Access-Control-Allow-Origin'],
     optionsSuccessStatus: 200,
     preflightContinue: false,
   });

@@ -13,6 +13,8 @@ import {
   UseInterceptors,
   UploadedFile,
   Request,
+  Res,
+  Header,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -47,6 +49,71 @@ export class TechnologiesController {
     private readonly fileUploadService: FileUploadService,
     private readonly supabaseService: SupabaseService,
   ) {}
+
+  @Get('cors-test')
+  @Header('Access-Control-Allow-Origin', '*')
+  @Header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  @Header(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization, X-Requested-With',
+  )
+  @ApiOperation({
+    summary: 'CORS Test for Technologies',
+    description: 'Test CORS functionality for technologies endpoints',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'CORS test successful',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Technologies CORS test successful',
+        },
+        timestamp: { type: 'string', format: 'date-time' },
+        cors: {
+          type: 'object',
+          properties: {
+            origin: { type: 'string' },
+            methods: { type: 'string' },
+            headers: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  testCors(@Res() res: any): void {
+    res.status(HttpStatus.OK).json({
+      message: 'Technologies CORS test successful',
+      timestamp: new Date().toISOString(),
+      cors: {
+        origin: res.getHeader('Access-Control-Allow-Origin'),
+        methods: res.getHeader('Access-Control-Allow-Methods'),
+        headers: res.getHeader('Access-Control-Allow-Headers'),
+      },
+    });
+  }
+
+  @Get('options')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Handle OPTIONS request for CORS',
+    description: 'Handle preflight OPTIONS requests for CORS',
+  })
+  handleOptions(@Res() res: any): void {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader(
+      'Access-Control-Allow-Methods',
+      'GET, POST, PUT, DELETE, OPTIONS',
+    );
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, X-Requested-With',
+    );
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.status(HttpStatus.OK).send();
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -83,6 +150,12 @@ export class TechnologiesController {
   }
 
   @Get()
+  @Header('Access-Control-Allow-Origin', '*')
+  @Header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  @Header(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization, X-Requested-With',
+  )
   @ApiOperation({
     summary: 'Get Technologies',
     description: 'Get a paginated list of technologies with optional filtering',
@@ -124,6 +197,12 @@ export class TechnologiesController {
   }
 
   @Get('active')
+  @Header('Access-Control-Allow-Origin', '*')
+  @Header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  @Header(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization, X-Requested-With',
+  )
   @ApiOperation({
     summary: 'Get Active Technologies',
     description: 'Get all active technologies',
