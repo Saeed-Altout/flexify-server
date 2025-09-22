@@ -1,47 +1,43 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import {
   IsString,
   IsOptional,
   IsBoolean,
-  IsNumber,
-  IsIn,
+  IsUUID,
+  IsInt,
   Min,
   Max,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
 
 export class CreateTechnologyDto {
-  @ApiProperty({ example: 'React', description: 'Technology name' })
+  @ApiProperty({
+    example: 'React',
+    description: 'Technology name',
+  })
   @IsString()
   name: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 'A JavaScript library for building user interfaces',
     description: 'Technology description',
+    required: false,
   })
   @IsOptional()
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 'Frontend',
     description: 'Technology category',
   })
-  @IsOptional()
   @IsString()
-  category?: string;
+  category: string;
 
-  @ApiPropertyOptional({
-    example: 'https://example.com/react-icon.png',
-    description: 'Icon URL',
-  })
-  @IsOptional()
-  @IsString()
-  icon_url?: string;
-
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: true,
-    description: 'Is technology active',
+    description: 'Whether the technology is active',
+    required: false,
+    default: true,
   })
   @IsOptional()
   @IsBoolean()
@@ -49,102 +45,112 @@ export class CreateTechnologyDto {
 }
 
 export class UpdateTechnologyDto {
-  @ApiPropertyOptional({ example: 'React', description: 'Technology name' })
+  @ApiProperty({
+    example: 'React',
+    description: 'Technology name',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   name?: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 'A JavaScript library for building user interfaces',
     description: 'Technology description',
+    required: false,
   })
   @IsOptional()
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 'Frontend',
     description: 'Technology category',
+    required: false,
   })
   @IsOptional()
   @IsString()
   category?: string;
 
-  @ApiPropertyOptional({
-    example: 'https://example.com/react-icon.png',
-    description: 'Icon URL',
+  @ApiProperty({
+    example: true,
+    description: 'Whether the technology is active',
+    required: false,
   })
-  @IsOptional()
-  @IsString()
-  icon_url?: string;
-
-  @ApiPropertyOptional({ example: true, description: 'Is technology active' })
   @IsOptional()
   @IsBoolean()
   is_active?: boolean;
 }
 
 export class TechnologyQueryDto {
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 'Frontend',
     description: 'Filter by category',
+    required: false,
   })
   @IsOptional()
   @IsString()
   category?: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: true,
     description: 'Filter by active status',
+    required: false,
   })
   @IsOptional()
-  @Transform(({ value }) => value === 'true')
   @IsBoolean()
   is_active?: boolean;
 
-  @ApiPropertyOptional({ example: 'react', description: 'Search term' })
+  @ApiProperty({
+    example: 'react',
+    description: 'Search term for name or description',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ example: 1, description: 'Page number', minimum: 1 })
+  @ApiProperty({
+    example: 1,
+    description: 'Page number',
+    required: false,
+    minimum: 1,
+  })
   @IsOptional()
-  @Transform(({ value }) => parseInt(value))
-  @IsNumber()
+  @IsInt()
   @Min(1)
   page?: number;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 10,
     description: 'Items per page',
+    required: false,
     minimum: 1,
     maximum: 100,
   })
   @IsOptional()
-  @Transform(({ value }) => parseInt(value))
-  @IsNumber()
+  @IsInt()
   @Min(1)
   @Max(100)
   limit?: number;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 'name',
-    enum: ['name', 'category', 'created_at'],
     description: 'Sort by field',
+    required: false,
   })
   @IsOptional()
   @IsString()
-  @IsIn(['name', 'category', 'created_at'])
-  sort_by?: 'name' | 'category' | 'created_at';
+  sort_by?: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 'asc',
-    enum: ['asc', 'desc'],
     description: 'Sort order',
+    required: false,
+    enum: ['asc', 'desc'],
   })
   @IsOptional()
   @IsString()
-  @IsIn(['asc', 'desc'])
   sort_order?: 'asc' | 'desc';
 }
 
@@ -155,28 +161,46 @@ export class TechnologyDto {
   })
   id: string;
 
-  @ApiProperty({ example: 'React', description: 'Technology name' })
+  @ApiProperty({
+    example: 'React',
+    description: 'Technology name',
+  })
   name: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 'A JavaScript library for building user interfaces',
     description: 'Technology description',
   })
   description?: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 'Frontend',
     description: 'Technology category',
   })
-  category?: string;
+  category: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 'https://example.com/react-icon.png',
-    description: 'Icon URL',
+    description: 'Technology icon URL',
   })
   icon_url?: string;
 
-  @ApiProperty({ example: true, description: 'Is technology active' })
+  @ApiProperty({
+    example: 'react-icon.png',
+    description: 'Technology icon filename',
+  })
+  icon_filename?: string;
+
+  @ApiProperty({
+    example: 1024,
+    description: 'Technology icon size in bytes',
+  })
+  icon_size?: number;
+
+  @ApiProperty({
+    example: true,
+    description: 'Whether the technology is active',
+  })
   is_active: boolean;
 
   @ApiProperty({
@@ -193,29 +217,52 @@ export class TechnologyDto {
 }
 
 export class TechnologyListResponseDto {
-  @ApiProperty({ type: [TechnologyDto], description: 'List of technologies' })
+  @ApiProperty({
+    type: [TechnologyDto],
+    description: 'List of technologies',
+  })
   technologies: TechnologyDto[];
 
-  @ApiProperty({ example: 50, description: 'Total number of technologies' })
+  @ApiProperty({
+    example: 50,
+    description: 'Total number of technologies',
+  })
   total: number;
 
-  @ApiProperty({ example: 1, description: 'Current page number' })
+  @ApiProperty({
+    example: 1,
+    description: 'Current page number',
+  })
   page: number;
 
-  @ApiProperty({ example: 10, description: 'Items per page' })
+  @ApiProperty({
+    example: 10,
+    description: 'Items per page',
+  })
   limit: number;
 
-  @ApiProperty({ example: 5, description: 'Total number of pages' })
+  @ApiProperty({
+    example: 5,
+    description: 'Total number of pages',
+  })
   total_pages: number;
 }
 
 export class StandardResponseDto<T> {
-  @ApiProperty({ description: 'Response data' })
+  @ApiProperty({
+    description: 'Response data',
+  })
   data: T;
 
-  @ApiProperty({ example: 'Success message', description: 'Response message' })
+  @ApiProperty({
+    example: 'Operation completed successfully',
+    description: 'Response message',
+  })
   message: string;
 
-  @ApiProperty({ example: 'success', description: 'Response status' })
+  @ApiProperty({
+    example: 'success',
+    description: 'Response status',
+  })
   status: string;
 }

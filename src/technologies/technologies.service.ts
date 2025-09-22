@@ -1,45 +1,30 @@
 import {
   Injectable,
   Logger,
-  NotFoundException,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
-import {
+import type {
   Technology,
-  CreateTechnologyRequest,
-  UpdateTechnologyRequest,
   TechnologyQuery,
   TechnologyListResponse,
+  CreateTechnologyRequest,
+  UpdateTechnologyRequest,
 } from './types/technologies.types';
-import {
-  StandardResponseDto,
-  TechnologyListResponseDto,
-} from './dto/technologies.dto';
+import type { StandardResponseDto } from './dto/technologies.dto';
 
 @Injectable()
 export class TechnologiesService {
   private readonly logger = new Logger(TechnologiesService.name);
 
-  constructor(private supabaseService: SupabaseService) {}
-
-  // =====================================================
-  // CRUD OPERATIONS
-  // =====================================================
+  constructor(private readonly supabaseService: SupabaseService) {}
 
   async createTechnology(
     createDto: CreateTechnologyRequest,
   ): Promise<StandardResponseDto<Technology>> {
     try {
-      this.logger.log(`Creating technology: ${createDto.name}`);
-
-      // Check if technology already exists
-      const existingTech = await this.getTechnologyByName(createDto.name);
-      if (existingTech) {
-        throw new BadRequestException(
-          'Technology with this name already exists',
-        );
-      }
+      this.logger.log('Creating new technology');
 
       const { data, error } = await this.supabaseService.insert(
         'technologies',
@@ -47,7 +32,6 @@ export class TechnologiesService {
           name: createDto.name,
           description: createDto.description,
           category: createDto.category,
-          icon_url: createDto.icon_url,
           is_active: createDto.is_active ?? true,
         },
       );
@@ -59,10 +43,10 @@ export class TechnologiesService {
         );
       }
 
-      this.logger.log(`Successfully created technology: ${data.id}`);
+      this.logger.log(`Technology created successfully: ${data.id}`);
 
       return {
-        data: data,
+        data,
         message: 'Technology created successfully',
         status: 'success',
       };
@@ -145,24 +129,136 @@ export class TechnologiesService {
     }
   }
 
-  async getTechnologyById(
-    id: string,
-  ): Promise<StandardResponseDto<Technology>> {
+  async getActiveTechnologies(): Promise<StandardResponseDto<Technology[]>> {
     try {
-      this.logger.log(`Fetching technology: ${id}`);
+      this.logger.log('Fetching active technologies');
+
+      const { data, error } = await this.supabaseService.select(
+        'technologies',
+        {
+          eq: { is_active: true },
+          order: { column: 'name', ascending: true },
+        },
+      );
+
+      if (error) {
+        this.logger.error(
+          `Error fetching active technologies: ${error.message}`,
+        );
+        throw new BadRequestException(
+          `Failed to fetch active technologies: ${error.message}`,
+        );
+      }
+
+      return {
+        data: data || [],
+        message: 'Active technologies retrieved successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in getActiveTechnologies: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async searchTechnologies(
+    searchTerm: string,
+  ): Promise<StandardResponseDto<Technology[]>> {
+    try {
+      this.logger.log(`Searching technologies with term: ${searchTerm}`);
 
       const { data, error } = await this.supabaseService.supabase
         .from('technologies')
         .select('*')
-        .eq('id', id)
-        .single();
+        .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
+        .eq('is_active', true)
+        .order('name', { ascending: true });
 
-      if (error || !data) {
-        throw new NotFoundException('Technology not found');
+      if (error) {
+        this.logger.error(`Error searching technologies: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to search technologies: ${error.message}`,
+        );
       }
 
       return {
-        data: data,
+        data: data || [],
+        message: 'Search results retrieved successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in searchTechnologies: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async getTechnologiesByCategory(
+    category: string,
+  ): Promise<StandardResponseDto<Technology[]>> {
+    try {
+      this.logger.log(`Fetching technologies by category: ${category}`);
+
+      const { data, error } = await this.supabaseService.select(
+        'technologies',
+        {
+          eq: { category, is_active: true },
+          order: { column: 'name', ascending: true },
+        },
+      );
+
+      if (error) {
+        this.logger.error(
+          `Error fetching technologies by category: ${error.message}`,
+        );
+        throw new BadRequestException(
+          `Failed to fetch technologies by category: ${error.message}`,
+        );
+      }
+
+      return {
+        data: data || [],
+        message: 'Technologies retrieved successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in getTechnologiesByCategory: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async getTechnologyById(
+    id: string,
+  ): Promise<StandardResponseDto<Technology>> {
+    try {
+      this.logger.log(`Fetching technology by ID: ${id}`);
+
+      const { data, error } = await this.supabaseService.select(
+        'technologies',
+        {
+          eq: { id },
+          single: true,
+        },
+      );
+
+      if (error) {
+        this.logger.error(`Error fetching technology: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to fetch technology: ${error.message}`,
+        );
+      }
+
+      if (!data) {
+        throw new NotFoundException(`Technology with ID ${id} not found`);
+      }
+
+      return {
+        data,
         message: 'Technology retrieved successfully',
         status: 'success',
       };
@@ -183,23 +279,16 @@ export class TechnologiesService {
 
       // Check if technology exists
       const existingTech = await this.getTechnologyById(id);
-      if (!existingTech) {
-        throw new NotFoundException('Technology not found');
-      }
-
-      // Check if name is being changed and if it conflicts
-      if (updateDto.name && updateDto.name !== existingTech.data.name) {
-        const nameConflict = await this.getTechnologyByName(updateDto.name);
-        if (nameConflict) {
-          throw new BadRequestException(
-            'Technology with this name already exists',
-          );
-        }
+      if (!existingTech.data) {
+        throw new NotFoundException(`Technology with ID ${id} not found`);
       }
 
       const { data, error } = await this.supabaseService.update(
         'technologies',
-        updateDto,
+        {
+          ...updateDto,
+          updated_at: new Date().toISOString(),
+        },
         { id },
       );
 
@@ -210,10 +299,10 @@ export class TechnologiesService {
         );
       }
 
-      this.logger.log(`Successfully updated technology: ${id}`);
+      this.logger.log(`Technology updated successfully: ${id}`);
 
       return {
-        data: data,
+        data,
         message: 'Technology updated successfully',
         status: 'success',
       };
@@ -231,8 +320,8 @@ export class TechnologiesService {
 
       // Check if technology exists
       const existingTech = await this.getTechnologyById(id);
-      if (!existingTech) {
-        throw new NotFoundException('Technology not found');
+      if (!existingTech.data) {
+        throw new NotFoundException(`Technology with ID ${id} not found`);
       }
 
       const { error } = await this.supabaseService.delete('technologies', {
@@ -246,7 +335,7 @@ export class TechnologiesService {
         );
       }
 
-      this.logger.log(`Successfully deleted technology: ${id}`);
+      this.logger.log(`Technology deleted successfully: ${id}`);
 
       return {
         data: null,
@@ -257,130 +346,6 @@ export class TechnologiesService {
       const errorMessage =
         error instanceof Error ? error.message : JSON.stringify(error);
       this.logger.error(`Error in deleteTechnology: ${errorMessage}`);
-      throw error instanceof Error ? error : new Error(errorMessage);
-    }
-  }
-
-  // =====================================================
-  // HELPER METHODS
-  // =====================================================
-
-  async getTechnologyByName(name: string): Promise<Technology | null> {
-    try {
-      const { data, error } = await this.supabaseService.supabase
-        .from('technologies')
-        .select('*')
-        .eq('name', name)
-        .single();
-
-      if (error || !data) {
-        return null;
-      }
-
-      return data;
-    } catch (error: any) {
-      this.logger.error(`Error in getTechnologyByName: ${error.message}`);
-      return null;
-    }
-  }
-
-  async getTechnologiesByCategory(
-    category: string,
-  ): Promise<StandardResponseDto<Technology[]>> {
-    try {
-      this.logger.log(`Fetching technologies by category: ${category}`);
-
-      const { data, error } = await this.supabaseService.supabase
-        .from('technologies')
-        .select('*')
-        .eq('category', category)
-        .eq('is_active', true)
-        .order('name', { ascending: true });
-
-      if (error) {
-        this.logger.error(
-          `Error fetching technologies by category: ${error.message}`,
-        );
-        throw new BadRequestException(
-          `Failed to fetch technologies: ${error.message}`,
-        );
-      }
-
-      return {
-        data: data || [],
-        message: 'Technologies retrieved successfully',
-        status: 'success',
-      };
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof Error ? error.message : JSON.stringify(error);
-      this.logger.error(`Error in getTechnologiesByCategory: ${errorMessage}`);
-      throw error instanceof Error ? error : new Error(errorMessage);
-    }
-  }
-
-  async getActiveTechnologies(): Promise<StandardResponseDto<Technology[]>> {
-    try {
-      this.logger.log('Fetching active technologies');
-
-      const { data, error } = await this.supabaseService.supabase
-        .from('technologies')
-        .select('*')
-        .eq('is_active', true)
-        .order('name', { ascending: true });
-
-      if (error) {
-        this.logger.error(
-          `Error fetching active technologies: ${error.message}`,
-        );
-        throw new BadRequestException(
-          `Failed to fetch technologies: ${error.message}`,
-        );
-      }
-
-      return {
-        data: data || [],
-        message: 'Active technologies retrieved successfully',
-        status: 'success',
-      };
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof Error ? error.message : JSON.stringify(error);
-      throw error instanceof Error ? error : new Error(errorMessage);
-    }
-  }
-
-  async searchTechnologies(
-    searchTerm: string,
-  ): Promise<StandardResponseDto<Technology[]>> {
-    try {
-      this.logger.log(`Searching technologies: ${searchTerm}`);
-
-      const { data, error } = await this.supabaseService.supabase
-        .from('technologies')
-        .select('*')
-        .or(
-          `name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,category.ilike.%${searchTerm}%`,
-        )
-        .eq('is_active', true)
-        .order('name', { ascending: true });
-
-      if (error) {
-        this.logger.error(`Error searching technologies: ${error.message}`);
-        throw new BadRequestException(
-          `Failed to search technologies: ${error.message}`,
-        );
-      }
-
-      return {
-        data: data || [],
-        message: 'Search results retrieved successfully',
-        status: 'success',
-      };
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof Error ? error.message : JSON.stringify(error);
-      this.logger.error(`Error in searchTechnologies: ${errorMessage}`);
       throw error instanceof Error ? error : new Error(errorMessage);
     }
   }

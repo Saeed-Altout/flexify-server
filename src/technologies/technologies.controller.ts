@@ -10,10 +10,6 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
-  UseInterceptors,
-  UploadedFile,
-  Request,
-  Res,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -21,15 +17,10 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiQuery,
-  ApiConsumes,
-  ApiBody,
 } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { ParseFilePipe, MaxFileSizeValidator } from '@nestjs/common';
 import { TechnologiesService } from './technologies.service';
 import { AuthGuard } from '../auth/guards/auth.guard';
-import { FileUploadService } from '../file-upload/file-upload.service';
-import { SupabaseService } from '../supabase/supabase.service';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { User } from '../auth/types/auth.types';
 import {
   CreateTechnologyDto,
@@ -43,49 +34,7 @@ import {
 @ApiTags('technologies')
 @Controller('technologies')
 export class TechnologiesController {
-  constructor(
-    private readonly technologiesService: TechnologiesService,
-    private readonly fileUploadService: FileUploadService,
-    private readonly supabaseService: SupabaseService,
-  ) {}
-
-  @Get('cors-test')
-  @ApiOperation({
-    summary: 'CORS Test for Technologies',
-    description: 'Test CORS functionality for technologies endpoints',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'CORS test successful',
-    schema: {
-      type: 'object',
-      properties: {
-        message: {
-          type: 'string',
-          example: 'Technologies CORS test successful',
-        },
-        timestamp: { type: 'string', format: 'date-time' },
-        cors: {
-          type: 'object',
-          properties: {
-            origin: { type: 'string' },
-            methods: { type: 'string' },
-            headers: { type: 'string' },
-          },
-        },
-      },
-    },
-  })
-  testCors(): { message: string; timestamp: string; cors: any } {
-    return {
-      message: 'Technologies CORS test successful',
-      timestamp: new Date().toISOString(),
-      cors: {
-        status: 'CORS headers handled by global configuration',
-        note: 'Check browser network tab for actual CORS headers',
-      },
-    };
-  }
+  constructor(private readonly technologiesService: TechnologiesService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -117,6 +66,7 @@ export class TechnologiesController {
   })
   async createTechnology(
     @Body() createDto: CreateTechnologyDto,
+    @CurrentUser() user: User,
   ): Promise<StandardResponseDto<TechnologyDto>> {
     return this.technologiesService.createTechnology(createDto);
   }
@@ -312,6 +262,7 @@ export class TechnologiesController {
   async updateTechnology(
     @Param('id') id: string,
     @Body() updateDto: UpdateTechnologyDto,
+    @CurrentUser() user: User,
   ): Promise<StandardResponseDto<TechnologyDto>> {
     return this.technologiesService.updateTechnology(id, updateDto);
   }
@@ -338,105 +289,8 @@ export class TechnologiesController {
   })
   async deleteTechnology(
     @Param('id') id: string,
+    @CurrentUser() user: User,
   ): Promise<StandardResponseDto<null>> {
     return this.technologiesService.deleteTechnology(id);
-  }
-
-  @Post(':id/icon')
-  @UseInterceptors(FileInterceptor('file'))
-  @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Upload Technology Icon',
-    description: 'Upload an icon for a technology (Admin only)',
-  })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        file: {
-          type: 'string',
-          format: 'binary',
-          description:
-            'Technology icon image (PNG, JPG, SVG, ICO, etc., max 2MB)',
-        },
-      },
-      required: ['file'],
-    },
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'Technology icon uploaded successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        data: {
-          type: 'object',
-          properties: {
-            url: {
-              type: 'string',
-              description: 'Public URL of the uploaded icon',
-            },
-            path: { type: 'string', description: 'Storage path of the icon' },
-            filename: { type: 'string', description: 'Generated filename' },
-          },
-        },
-        message: { type: 'string' },
-        status: { type: 'string' },
-      },
-    },
-  })
-  @ApiResponse({ status: 400, description: 'Bad request - invalid file' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Technology not found' })
-  async uploadTechnologyIcon(
-    @Param('id') id: string,
-    @Request() req: { user: User },
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 2 * 1024 * 1024 }), // 2MB
-        ],
-      }),
-    )
-    file: Express.Multer.File,
-  ): Promise<
-    StandardResponseDto<{
-      url: string;
-      path: string;
-      filename: string;
-    }>
-  > {
-    // Check if technology exists
-    const technology = await this.supabaseService.getTechnologyById(id);
-    if (!technology) {
-      throw new Error('Technology not found');
-    }
-
-    // Upload the icon file
-    const result = await this.fileUploadService.uploadTechnologyIcon(
-      {
-        originalname: file.originalname,
-        buffer: file.buffer,
-        mimetype: file.mimetype,
-        size: file.size,
-      },
-      id,
-    );
-
-    // Update technology record with icon information
-    await this.supabaseService.updateTechnologyIcon(
-      id,
-      result.url,
-      file.originalname,
-      file.size,
-    );
-
-    return {
-      data: result,
-      message: 'Technology icon uploaded successfully',
-      status: 'success',
-    };
   }
 }
