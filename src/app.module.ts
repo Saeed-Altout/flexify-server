@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { ProjectsModule } from './projects/projects.module';
 import { MessagesModule } from './messages/messages.module';
 import { TechnologiesModule } from './technologies/technologies.module';
+import { ImagesModule } from './images/images.module';
 import { FileUploadModule } from './file-upload/file-upload.module';
 import { AppearanceModule } from './appearance/appearance.module';
 import { SupabaseModule } from './supabase/supabase.module';
@@ -22,6 +23,7 @@ import configuration from './config/configuration';
     AuthModule,
     TechnologiesModule,
     ProjectsModule,
+    ImagesModule,
     MessagesModule,
     FileUploadModule,
     AppearanceModule,
