@@ -9,6 +9,10 @@ import {
   LikeProjectResponse,
   Project,
   ProjectsResponse,
+  ProjectCoverUploadResponse,
+  ProjectImageUploadResponse,
+  ProjectImage,
+  ProjectCover,
 } from './types/projects.types';
 import {
   CreateProjectDto,
@@ -20,12 +24,14 @@ import { ProjectStatus } from './enums';
 
 import { SupabaseService } from '../supabase/supabase.service';
 import { FileUploadService } from '../file-upload/file-upload.service';
+import { ProjectImageService } from './services/project-image.service';
 
 @Injectable()
 export class ProjectsService {
   constructor(
     private supabaseService: SupabaseService,
     private fileUploadService: FileUploadService,
+    private projectImageService: ProjectImageService,
   ) {}
 
   async createProject(
@@ -380,55 +386,16 @@ export class ProjectsService {
     projectId: string,
     file: Express.Multer.File,
     userId: string,
-  ): Promise<RootResponse<{ url: string; path: string; filename: string }>> {
+  ): Promise<RootResponse<ProjectCoverUploadResponse>> {
     try {
-      // Verify project exists and user owns it
-      const { data: project, error: projectError } =
-        await this.supabaseService.select('projects', {
-          eq: { id: projectId },
-        });
-
-      if (projectError) {
-        throw new BadRequestException(
-          `Failed to fetch project: ${projectError.message}`,
-        );
-      }
-
-      if (!project || project.length === 0) {
-        throw new NotFoundException(`Project with ID ${projectId} not found`);
-      }
-
-      if (project[0].user_id !== userId) {
-        throw new ForbiddenException('You can only update your own projects');
-      }
-
-      // Upload the cover image
-      const uploadResult = await this.fileUploadService.uploadProjectImage(
-        {
-          originalname: file.originalname,
-          buffer: file.buffer,
-          mimetype: file.mimetype,
-          size: file.size,
-        },
-        userId,
+      const result = await this.projectImageService.uploadProjectCover(
         projectId,
+        file,
+        userId,
       );
-
-      // Update project with new cover URL
-      const { error: updateError } = await this.supabaseService.update(
-        'projects',
-        { cover: uploadResult.url },
-        { id: projectId },
-      );
-
-      if (updateError) {
-        throw new BadRequestException(
-          `Failed to update project cover: ${updateError.message}`,
-        );
-      }
 
       return {
-        data: uploadResult,
+        data: result,
         message: 'Project cover uploaded successfully',
         status: 'success',
       };
@@ -443,65 +410,16 @@ export class ProjectsService {
     projectId: string,
     file: Express.Multer.File,
     userId: string,
-  ): Promise<RootResponse<{ url: string; path: string; filename: string }>> {
+  ): Promise<RootResponse<ProjectImageUploadResponse>> {
     try {
-      // Verify project exists and user owns it
-      const { data: project, error: projectError } =
-        await this.supabaseService.select('projects', {
-          eq: { id: projectId },
-        });
-
-      if (projectError) {
-        throw new BadRequestException(
-          `Failed to fetch project: ${projectError.message}`,
-        );
-      }
-
-      if (!project || project.length === 0) {
-        throw new NotFoundException(`Project with ID ${projectId} not found`);
-      }
-
-      if (project[0].user_id !== userId) {
-        throw new ForbiddenException('You can only update your own projects');
-      }
-
-      // Check if project already has maximum number of images (10)
-      const currentImages = project[0].images || [];
-      if (currentImages.length >= 10) {
-        throw new BadRequestException(
-          'Maximum number of images (10) reached for this project',
-        );
-      }
-
-      // Upload the project image
-      const uploadResult = await this.fileUploadService.uploadProjectImage(
-        {
-          originalname: file.originalname,
-          buffer: file.buffer,
-          mimetype: file.mimetype,
-          size: file.size,
-        },
-        userId,
+      const result = await this.projectImageService.uploadProjectImage(
         projectId,
+        file,
+        userId,
       );
-
-      // Add new image URL to project images array
-      const updatedImages = [...currentImages, uploadResult.url];
-
-      const { error: updateError } = await this.supabaseService.update(
-        'projects',
-        { images: updatedImages },
-        { id: projectId },
-      );
-
-      if (updateError) {
-        throw new BadRequestException(
-          `Failed to update project images: ${updateError.message}`,
-        );
-      }
 
       return {
-        data: uploadResult,
+        data: result,
         message: 'Project image uploaded successfully',
         status: 'success',
       };
@@ -516,9 +434,70 @@ export class ProjectsService {
     projectId: string,
     imageUrl: string,
     userId: string,
-  ): Promise<RootResponse<null>> {
+  ): Promise<RootResponse<{ deleted_url: string; remaining_images: number }>> {
     try {
-      // Verify project exists and user owns it
+      const result = await this.projectImageService.deleteProjectImage(
+        projectId,
+        imageUrl,
+        userId,
+      );
+
+      return {
+        data: result,
+        message: 'Project image deleted successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async getProjectImages(
+    projectId: string,
+  ): Promise<RootResponse<ProjectImage[]>> {
+    try {
+      const images = await this.projectImageService.getProjectImages(projectId);
+
+      return {
+        data: images,
+        message: 'Project images retrieved successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async getProjectCover(
+    projectId: string,
+  ): Promise<RootResponse<ProjectCover | null>> {
+    try {
+      const cover = await this.projectImageService.getProjectCover(projectId);
+
+      return {
+        data: cover,
+        message: cover
+          ? 'Project cover retrieved successfully'
+          : 'No cover found for this project',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async deleteProjectCover(
+    projectId: string,
+    userId: string,
+  ): Promise<RootResponse<{ deleted_cover: string }>> {
+    try {
+      // Verify project ownership
       const { data: project, error: projectError } =
         await this.supabaseService.select('projects', {
           eq: { id: projectId },
@@ -535,34 +514,53 @@ export class ProjectsService {
       }
 
       if (project[0].user_id !== userId) {
-        throw new ForbiddenException('You can only update your own projects');
+        throw new ForbiddenException('You can only manage your own projects');
       }
 
-      // Remove image URL from project images array
-      const currentImages = project[0].images || [];
-      const updatedImages = currentImages.filter(
-        (img: string) => img !== imageUrl,
-      );
+      const currentCover = project[0].cover;
 
-      if (currentImages.length === updatedImages.length) {
-        throw new NotFoundException('Image not found in project');
+      if (!currentCover) {
+        throw new NotFoundException('No cover found for this project');
       }
 
+      // Remove cover from project
       const { error: updateError } = await this.supabaseService.update(
         'projects',
-        { images: updatedImages },
+        { cover: null },
         { id: projectId },
       );
 
       if (updateError) {
         throw new BadRequestException(
-          `Failed to remove project image: ${updateError.message}`,
+          `Failed to remove project cover: ${updateError.message}`,
         );
       }
 
       return {
-        data: null,
-        message: 'Project image deleted successfully',
+        data: { deleted_cover: currentCover },
+        message: 'Project cover deleted successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async clearAllProjectImages(
+    projectId: string,
+    userId: string,
+  ): Promise<RootResponse<{ cleared_count: number }>> {
+    try {
+      const result = await this.projectImageService.clearAllProjectImages(
+        projectId,
+        userId,
+      );
+
+      return {
+        data: result,
+        message: `${result.cleared_count} images cleared successfully`,
         status: 'success',
       };
     } catch (error: any) {

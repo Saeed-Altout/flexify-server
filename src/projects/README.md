@@ -25,18 +25,29 @@ src/projects/
 - **Project CRUD Operations**: Create, read, update, and delete projects
 - **Project Status Management**: Planning, Active, In Progress, Completed
 - **Technology Integration**: Associate projects with technologies
-- **File Management**: Upload project covers and multiple images
+- **Advanced Image Management**: Comprehensive image and cover management system
 - **Likes System**: Users can like/unlike projects
 - **Search & Filtering**: Advanced search and filtering capabilities
 - **Pagination**: Efficient data pagination for large datasets
+
+### Enhanced Image Management
+
+- **Dedicated Image Service**: Separate service for all image operations
+- **Rich Image Metadata**: Detailed image information with size, type, and upload date
+- **Image Limits**: Configurable maximum images per project (default: 10)
+- **Cover Management**: Separate cover image handling with replacement tracking
+- **Bulk Operations**: Clear all images at once
+- **Image Retrieval**: Get all project images with metadata
+- **Better Error Handling**: Clear error messages for image operations
 
 ### Security & Validation
 
 - **Authentication Required**: Protected endpoints for project management
 - **Ownership Validation**: Users can only modify their own projects
 - **Input Validation**: Comprehensive DTO validation with class-validator
-- **File Upload Security**: File type and size validation
+- **File Upload Security**: File type and size validation with detailed error messages
 - **URL Validation**: Proper URL validation for external links
+- **Image Type Validation**: Strict validation for supported image formats
 
 ## 📋 API Endpoints
 
@@ -58,11 +69,15 @@ src/projects/
 
 ### File Management
 
-| Method | Endpoint               | Description          | Auth Required | Owner Only |
-| ------ | ---------------------- | -------------------- | ------------- | ---------- |
-| POST   | `/projects/:id/cover`  | Upload project cover | ✅            | ✅         |
-| POST   | `/projects/:id/images` | Upload project image | ✅            | ✅         |
-| DELETE | `/projects/:id/images` | Delete project image | ✅            | ✅         |
+| Method | Endpoint                   | Description              | Auth Required | Owner Only |
+| ------ | -------------------------- | ------------------------ | ------------- | ---------- |
+| POST   | `/projects/:id/cover`      | Upload project cover     | ✅            | ✅         |
+| GET    | `/projects/:id/cover`      | Get project cover        | ❌            | -          |
+| DELETE | `/projects/:id/cover`      | Delete project cover     | ✅            | ✅         |
+| POST   | `/projects/:id/images`     | Upload project image     | ✅            | ✅         |
+| GET    | `/projects/:id/images`     | Get project images       | ❌            | -          |
+| DELETE | `/projects/:id/images`     | Delete project image     | ✅            | ✅         |
+| DELETE | `/projects/:id/images/all` | Clear all project images | ✅            | ✅         |
 
 ## 🔧 Data Models
 
@@ -97,6 +112,40 @@ enum ProjectStatus {
   Active = 'active',
   InProgress = 'in_progress',
   Completed = 'completed',
+}
+```
+
+### Image Management Types
+
+```typescript
+interface ProjectImage {
+  id: string;
+  url: string;
+  filename: string;
+  path: string;
+  size: number;
+  mimetype: string;
+  uploaded_at: string;
+}
+
+interface ProjectCover {
+  url: string;
+  filename: string;
+  path: string;
+  size: number;
+  mimetype: string;
+  uploaded_at: string;
+}
+
+interface ProjectImageUploadResponse {
+  image: ProjectImage;
+  total_images: number;
+  remaining_slots: number;
+}
+
+interface ProjectCoverUploadResponse {
+  cover: ProjectCover;
+  previous_cover?: string;
 }
 ```
 
@@ -255,9 +304,15 @@ file: <binary-data>
 ```json
 {
   "data": {
-    "url": "https://storage.example.com/path/to/cover.jpg",
-    "path": "user-123/project-456/cover.jpg",
-    "filename": "cover.jpg"
+    "cover": {
+      "url": "https://storage.example.com/path/to/cover.jpg",
+      "filename": "cover.jpg",
+      "path": "user-123/project-456/cover.jpg",
+      "size": 1024000,
+      "mimetype": "image/jpeg",
+      "uploaded_at": "2024-01-01T00:00:00Z"
+    },
+    "previous_cover": "https://old-cover-url.com/old-cover.jpg"
   },
   "message": "Project cover uploaded successfully",
   "status": "success"
@@ -281,11 +336,129 @@ file: <binary-data>
 ```json
 {
   "data": {
-    "url": "https://storage.example.com/path/to/image.jpg",
-    "path": "user-123/project-456/image.jpg",
-    "filename": "image.jpg"
+    "image": {
+      "id": "img-1",
+      "url": "https://storage.example.com/path/to/image.jpg",
+      "filename": "image.jpg",
+      "path": "user-123/project-456/image.jpg",
+      "size": 1024000,
+      "mimetype": "image/jpeg",
+      "uploaded_at": "2024-01-01T00:00:00Z"
+    },
+    "total_images": 3,
+    "remaining_slots": 7
   },
   "message": "Project image uploaded successfully",
+  "status": "success"
+}
+```
+
+### Get Project Images
+
+**Request:**
+
+```http
+GET /projects/:id/images
+```
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "img-1",
+      "url": "https://storage.example.com/path/to/image1.jpg",
+      "filename": "image1.jpg",
+      "path": "user-123/project-456/image1.jpg",
+      "size": 0,
+      "mimetype": "image/jpeg",
+      "uploaded_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "img-2",
+      "url": "https://storage.example.com/path/to/image2.jpg",
+      "filename": "image2.jpg",
+      "path": "user-123/project-456/image2.jpg",
+      "size": 0,
+      "mimetype": "image/jpeg",
+      "uploaded_at": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "message": "Project images retrieved successfully",
+  "status": "success"
+}
+```
+
+### Get Project Cover
+
+**Request:**
+
+```http
+GET /projects/:id/cover
+```
+
+**Response:**
+
+```json
+{
+  "data": {
+    "url": "https://storage.example.com/path/to/cover.jpg",
+    "filename": "cover.jpg",
+    "path": "user-123/project-456/cover.jpg",
+    "size": 0,
+    "mimetype": "image/jpeg",
+    "uploaded_at": "2024-01-01T00:00:00Z"
+  },
+  "message": "Project cover retrieved successfully",
+  "status": "success"
+}
+```
+
+### Delete Project Image
+
+**Request:**
+
+```http
+DELETE /projects/:id/images
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "image_url": "https://storage.example.com/path/to/image.jpg"
+}
+```
+
+**Response:**
+
+```json
+{
+  "data": {
+    "deleted_url": "https://storage.example.com/path/to/image.jpg",
+    "remaining_images": 2
+  },
+  "message": "Project image deleted successfully",
+  "status": "success"
+}
+```
+
+### Clear All Project Images
+
+**Request:**
+
+```http
+DELETE /projects/:id/images/all
+Authorization: Bearer <token>
+```
+
+**Response:**
+
+```json
+{
+  "data": {
+    "cleared_count": 5
+  },
+  "message": "5 images cleared successfully",
   "status": "success"
 }
 ```

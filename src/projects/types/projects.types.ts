@@ -35,3 +35,33 @@ export interface LikeProjectResponse {
   created_at: string;
   updated_at: string;
 }
+
+export interface ProjectImage {
+  id: string;
+  url: string;
+  filename: string;
+  path: string;
+  size: number;
+  mimetype: string;
+  uploaded_at: string;
+}
+
+export interface ProjectCover {
+  url: string;
+  filename: string;
+  path: string;
+  size: number;
+  mimetype: string;
+  uploaded_at: string;
+}
+
+export interface ProjectImageUploadResponse {
+  image: ProjectImage;
+  total_images: number;
+  remaining_slots: number;
+}
+
+export interface ProjectCoverUploadResponse {
+  cover: ProjectCover;
+  previous_cover?: string;
+}

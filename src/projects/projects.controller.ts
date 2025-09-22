@@ -32,6 +32,10 @@ import type {
   LikeProjectResponse,
   Project,
   ProjectsResponse,
+  ProjectCoverUploadResponse,
+  ProjectImageUploadResponse,
+  ProjectImage,
+  ProjectCover,
 } from './types/projects.types';
 
 @Controller('projects')
@@ -107,7 +111,7 @@ export class ProjectsController {
     )
     file: Express.Multer.File,
     @CurrentUser() user: User,
-  ): Promise<RootResponse<{ url: string; path: string; filename: string }>> {
+  ): Promise<RootResponse<ProjectCoverUploadResponse>> {
     return this.projectsService.uploadProjectCover(id, file, user.id);
   }
 
@@ -126,7 +130,7 @@ export class ProjectsController {
     )
     file: Express.Multer.File,
     @CurrentUser() user: User,
-  ): Promise<RootResponse<{ url: string; path: string; filename: string }>> {
+  ): Promise<RootResponse<ProjectImageUploadResponse>> {
     return this.projectsService.uploadProjectImage(id, file, user.id);
   }
 
@@ -137,11 +141,45 @@ export class ProjectsController {
     @Param('id') id: string,
     @Body() deleteDto: DeleteProjectImageDto,
     @CurrentUser() user: User,
-  ): Promise<RootResponse<null>> {
+  ): Promise<RootResponse<{ deleted_url: string; remaining_images: number }>> {
     return this.projectsService.deleteProjectImage(
       id,
       deleteDto.image_url,
       user.id,
     );
+  }
+
+  @Get(':id/images')
+  async getProjectImages(
+    @Param('id') id: string,
+  ): Promise<RootResponse<ProjectImage[]>> {
+    return this.projectsService.getProjectImages(id);
+  }
+
+  @Get(':id/cover')
+  async getProjectCover(
+    @Param('id') id: string,
+  ): Promise<RootResponse<ProjectCover | null>> {
+    return this.projectsService.getProjectCover(id);
+  }
+
+  @Delete(':id/cover')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteProjectCover(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+  ): Promise<RootResponse<{ deleted_cover: string }>> {
+    return this.projectsService.deleteProjectCover(id, user.id);
+  }
+
+  @Delete(':id/images/all')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async clearAllProjectImages(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+  ): Promise<RootResponse<{ cleared_count: number }>> {
+    return this.projectsService.clearAllProjectImages(id, user.id);
   }
 }
