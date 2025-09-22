@@ -14,7 +14,6 @@ import {
   UploadedFile,
   Request,
   Res,
-  Header,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -51,12 +50,6 @@ export class TechnologiesController {
   ) {}
 
   @Get('cors-test')
-  @Header('Access-Control-Allow-Origin', '*')
-  @Header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  @Header(
-    'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, X-Requested-With',
-  )
   @ApiOperation({
     summary: 'CORS Test for Technologies',
     description: 'Test CORS functionality for technologies endpoints',
@@ -83,36 +76,15 @@ export class TechnologiesController {
       },
     },
   })
-  testCors(@Res() res: any): void {
-    res.status(HttpStatus.OK).json({
+  testCors(): { message: string; timestamp: string; cors: any } {
+    return {
       message: 'Technologies CORS test successful',
       timestamp: new Date().toISOString(),
       cors: {
-        origin: res.getHeader('Access-Control-Allow-Origin'),
-        methods: res.getHeader('Access-Control-Allow-Methods'),
-        headers: res.getHeader('Access-Control-Allow-Headers'),
+        status: 'CORS headers handled by global configuration',
+        note: 'Check browser network tab for actual CORS headers',
       },
-    });
-  }
-
-  @Get('options')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Handle OPTIONS request for CORS',
-    description: 'Handle preflight OPTIONS requests for CORS',
-  })
-  handleOptions(@Res() res: any): void {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader(
-      'Access-Control-Allow-Methods',
-      'GET, POST, PUT, DELETE, OPTIONS',
-    );
-    res.setHeader(
-      'Access-Control-Allow-Headers',
-      'Content-Type, Authorization, X-Requested-With',
-    );
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.status(HttpStatus.OK).send();
+    };
   }
 
   @Post()
@@ -150,12 +122,6 @@ export class TechnologiesController {
   }
 
   @Get()
-  @Header('Access-Control-Allow-Origin', '*')
-  @Header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  @Header(
-    'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, X-Requested-With',
-  )
   @ApiOperation({
     summary: 'Get Technologies',
     description: 'Get a paginated list of technologies with optional filtering',
@@ -197,12 +163,6 @@ export class TechnologiesController {
   }
 
   @Get('active')
-  @Header('Access-Control-Allow-Origin', '*')
-  @Header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  @Header(
-    'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, X-Requested-With',
-  )
   @ApiOperation({
     summary: 'Get Active Technologies',
     description: 'Get all active technologies',

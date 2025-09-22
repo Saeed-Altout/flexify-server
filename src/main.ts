@@ -7,7 +7,7 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS with credentials support for SameSite=None
+  // Enable CORS with credentials support
   app.enableCors({
     origin: process.env.ALLOWED_ORIGINS?.split(',') || [
       'http://localhost:3000',
@@ -27,12 +27,8 @@ async function bootstrap() {
       'X-Requested-With',
       'Accept',
       'Origin',
-      'Access-Control-Allow-Origin',
-      'Access-Control-Allow-Headers',
-      'Access-Control-Allow-Methods',
-      'Access-Control-Allow-Credentials',
     ],
-    exposedHeaders: ['Set-Cookie', 'Access-Control-Allow-Origin'],
+    exposedHeaders: ['Set-Cookie'],
     optionsSuccessStatus: 200,
     preflightContinue: false,
   });

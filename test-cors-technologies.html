@@ -66,26 +66,32 @@
         </div>
 
         <div class="test-section">
-            <h3>2. Get Technologies (No Auth)</h3>
+            <h3>2. Check CORS Headers</h3>
+            <button onclick="checkCorsHeaders()">Check CORS Headers</button>
+            <div id="headers-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Get Technologies (No Auth)</h3>
             <button onclick="testGetTechnologies()">Get Technologies</button>
             <div id="technologies-result"></div>
         </div>
 
         <div class="test-section">
-            <h3>3. Get Active Technologies</h3>
+            <h3>4. Get Active Technologies</h3>
             <button onclick="testGetActiveTechnologies()">Get Active Technologies</button>
             <div id="active-result"></div>
         </div>
 
         <div class="test-section">
-            <h3>4. Search Technologies</h3>
+            <h3>5. Search Technologies</h3>
             <input type="text" id="searchTerm" placeholder="Enter search term" value="react">
             <button onclick="testSearchTechnologies()">Search Technologies</button>
             <div id="search-result"></div>
         </div>
 
         <div class="test-section">
-            <h3>5. Test with Authentication</h3>
+            <h3>6. Test with Authentication</h3>
             <input type="text" id="authToken" placeholder="Enter JWT token (optional)">
             <button onclick="testWithAuth()">Test with Auth</button>
             <div id="auth-result"></div>
@@ -117,6 +123,35 @@
                 displayResult('cors-result', data, !response.ok);
             } catch (error) {
                 displayResult('cors-result', { error: error.message }, true);
+            }
+        }
+
+        async function checkCorsHeaders() {
+            try {
+                const response = await fetch(`${API_BASE}/technologies`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
+                    'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
+                    'Access-Control-Allow-Headers': response.headers.get('Access-Control-Allow-Headers'),
+                    'Access-Control-Allow-Credentials': response.headers.get('Access-Control-Allow-Credentials'),
+                };
+                
+                displayResult('headers-result', {
+                    message: 'CORS Headers Check',
+                    headers: corsHeaders,
+                    status: response.ok ? 'success' : 'error'
+                }, !response.ok);
+            } catch (error) {
+                displayResult('headers-result', { 
+                    error: error.message,
+                    message: 'Failed to check CORS headers'
+                }, true);
             }
         }
 
