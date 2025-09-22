@@ -34,8 +34,3 @@ export interface LikeProjectResponse {
   created_at: string;
   updated_at: string;
 }
-
-export interface ProjectCoverUploadResponse {
-  cover_url: string;
-  previous_cover_url?: string;
-}

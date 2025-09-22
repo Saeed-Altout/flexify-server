@@ -173,9 +173,3 @@ export class LikeProjectDto {
   @IsNotEmpty()
   project_id: string;
 }
-
-export class UploadProjectCoverDto {
-  @IsUUID('4')
-  @IsNotEmpty()
-  project_id: string;
-}

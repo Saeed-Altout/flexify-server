@@ -9,7 +9,6 @@ import {
   LikeProjectResponse,
   Project,
   ProjectsResponse,
-  ProjectCoverUploadResponse,
 } from './types/projects.types';
 import {
   CreateProjectDto,
@@ -20,16 +19,10 @@ import { RootResponse } from 'src/common/types';
 import { ProjectStatus } from './enums';
 
 import { SupabaseService } from '../supabase/supabase.service';
-import { FileUploadService } from '../file-upload/file-upload.service';
-import { ProjectCoverService } from './services/project-cover.service';
 
 @Injectable()
 export class ProjectsService {
-  constructor(
-    private supabaseService: SupabaseService,
-    private fileUploadService: FileUploadService,
-    private projectCoverService: ProjectCoverService,
-  ) {}
+  constructor(private supabaseService: SupabaseService) {}
 
   async createProject(
     createDto: CreateProjectDto,
@@ -371,73 +364,6 @@ export class ProjectsService {
           status: 'success',
         };
       }
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof Error ? error.message : JSON.stringify(error);
-      throw error instanceof Error ? error : new Error(errorMessage);
-    }
-  }
-
-  async uploadProjectCover(
-    projectId: string,
-    file: Express.Multer.File,
-    userId: string,
-  ): Promise<RootResponse<ProjectCoverUploadResponse>> {
-    try {
-      const result = await this.projectCoverService.uploadProjectCover(
-        projectId,
-        file,
-        userId,
-      );
-
-      return {
-        data: result,
-        message: 'Project cover uploaded successfully',
-        status: 'success',
-      };
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof Error ? error.message : JSON.stringify(error);
-      throw error instanceof Error ? error : new Error(errorMessage);
-    }
-  }
-
-  async deleteProjectCover(
-    projectId: string,
-    userId: string,
-  ): Promise<RootResponse<{ deleted_cover_url: string }>> {
-    try {
-      const result = await this.projectCoverService.deleteProjectCover(
-        projectId,
-        userId,
-      );
-
-      return {
-        data: result,
-        message: 'Project cover deleted successfully',
-        status: 'success',
-      };
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof Error ? error.message : JSON.stringify(error);
-      throw error instanceof Error ? error : new Error(errorMessage);
-    }
-  }
-
-  async getProjectCover(
-    projectId: string,
-  ): Promise<RootResponse<string | null>> {
-    try {
-      const coverUrl =
-        await this.projectCoverService.getProjectCover(projectId);
-
-      return {
-        data: coverUrl,
-        message: coverUrl
-          ? 'Project cover retrieved successfully'
-          : 'No cover found for this project',
-        status: 'success',
-      };
     } catch (error: any) {
       const errorMessage =
         error instanceof Error ? error.message : JSON.stringify(error);

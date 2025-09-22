@@ -10,12 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
-  UseInterceptors,
-  UploadedFile,
-  ParseFilePipe,
-  MaxFileSizeValidator,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { ProjectsService } from './projects.service';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -31,7 +26,6 @@ import type {
   LikeProjectResponse,
   Project,
   ProjectsResponse,
-  ProjectCoverUploadResponse,
 } from './types/projects.types';
 
 @Controller('projects')
@@ -90,41 +84,5 @@ export class ProjectsController {
     @CurrentUser() user: User,
   ): Promise<RootResponse<LikeProjectResponse>> {
     return this.projectsService.likeProject(likeDto.project_id, user.id);
-  }
-
-  @Post(':id/cover')
-  @UseGuards(AuthGuard)
-  @UseInterceptors(FileInterceptor('file'))
-  @HttpCode(HttpStatus.CREATED)
-  async uploadProjectCover(
-    @Param('id') id: string,
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }), // 10MB
-        ],
-      }),
-    )
-    file: Express.Multer.File,
-    @CurrentUser() user: User,
-  ): Promise<RootResponse<ProjectCoverUploadResponse>> {
-    return this.projectsService.uploadProjectCover(id, file, user.id);
-  }
-
-  @Get(':id/cover')
-  async getProjectCover(
-    @Param('id') id: string,
-  ): Promise<RootResponse<string | null>> {
-    return this.projectsService.getProjectCover(id);
-  }
-
-  @Delete(':id/cover')
-  @UseGuards(AuthGuard)
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteProjectCover(
-    @Param('id') id: string,
-    @CurrentUser() user: User,
-  ): Promise<RootResponse<{ deleted_cover_url: string }>> {
-    return this.projectsService.deleteProjectCover(id, user.id);
   }
 }
