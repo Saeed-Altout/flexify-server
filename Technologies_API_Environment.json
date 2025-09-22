@@ -1,0 +1,27 @@
+{
+  "id": "technologies-api-env",
+  "name": "Technologies API - Local",
+  "values": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api/v1",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "auth_token",
+      "value": "your_jwt_token_here",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "technology_id",
+      "value": "123e4567-e89b-12d3-a456-426614174000",
+      "type": "default",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment",
+  "_postman_exported_at": "2024-01-01T00:00:00.000Z",
+  "_postman_exported_using": "Postman/10.0.0"
+}

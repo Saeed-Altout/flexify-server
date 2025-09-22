@@ -8,6 +8,7 @@ import {
   Min,
   Max,
 } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 
 export class CreateTechnologyDto {
   @ApiProperty({
@@ -98,6 +99,11 @@ export class TechnologyQueryDto {
     required: false,
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
   @IsBoolean()
   is_active?: boolean;
 
@@ -117,6 +123,8 @@ export class TechnologyQueryDto {
     minimum: 1,
   })
   @IsOptional()
+  @Transform(({ value }) => parseInt(value))
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   page?: number;
@@ -129,6 +137,8 @@ export class TechnologyQueryDto {
     maximum: 100,
   })
   @IsOptional()
+  @Transform(({ value }) => parseInt(value))
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(100)
