@@ -1,4 +1,4 @@
-import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
+import { Module, MiddlewareConsumer } from '@nestjs/common';
 import { TechnologiesController } from './technologies.controller';
 import { TechnologiesService } from './technologies.service';
 import { TechnologiesCorsMiddleware } from './technologies-cors.middleware';
@@ -16,6 +16,6 @@ export class TechnologiesModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(TechnologiesCorsMiddleware)
-      .forRoutes({ path: 'technologies*', method: RequestMethod.ALL });
+      .forRoutes(TechnologiesController);
   }
 }
