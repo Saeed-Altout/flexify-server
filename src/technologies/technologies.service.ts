@@ -133,13 +133,11 @@ export class TechnologiesService {
     try {
       this.logger.log('Fetching active technologies');
 
-      const { data, error } = await this.supabaseService.select(
-        'technologies',
-        {
-          eq: { is_active: true },
-          order: { column: 'name', ascending: true },
-        },
-      );
+      const { data, error } = await this.supabaseService.supabase
+        .from('technologies')
+        .select('*')
+        .eq('is_active', true)
+        .order('name', { ascending: true });
 
       if (error) {
         this.logger.error(
@@ -202,13 +200,12 @@ export class TechnologiesService {
     try {
       this.logger.log(`Fetching technologies by category: ${category}`);
 
-      const { data, error } = await this.supabaseService.select(
-        'technologies',
-        {
-          eq: { category, is_active: true },
-          order: { column: 'name', ascending: true },
-        },
-      );
+      const { data, error } = await this.supabaseService.supabase
+        .from('technologies')
+        .select('*')
+        .eq('category', category)
+        .eq('is_active', true)
+        .order('name', { ascending: true });
 
       if (error) {
         this.logger.error(
@@ -238,13 +235,11 @@ export class TechnologiesService {
     try {
       this.logger.log(`Fetching technology by ID: ${id}`);
 
-      const { data, error } = await this.supabaseService.select(
-        'technologies',
-        {
-          eq: { id },
-          single: true,
-        },
-      );
+      const { data, error } = await this.supabaseService.supabase
+        .from('technologies')
+        .select('*')
+        .eq('id', id)
+        .single();
 
       if (error) {
         this.logger.error(`Error fetching technology: ${error.message}`);
@@ -301,8 +296,11 @@ export class TechnologiesService {
 
       this.logger.log(`Technology updated successfully: ${id}`);
 
+      // Get the updated technology to return as single object
+      const updatedTech = await this.getTechnologyById(id);
+
       return {
-        data,
+        data: updatedTech.data,
         message: 'Technology updated successfully',
         status: 'success',
       };
