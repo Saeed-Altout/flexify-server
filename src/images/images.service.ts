@@ -243,6 +243,9 @@ export class ImagesService {
         throw new NotFoundException(`Image with ID ${imageId} not found`);
       }
 
+      // Check if image is being used by projects or technologies
+      await this.checkImageUsage(imageId, image[0].url);
+
       // Delete from database
       const { error: deleteError } = await this.supabaseService.delete(
         'images',
@@ -300,6 +303,19 @@ export class ImagesService {
 
       const foundIds = images.map((img: any) => img.id);
 
+      // Check if any images are being used by projects or technologies
+      for (const imageId of foundIds) {
+        const { data: imageData } = await this.supabaseService.select(
+          'images',
+          {
+            eq: { id: imageId },
+          },
+        );
+        if (imageData && imageData.length > 0) {
+          await this.checkImageUsage(imageId, imageData[0].url);
+        }
+      }
+
       // Delete from database
       const { error: deleteError } = await this.supabaseService.supabase
         .from('images')
@@ -349,6 +365,42 @@ export class ImagesService {
 
     if (!file.buffer || file.buffer.length === 0) {
       throw new BadRequestException('File buffer is empty');
+    }
+  }
+
+  /**
+   * Check if image is being used by projects or technologies
+   */
+  private async checkImageUsage(
+    imageId: string,
+    imageUrl: string,
+  ): Promise<void> {
+    // Check if image is used in projects (cover_url)
+    const { data: projectsUsingImage } = await this.supabaseService.supabase
+      .from('projects')
+      .select('id, title')
+      .eq('cover_url', imageUrl);
+
+    if (projectsUsingImage && projectsUsingImage.length > 0) {
+      const projectTitles = projectsUsingImage.map((p) => p.title).join(', ');
+      throw new BadRequestException(
+        `Cannot delete image: It is currently being used as cover image for project(s): ${projectTitles}. Please remove the image from the project(s) first.`,
+      );
+    }
+
+    // Check if image is used in technologies (icon_url)
+    const { data: technologiesUsingImage } = await this.supabaseService.supabase
+      .from('technologies')
+      .select('id, name')
+      .eq('icon_url', imageUrl);
+
+    if (technologiesUsingImage && technologiesUsingImage.length > 0) {
+      const technologyNames = technologiesUsingImage
+        .map((t) => t.name)
+        .join(', ');
+      throw new BadRequestException(
+        `Cannot delete image: It is currently being used as icon for technology/technologies: ${technologyNames}. Please remove the image from the technology/technologies first.`,
+      );
     }
   }
 }
