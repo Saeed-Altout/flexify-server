@@ -271,10 +271,7 @@ export class AuthService {
 
       // Check if user exists
       const user = await this.supabaseService.getUserByEmail(sendOtpDto.email);
-      if (!user) {
-        throw new BadRequestException('User not found');
-      }
-
+      
       // Generate 5-digit OTP
       const otp = Math.floor(10000 + Math.random() * 90000).toString();
 
@@ -285,7 +282,7 @@ export class AuthService {
       const emailSent = await this.emailService.sendOtpEmail(
         sendOtpDto.email,
         otp,
-        user.name,
+        user?.name || 'User', // Use user name if exists, otherwise default
       );
 
       if (!emailSent) {

@@ -13,12 +13,13 @@ export class EmailService {
 
   private initializeTransporter() {
     const emailConfig = {
-      host: this.configService.get<string>('email.host') || 'smtp.gmail.com',
-      port: this.configService.get<number>('email.port') || 587,
-      secure: this.configService.get<boolean>('email.secure') || false,
+      host:
+        this.configService.get<string>('email.smtpHost') || 'smtp.gmail.com',
+      port: this.configService.get<number>('email.smtpPort') || 465,
+      secure: this.configService.get<boolean>('email.smtpSecure') || true,
       auth: {
-        user: this.configService.get<string>('email.user'),
-        pass: this.configService.get<string>('email.password'),
+        user: this.configService.get<string>('email.smtpUser'),
+        pass: this.configService.get<string>('email.smtpPass'),
       },
     };
 
