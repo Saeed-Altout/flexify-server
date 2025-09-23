@@ -74,8 +74,8 @@ export class TechnologyQueryDto {
   @IsBoolean()
   is_active?: boolean;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   search?: string;
 
   @IsOptional()

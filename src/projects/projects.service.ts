@@ -86,7 +86,7 @@ export class ProjectsService {
         supabaseQuery = supabaseQuery.eq('user_id', query.user_id);
       }
 
-      if (query.search) {
+      if (query.search && query.search.trim() !== '') {
         supabaseQuery = supabaseQuery.or(
           `title.ilike.%${query.search}%,description.ilike.%${query.search}%,content.ilike.%${query.search}%`,
         );

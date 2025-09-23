@@ -71,7 +71,7 @@ export class TechnologiesService {
       if (query.is_active !== undefined) {
         queryBuilder = queryBuilder.eq('is_active', query.is_active);
       }
-      if (query.search) {
+      if (query.search && query.search.trim() !== '') {
         queryBuilder = queryBuilder.or(
           `name.ilike.%${query.search}%,description.ilike.%${query.search}%`,
         );
