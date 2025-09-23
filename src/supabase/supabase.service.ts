@@ -400,7 +400,7 @@ export class SupabaseService {
     }
   }
 
-  verifyRefreshToken(token: string): any {
+  verifyJwtToken(token: string): any {
     try {
       return jwt.verify(token, this.jwtRefreshSecret);
     } catch (error) {
