@@ -22,6 +22,14 @@ export class ImagesService {
     'image/png',
     'image/gif',
     'image/webp',
+    'image/svg',
+    'image/svg+xml',
+    'image/avif',
+    'image/heic',
+    'image/heif',
+    'image/bmp',
+    'image/tiff',
+    'image/ico',
   ];
 
   constructor(
