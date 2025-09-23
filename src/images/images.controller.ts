@@ -62,6 +62,16 @@ export class ImagesController {
     return this.imagesService.getUserImages(user.id, query);
   }
 
+  @Delete('bulk')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async bulkDeleteImages(
+    @Body() deleteDto: BulkDeleteImagesDto,
+    @CurrentUser() user: User,
+  ): Promise<RootResponse<{ deleted_count: number; deleted_ids: string[] }>> {
+    return this.imagesService.bulkDeleteImages(deleteDto.image_ids, user.id);
+  }
+
   @Get(':id')
   @UseGuards(AuthGuard)
   async getImageById(
@@ -79,15 +89,5 @@ export class ImagesController {
     @CurrentUser() user: User,
   ): Promise<RootResponse<ImageDeleteResponse>> {
     return this.imagesService.deleteImage(id, user.id);
-  }
-
-  @Delete('bulk')
-  @UseGuards(AuthGuard)
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async bulkDeleteImages(
-    @Body() deleteDto: BulkDeleteImagesDto,
-    @CurrentUser() user: User,
-  ): Promise<RootResponse<{ deleted_count: number; deleted_ids: string[] }>> {
-    return this.imagesService.bulkDeleteImages(deleteDto.image_ids, user.id);
   }
 }
