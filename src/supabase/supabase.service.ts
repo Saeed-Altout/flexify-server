@@ -430,6 +430,8 @@ export class SupabaseService {
         otp,
         expires_at: expiresAt.toISOString(),
         created_at: new Date().toISOString(),
+      }, {
+        onConflict: 'email'
       });
 
       if (error) {
