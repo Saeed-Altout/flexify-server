@@ -160,6 +160,76 @@ export class ResendVerificationDto {
   email: string;
 }
 
+export class VerifyAccountDto {
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'User email address',
+  })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({
+    example: '12345',
+    description: '5-digit OTP code',
+  })
+  @IsString()
+  @MinLength(5)
+  @MaxLength(5)
+  otp: string;
+}
+
+export class SendOtpDto {
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'User email address',
+  })
+  @IsEmail()
+  email: string;
+}
+
+export class ForgotPasswordRequestDto {
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'User email address',
+  })
+  @IsEmail()
+  email: string;
+}
+
+export class ResetPasswordWithTokenDto {
+  @ApiProperty({
+    example: 'reset_token_here',
+    description: 'Password reset token',
+  })
+  @IsString()
+  token: string;
+
+  @ApiProperty({ example: 'newPassword123', description: 'New password' })
+  @IsString()
+  @MinLength(8)
+  @MaxLength(100)
+  new_password: string;
+
+  @ApiProperty({
+    example: 'newPassword123',
+    description: 'Confirm new password (must match new_password)',
+  })
+  @IsString()
+  @MinLength(8)
+  @MaxLength(100)
+  @Validate(MatchPasswordConstraint, ['new_password'])
+  confirm_password: string;
+}
+
+export class RefreshTokenDto {
+  @ApiProperty({
+    example: 'refresh_token_here',
+    description: 'Refresh token',
+  })
+  @IsString()
+  refresh_token: string;
+}
+
 export class UserDto {
   @ApiProperty({
     example: '123e4567-e89b-12d3-a456-426614174000',
@@ -276,6 +346,9 @@ export class AuthResponseDto {
 
   @ApiProperty({ example: 'jwt_token_here', description: 'Access token' })
   access_token: string;
+
+  @ApiProperty({ example: 'refresh_token_here', description: 'Refresh token' })
+  refresh_token: string;
 
   @ApiProperty({ type: SessionDto, description: 'Session information' })
   session: SessionDto;

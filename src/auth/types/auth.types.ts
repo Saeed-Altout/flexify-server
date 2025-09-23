@@ -39,6 +39,7 @@ export interface Session {
 export interface AuthResponse {
   user: Omit<User, 'password_hash'>;
   access_token: string;
+  refresh_token: string;
   session: {
     isActive: boolean;
     expiresAt: string;
@@ -90,6 +91,29 @@ export interface VerifyEmailRequest {
 
 export interface ResendVerificationRequest {
   email: string;
+}
+
+export interface VerifyAccountRequest {
+  email: string;
+  otp: string;
+}
+
+export interface SendOtpRequest {
+  email: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordWithTokenRequest {
+  token: string;
+  new_password: string;
+  confirm_password: string;
+}
+
+export interface RefreshTokenRequest {
+  refresh_token: string;
 }
 
 // =====================================================

@@ -385,7 +385,7 @@ export class SupabaseService {
   // =====================================================
 
   generateAccessToken(payload: any): string {
-    return jwt.sign(payload, this.jwtSecret, { expiresIn: '30d' });
+    return jwt.sign(payload, this.jwtSecret, { expiresIn: '15m' });
   }
 
   generateRefreshToken(payload: any): string {
@@ -410,6 +410,280 @@ export class SupabaseService {
 
   generateTokenHash(token: string): string {
     return require('crypto').createHash('sha256').update(token).digest('hex');
+  }
+
+  // =====================================================
+  // OTP AND PASSWORD RESET OPERATIONS
+  // =====================================================
+
+  async createOtpRecord(email: string, otp: string): Promise<void> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('createOtpRecord called in development mode');
+        return;
+      }
+
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      const { error } = await this.supabase.from('otp_verifications').upsert({
+        email,
+        otp,
+        expires_at: expiresAt.toISOString(),
+        created_at: new Date().toISOString(),
+      });
+
+      if (error) {
+        this.logger.error(`Error creating OTP record: ${error.message}`);
+        throw new Error(`Failed to create OTP record: ${error.message}`);
+      }
+    } catch (error: any) {
+      this.logger.error(`Error in createOtpRecord: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async verifyOtp(email: string, otp: string): Promise<boolean> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('verifyOtp called in development mode');
+        return true;
+      }
+
+      const { data, error } = await this.supabase
+        .from('otp_verifications')
+        .select('*')
+        .eq('email', email)
+        .eq('otp', otp)
+        .single();
+
+      if (error || !data) {
+        return false;
+      }
+
+      // Check if OTP is expired
+      if (new Date(data.expires_at) < new Date()) {
+        return false;
+      }
+
+      // Delete the OTP record after successful verification
+      await this.supabase
+        .from('otp_verifications')
+        .delete()
+        .eq('email', email)
+        .eq('otp', otp);
+
+      return true;
+    } catch (error: any) {
+      this.logger.error(`Error in verifyOtp: ${error.message}`);
+      return false;
+    }
+  }
+
+  async createPasswordResetToken(email: string, token: string): Promise<void> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('createPasswordResetToken called in development mode');
+        return;
+      }
+
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      const { error } = await this.supabase
+        .from('password_reset_tokens')
+        .upsert({
+          email,
+          token,
+          expires_at: expiresAt.toISOString(),
+          created_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        this.logger.error(
+          `Error creating password reset token: ${error.message}`,
+        );
+        throw new Error(
+          `Failed to create password reset token: ${error.message}`,
+        );
+      }
+    } catch (error: any) {
+      this.logger.error(`Error in createPasswordResetToken: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async verifyPasswordResetToken(token: string): Promise<string | null> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('verifyPasswordResetToken called in development mode');
+        return 'dev@example.com';
+      }
+
+      const { data, error } = await this.supabase
+        .from('password_reset_tokens')
+        .select('email, expires_at')
+        .eq('token', token)
+        .single();
+
+      if (error || !data) {
+        return null;
+      }
+
+      // Check if token is expired
+      if (new Date(data.expires_at) < new Date()) {
+        return null;
+      }
+
+      return data.email;
+    } catch (error: any) {
+      this.logger.error(`Error in verifyPasswordResetToken: ${error.message}`);
+      return null;
+    }
+  }
+
+  async deletePasswordResetToken(token: string): Promise<void> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('deletePasswordResetToken called in development mode');
+        return;
+      }
+
+      const { error } = await this.supabase
+        .from('password_reset_tokens')
+        .delete()
+        .eq('token', token);
+
+      if (error) {
+        this.logger.error(
+          `Error deleting password reset token: ${error.message}`,
+        );
+        throw new Error(
+          `Failed to delete password reset token: ${error.message}`,
+        );
+      }
+    } catch (error: any) {
+      this.logger.error(`Error in deletePasswordResetToken: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async createRefreshTokenRecord(
+    userId: string,
+    refreshToken: string,
+  ): Promise<void> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('createRefreshTokenRecord called in development mode');
+        return;
+      }
+
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      const tokenHash = this.generateTokenHash(refreshToken);
+
+      const { error } = await this.supabase.from('refresh_tokens').insert({
+        user_id: userId,
+        token_hash: tokenHash,
+        expires_at: expiresAt.toISOString(),
+        is_active: true,
+      });
+
+      if (error) {
+        this.logger.error(
+          `Error creating refresh token record: ${error.message}`,
+        );
+        throw new Error(
+          `Failed to create refresh token record: ${error.message}`,
+        );
+      }
+    } catch (error: any) {
+      this.logger.error(`Error in createRefreshTokenRecord: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async verifyRefreshToken(refreshToken: string): Promise<string | null> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('verifyRefreshToken called in development mode');
+        return 'dev-user-id';
+      }
+
+      const tokenHash = this.generateTokenHash(refreshToken);
+
+      const { data, error } = await this.supabase
+        .from('refresh_tokens')
+        .select('user_id, expires_at, is_active')
+        .eq('token_hash', tokenHash)
+        .eq('is_active', true)
+        .single();
+
+      if (error || !data) {
+        return null;
+      }
+
+      // Check if token is expired
+      if (new Date(data.expires_at) < new Date()) {
+        return null;
+      }
+
+      return data.user_id;
+    } catch (error: any) {
+      this.logger.error(`Error in verifyRefreshToken: ${error.message}`);
+      return null;
+    }
+  }
+
+  async invalidateRefreshToken(refreshToken: string): Promise<void> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('invalidateRefreshToken called in development mode');
+        return;
+      }
+
+      const tokenHash = this.generateTokenHash(refreshToken);
+
+      const { error } = await this.supabase
+        .from('refresh_tokens')
+        .update({ is_active: false })
+        .eq('token_hash', tokenHash);
+
+      if (error) {
+        this.logger.error(`Error invalidating refresh token: ${error.message}`);
+        throw new Error(`Failed to invalidate refresh token: ${error.message}`);
+      }
+    } catch (error: any) {
+      this.logger.error(`Error in invalidateRefreshToken: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async invalidateUserRefreshTokens(userId: string): Promise<void> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn(
+          'invalidateUserRefreshTokens called in development mode',
+        );
+        return;
+      }
+
+      const { error } = await this.supabase
+        .from('refresh_tokens')
+        .update({ is_active: false })
+        .eq('user_id', userId);
+
+      if (error) {
+        this.logger.error(
+          `Error invalidating user refresh tokens: ${error.message}`,
+        );
+        throw new Error(
+          `Failed to invalidate user refresh tokens: ${error.message}`,
+        );
+      }
+    } catch (error: any) {
+      this.logger.error(
+        `Error in invalidateUserRefreshTokens: ${error.message}`,
+      );
+      throw error;
+    }
   }
 
   // =====================================================

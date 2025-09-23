@@ -42,6 +42,11 @@ import {
   UserListResponseDto,
   UserStatsDto,
   UserWithSessionsDto,
+  VerifyAccountDto,
+  SendOtpDto,
+  ForgotPasswordRequestDto,
+  ResetPasswordWithTokenDto,
+  RefreshTokenDto,
 } from './dto/auth.dto';
 import type { User } from './types/auth.types';
 
@@ -79,8 +84,157 @@ export class AuthController {
   })
   async signUp(
     @Body() signUpDto: SignUpDto,
-  ): Promise<StandardResponseDto<SignUpResponseDto>> {
+  ): Promise<StandardResponseDto<{ message: string }>> {
     return this.authService.signUp(signUpDto);
+  }
+
+  @Post('verify-account')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Verify Account with OTP',
+    description: 'Verify user account using the 5-digit OTP sent to email',
+  })
+  @ApiBody({ type: VerifyAccountDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Account verified successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { $ref: '#/components/schemas/UserDto' },
+        message: { type: 'string', example: 'Account verified successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid or expired OTP',
+  })
+  async verifyAccount(
+    @Body() verifyAccountDto: VerifyAccountDto,
+  ): Promise<StandardResponseDto<{ user: UserDto }>> {
+    return this.authService.verifyAccount(verifyAccountDto);
+  }
+
+  @Post('send-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Send OTP',
+    description: 'Send a new 5-digit OTP to user email for verification',
+  })
+  @ApiBody({ type: SendOtpDto })
+  @ApiResponse({
+    status: 200,
+    description: 'OTP sent successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'object', properties: { message: { type: 'string' } } },
+        message: { type: 'string', example: 'OTP sent successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'User not found',
+  })
+  async sendOtp(
+    @Body() sendOtpDto: SendOtpDto,
+  ): Promise<StandardResponseDto<{ message: string }>> {
+    return this.authService.sendOtp(sendOtpDto);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Forgot Password',
+    description: 'Send password reset email to user',
+  })
+  @ApiBody({ type: ForgotPasswordRequestDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset email sent',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'object', properties: { message: { type: 'string' } } },
+        message: { type: 'string', example: 'Password reset email sent' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  async forgotPassword(
+    @Body() forgotPasswordDto: ForgotPasswordRequestDto,
+  ): Promise<StandardResponseDto<{ message: string }>> {
+    return this.authService.forgotPassword(forgotPasswordDto);
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reset Password with Token',
+    description: 'Reset user password using the token from email',
+  })
+  @ApiBody({ type: ResetPasswordWithTokenDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'object', properties: { message: { type: 'string' } } },
+        message: { type: 'string', example: 'Password reset successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid token or password validation failed',
+  })
+  async resetPasswordWithToken(
+    @Body() resetPasswordDto: ResetPasswordWithTokenDto,
+  ): Promise<StandardResponseDto<{ message: string }>> {
+    return this.authService.resetPasswordWithToken(resetPasswordDto);
+  }
+
+  @Post('refresh-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Refresh Access Token',
+    description: 'Get new access token using refresh token',
+  })
+  @ApiBody({ type: RefreshTokenDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Tokens refreshed successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          properties: {
+            access_token: { type: 'string' },
+            refresh_token: { type: 'string' },
+          },
+        },
+        message: { type: 'string', example: 'Tokens refreshed successfully' },
+        status: { type: 'string', example: 'success' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid or expired refresh token',
+  })
+  async refreshToken(
+    @Body() refreshTokenDto: RefreshTokenDto,
+  ): Promise<
+    StandardResponseDto<{ access_token: string; refresh_token: string }>
+  > {
+    return this.authService.refreshToken(refreshTokenDto);
   }
 
   @Post('sign-in')

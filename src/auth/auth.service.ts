@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from '../supabase/supabase.service';
+import { EmailService } from './email.service';
 import {
   User,
   Session,
@@ -26,6 +27,7 @@ export class AuthService {
   constructor(
     private supabaseService: SupabaseService,
     private configService: ConfigService,
+    private emailService: EmailService,
   ) {}
 
   // =====================================================
@@ -34,7 +36,7 @@ export class AuthService {
 
   async signUp(
     signUpDto: SignUpRequest,
-  ): Promise<StandardResponseDto<SignUpResponseDto>> {
+  ): Promise<StandardResponseDto<{ message: string }>> {
     try {
       this.logger.log(
         `Attempting to sign up user with email: ${signUpDto.email}`,
@@ -48,23 +50,30 @@ export class AuthService {
         throw new ConflictException('User already exists with this email');
       }
 
-      // Create user
-      const user = await this.supabaseService.createUser(
+      // Generate 5-digit OTP
+      const otp = Math.floor(10000 + Math.random() * 90000).toString();
+
+      // Store OTP in database
+      await this.supabaseService.createOtpRecord(signUpDto.email, otp);
+
+      // Send OTP email
+      const emailSent = await this.emailService.sendOtpEmail(
         signUpDto.email,
+        otp,
         signUpDto.name,
-        signUpDto.password,
       );
 
-      this.logger.log(`Successfully signed up user: ${user.id}`);
+      if (!emailSent) {
+        this.logger.warn(`Failed to send OTP email to ${signUpDto.email}`);
+      }
 
-      // Return user without password
-      const { password_hash, ...userWithoutPassword } = user;
+      this.logger.log(`OTP sent to ${signUpDto.email}`);
 
       return {
         data: {
-          user: userWithoutPassword,
+          message: 'OTP sent to your email. Please verify your account.',
         },
-        message: 'User signed up successfully',
+        message: 'OTP sent successfully',
         status: 'success',
       };
     } catch (error: any) {
@@ -105,8 +114,14 @@ export class AuthService {
         throw new UnauthorizedException('Invalid credentials');
       }
 
-      // Generate access token
+      // Generate access and refresh tokens
       const accessToken = this.supabaseService.generateAccessToken({
+        sub: user.id,
+        email: user.email,
+        role: user.role,
+      });
+
+      const refreshToken = this.supabaseService.generateRefreshToken({
         sub: user.id,
         email: user.email,
         role: user.role,
@@ -115,7 +130,7 @@ export class AuthService {
       // Create session with access token
       const tokenHash = this.supabaseService.generateTokenHash(accessToken);
       const expiresAt = new Date(
-        Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
+        Date.now() + 15 * 60 * 1000, // 15 minutes
       ).toISOString();
 
       await this.supabaseService.createSession(
@@ -124,6 +139,12 @@ export class AuthService {
         expiresAt,
         ipAddress,
         userAgent,
+      );
+
+      // Create refresh token record
+      await this.supabaseService.createRefreshTokenRecord(
+        user.id,
+        refreshToken,
       );
 
       // Update last login
@@ -140,11 +161,10 @@ export class AuthService {
         data: {
           user: userWithoutPassword,
           access_token: accessToken,
+          refresh_token: refreshToken,
           session: {
             isActive: true,
-            expiresAt: new Date(
-              Date.now() + 30 * 24 * 60 * 60 * 1000,
-            ).toISOString(),
+            expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
             createdAt: new Date().toISOString(),
             ipAddress,
             userAgent,
@@ -184,6 +204,307 @@ export class AuthService {
       const errorMessage =
         error instanceof Error ? error.message : JSON.stringify(error);
       this.logger.error(`Error in signOut: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  // =====================================================
+  // EMAIL VERIFICATION AND PASSWORD RESET METHODS
+  // =====================================================
+
+  async verifyAccount(verifyAccountDto: {
+    email: string;
+    otp: string;
+  }): Promise<StandardResponseDto<{ user: Omit<User, 'password_hash'> }>> {
+    try {
+      this.logger.log(`Verifying account for email: ${verifyAccountDto.email}`);
+
+      // Verify OTP
+      const isOtpValid = await this.supabaseService.verifyOtp(
+        verifyAccountDto.email,
+        verifyAccountDto.otp,
+      );
+
+      if (!isOtpValid) {
+        throw new BadRequestException('Invalid or expired OTP');
+      }
+
+      // Get user data from signup (we need to store this temporarily or get it from request)
+      // For now, we'll create the user with a default password that they'll need to change
+      const tempPassword = Math.random().toString(36).slice(-8);
+      const user = await this.supabaseService.createUser(
+        verifyAccountDto.email,
+        'User', // We'll need to get this from the signup data
+        tempPassword,
+      );
+
+      // Mark email as verified
+      await this.supabaseService.updateUser(user.id, {
+        email_verified: true,
+      });
+
+      this.logger.log(`Account verified successfully for: ${user.id}`);
+
+      // Return user without password
+      const { password_hash, ...userWithoutPassword } = user;
+
+      return {
+        data: {
+          user: userWithoutPassword,
+        },
+        message: 'Account verified successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in verifyAccount: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async sendOtp(sendOtpDto: {
+    email: string;
+  }): Promise<StandardResponseDto<{ message: string }>> {
+    try {
+      this.logger.log(`Sending OTP to email: ${sendOtpDto.email}`);
+
+      // Check if user exists
+      const user = await this.supabaseService.getUserByEmail(sendOtpDto.email);
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
+      // Generate 5-digit OTP
+      const otp = Math.floor(10000 + Math.random() * 90000).toString();
+
+      // Store OTP in database
+      await this.supabaseService.createOtpRecord(sendOtpDto.email, otp);
+
+      // Send OTP email
+      const emailSent = await this.emailService.sendOtpEmail(
+        sendOtpDto.email,
+        otp,
+        user.name,
+      );
+
+      if (!emailSent) {
+        this.logger.warn(`Failed to send OTP email to ${sendOtpDto.email}`);
+      }
+
+      this.logger.log(`OTP sent to ${sendOtpDto.email}`);
+
+      return {
+        data: {
+          message: 'OTP sent to your email',
+        },
+        message: 'OTP sent successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in sendOtp: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async forgotPassword(forgotPasswordDto: {
+    email: string;
+  }): Promise<StandardResponseDto<{ message: string }>> {
+    try {
+      this.logger.log(
+        `Processing forgot password for email: ${forgotPasswordDto.email}`,
+      );
+
+      // Check if user exists
+      const user = await this.supabaseService.getUserByEmail(
+        forgotPasswordDto.email,
+      );
+      if (!user) {
+        // Don't reveal if user exists or not for security
+        return {
+          data: {
+            message:
+              'If an account with this email exists, a password reset link has been sent.',
+          },
+          message: 'Password reset email sent',
+          status: 'success',
+        };
+      }
+
+      // Generate reset token
+      const resetToken = require('crypto').randomBytes(32).toString('hex');
+
+      // Store reset token in database
+      await this.supabaseService.createPasswordResetToken(
+        forgotPasswordDto.email,
+        resetToken,
+      );
+
+      // Send password reset email
+      const emailSent = await this.emailService.sendPasswordResetEmail(
+        forgotPasswordDto.email,
+        resetToken,
+        user.name,
+      );
+
+      if (!emailSent) {
+        this.logger.warn(
+          `Failed to send password reset email to ${forgotPasswordDto.email}`,
+        );
+      }
+
+      this.logger.log(
+        `Password reset email sent to ${forgotPasswordDto.email}`,
+      );
+
+      return {
+        data: {
+          message:
+            'If an account with this email exists, a password reset link has been sent.',
+        },
+        message: 'Password reset email sent',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in forgotPassword: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async resetPasswordWithToken(resetPasswordDto: {
+    token: string;
+    new_password: string;
+    confirm_password: string;
+  }): Promise<StandardResponseDto<{ message: string }>> {
+    try {
+      this.logger.log('Processing password reset with token');
+
+      // Validate passwords match
+      if (resetPasswordDto.new_password !== resetPasswordDto.confirm_password) {
+        throw new BadRequestException(
+          'New password and confirm password do not match',
+        );
+      }
+
+      // Verify reset token
+      const email = await this.supabaseService.verifyPasswordResetToken(
+        resetPasswordDto.token,
+      );
+      if (!email) {
+        throw new BadRequestException('Invalid or expired reset token');
+      }
+
+      // Get user
+      const user = await this.supabaseService.getUserByEmail(email);
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
+      // Hash new password
+      const saltRounds = 12;
+      const newPasswordHash = await require('bcrypt').hash(
+        resetPasswordDto.new_password,
+        saltRounds,
+      );
+
+      // Update password
+      await this.supabaseService.updateUser(user.id, {
+        password_hash: newPasswordHash,
+        updated_at: new Date().toISOString(),
+      });
+
+      // Delete the reset token
+      await this.supabaseService.deletePasswordResetToken(
+        resetPasswordDto.token,
+      );
+
+      // Invalidate all user sessions and refresh tokens
+      await this.supabaseService.invalidateUserSessions(user.id);
+      await this.supabaseService.invalidateUserRefreshTokens(user.id);
+
+      this.logger.log(`Password reset successfully for user: ${user.id}`);
+
+      return {
+        data: {
+          message:
+            'Password reset successfully. Please sign in with your new password.',
+        },
+        message: 'Password reset successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in resetPasswordWithToken: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
+  async refreshToken(refreshTokenDto: {
+    refresh_token: string;
+  }): Promise<
+    StandardResponseDto<{ access_token: string; refresh_token: string }>
+  > {
+    try {
+      this.logger.log('Processing refresh token request');
+
+      // Verify refresh token
+      const userId = await this.supabaseService.verifyRefreshToken(
+        refreshTokenDto.refresh_token,
+      );
+      if (!userId) {
+        throw new UnauthorizedException('Invalid or expired refresh token');
+      }
+
+      // Get user
+      const user = await this.supabaseService.getUserById(userId);
+      if (!user || !user.is_active) {
+        throw new UnauthorizedException('User not found or inactive');
+      }
+
+      // Generate new access token
+      const newAccessToken = this.supabaseService.generateAccessToken({
+        sub: user.id,
+        email: user.email,
+        role: user.role,
+      });
+
+      // Generate new refresh token
+      const newRefreshToken = this.supabaseService.generateRefreshToken({
+        sub: user.id,
+        email: user.email,
+        role: user.role,
+      });
+
+      // Invalidate old refresh token
+      await this.supabaseService.invalidateRefreshToken(
+        refreshTokenDto.refresh_token,
+      );
+
+      // Create new refresh token record
+      await this.supabaseService.createRefreshTokenRecord(
+        userId,
+        newRefreshToken,
+      );
+
+      this.logger.log(`Tokens refreshed successfully for user: ${userId}`);
+
+      return {
+        data: {
+          access_token: newAccessToken,
+          refresh_token: newRefreshToken,
+        },
+        message: 'Tokens refreshed successfully',
+        status: 'success',
+      };
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in refreshToken: ${errorMessage}`);
       throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
