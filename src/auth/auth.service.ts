@@ -114,6 +114,13 @@ export class AuthService {
         throw new UnauthorizedException('Invalid credentials');
       }
 
+      // Check if email is verified
+      if (!user.email_verified) {
+        throw new UnauthorizedException(
+          'Please verify your email before signing in. Check your inbox for the verification code.',
+        );
+      }
+
       // Generate access and refresh tokens
       const accessToken = this.supabaseService.generateAccessToken({
         sub: user.id,
@@ -271,7 +278,7 @@ export class AuthService {
 
       // Check if user exists
       const user = await this.supabaseService.getUserByEmail(sendOtpDto.email);
-      
+
       // Generate 5-digit OTP
       const otp = Math.floor(10000 + Math.random() * 90000).toString();
 

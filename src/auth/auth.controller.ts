@@ -242,7 +242,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'User Login',
     description:
-      'Authenticate user with email and password. Returns user data, access token, and session information.',
+      'Authenticate user with email and password. User must have verified their email address. Returns user data, access token, and session information.',
   })
   @ApiBody({ type: SignInDto })
   @ApiResponse({
@@ -259,7 +259,19 @@ export class AuthController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Invalid credentials',
+    description: 'Invalid credentials or email not verified',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example:
+            'Please verify your email before signing in. Check your inbox for the verification code.',
+        },
+        error: { type: 'string', example: 'Unauthorized' },
+        statusCode: { type: 'number', example: 401 },
+      },
+    },
   })
   @ApiResponse({
     status: 400,
