@@ -64,7 +64,7 @@ export class ImagesController {
 
   @Delete('bulk')
   @UseGuards(AuthGuard)
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   async bulkDeleteImages(
     @Body() deleteDto: BulkDeleteImagesDto,
     @CurrentUser() user: User,
@@ -83,7 +83,7 @@ export class ImagesController {
 
   @Delete(':id')
   @UseGuards(AuthGuard)
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   async deleteImage(
     @Param('id') id: string,
     @CurrentUser() user: User,

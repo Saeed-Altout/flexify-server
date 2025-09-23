@@ -55,12 +55,36 @@ Content-Type: application/json
         "fef8b6d4-e953-4c99-9814-77d1f2eb1395"
     ]
 }
+
+# Response (200 OK):
+{
+    "data": {
+        "deleted_count": 3,
+        "deleted_ids": [
+            "7634655e-44f5-4dca-8ece-776d46851070",
+            "e360cc84-8fac-4931-97ae-8f9612568284",
+            "fef8b6d4-e953-4c99-9814-77d1f2eb1395"
+        ]
+    },
+    "message": "Images deleted successfully",
+    "status": "success"
+}
 ```
 
 ### ✅ Individual Delete Still Works
 
 ```bash
 DELETE /api/v1/images/7634655e-44f5-4dca-8ece-776d46851070
+
+# Response (200 OK):
+{
+    "data": {
+        "deleted_id": "7634655e-44f5-4dca-8ece-776d46851070",
+        "deleted_url": "https://storage.example.com/path/to/image.jpg"
+    },
+    "message": "Image deleted successfully",
+    "status": "success"
+}
 ```
 
 ### ✅ Get Image Still Works
@@ -71,4 +95,4 @@ GET /api/v1/images/7634655e-44f5-4dca-8ece-776d46851070
 
 ## 🎉 Result
 
-The bulk delete endpoint now works correctly and all other endpoints continue to function as expected!
+The bulk delete endpoint now works correctly and returns proper success responses with data! All other endpoints continue to function as expected.
