@@ -130,7 +130,7 @@ export class SupabaseService {
             updated_at: new Date().toISOString(),
           };
         }
-        
+
         // User not verified yet, return null
         return null;
       }
@@ -1335,7 +1335,7 @@ export class SupabaseService {
           // User has been verified, no pending signup
           return null;
         }
-        
+
         // User not verified yet, return mock pending signup
         this.logger.warn('getPendingSignup called in development mode');
         return {
