@@ -111,19 +111,23 @@ export class AuthService {
 
       // Get user by email
       const user = await this.supabaseService.getUserByEmail(signInDto.email);
+      this.logger.log(`User lookup result for ${signInDto.email}: ${user ? `Found (ID: ${user.id}, verified: ${user.email_verified})` : 'Not found'}`);
 
       // Check if there's a pending signup (user registered but not verified)
       const pendingSignup = await this.supabaseService.getPendingSignup(
         signInDto.email,
       );
+      this.logger.log(`Pending signup lookup result for ${signInDto.email}: ${pendingSignup ? 'Found' : 'Not found'}`);
 
       // Case 3: User not registered before and not have an account
       if (!user && !pendingSignup) {
+        this.logger.warn(`No account found for email: ${signInDto.email}`);
         throw new AccountNotFoundException();
       }
 
       // Case 1: User registered but not verified (has pending signup)
       if (!user && pendingSignup) {
+        this.logger.log(`User has pending signup but no user record for: ${signInDto.email}`);
         // Send OTP for verification
         const otp = Math.floor(10000 + Math.random() * 90000).toString();
         await this.supabaseService.createOtpRecord(signInDto.email, otp);
@@ -145,16 +149,19 @@ export class AuthService {
 
       // At this point, user must exist (we've handled the null cases above)
       if (!user) {
+        this.logger.error(`Unexpected state: user is null but pendingSignup is also null for ${signInDto.email}`);
         throw new AccountNotFoundException();
       }
 
       // Check if user is active
       if (!user.is_active) {
+        this.logger.warn(`Inactive account attempt for: ${signInDto.email}`);
         throw new UnauthorizedException('Account is deactivated');
       }
 
       // Case 2: User exists but not verified
       if (!user.email_verified) {
+        this.logger.warn(`Unverified user attempt to sign in: ${signInDto.email} (ID: ${user.id})`);
         // Send OTP for verification
         const otp = Math.floor(10000 + Math.random() * 90000).toString();
         await this.supabaseService.createOtpRecord(signInDto.email, otp);
@@ -173,6 +180,8 @@ export class AuthService {
 
         throw new AccountNotVerifiedException();
       }
+
+      this.logger.log(`User ${user.id} is verified and active, proceeding with authentication`);
 
       // Verify password
       const isPasswordValid = await this.supabaseService.verifyPassword(
@@ -295,6 +304,7 @@ export class AuthService {
       );
 
       if (!isOtpValid) {
+        this.logger.warn(`Invalid OTP attempt for email: ${verifyAccountDto.email}`);
         throw new BadRequestException('Invalid or expired OTP');
       }
 
@@ -304,37 +314,35 @@ export class AuthService {
       );
 
       if (!pendingSignup) {
+        this.logger.warn(`No pending signup found for email: ${verifyAccountDto.email}`);
         throw new BadRequestException('No pending signup found for this email');
       }
 
-      // Create user with the stored data
-      const user = await this.supabaseService.createUser(
+      this.logger.log(`Creating verified user for email: ${verifyAccountDto.email}`);
+
+      // Create user with email_verified: true from the start (best practice)
+      const user = await this.supabaseService.createVerifiedUser(
         pendingSignup.email,
         pendingSignup.name,
         pendingSignup.password_hash,
       );
 
-      // Mark email as verified
-      await this.supabaseService.updateUser(user.id, {
-        email_verified: true,
-      });
+      this.logger.log(`User created successfully with ID: ${user.id}, email_verified: ${user.email_verified}`);
 
       // Clean up pending signup and OTP records
-      await this.supabaseService.deletePendingSignup(verifyAccountDto.email);
-      await this.supabaseService.deleteOtpRecord(verifyAccountDto.email);
-
-      // Fetch the updated user to get the correct email_verified status
-      const updatedUser = await this.supabaseService.getUserByEmail(
-        verifyAccountDto.email,
-      );
-      if (!updatedUser) {
-        throw new Error('Failed to fetch updated user');
+      try {
+        await this.supabaseService.deletePendingSignup(verifyAccountDto.email);
+        await this.supabaseService.deleteOtpRecord(verifyAccountDto.email);
+        this.logger.log(`Cleaned up pending records for email: ${verifyAccountDto.email}`);
+      } catch (cleanupError) {
+        this.logger.warn(`Failed to clean up pending records for ${verifyAccountDto.email}: ${cleanupError.message}`);
+        // Don't throw error here as user is already created successfully
       }
 
-      this.logger.log(`Account verified successfully for: ${updatedUser.id}`);
+      this.logger.log(`Account verified successfully for: ${user.id}`);
 
       // Return user without password
-      const { password_hash, ...userWithoutPassword } = updatedUser;
+      const { password_hash, ...userWithoutPassword } = user;
 
       return {
         data: {
@@ -346,7 +354,7 @@ export class AuthService {
     } catch (error: any) {
       const errorMessage =
         error instanceof Error ? error.message : JSON.stringify(error);
-      this.logger.error(`Error in verifyAccount: ${errorMessage}`);
+      this.logger.error(`Error in verifyAccount for ${verifyAccountDto.email}: ${errorMessage}`);
       throw error instanceof Error ? error : new Error(errorMessage);
     }
   }

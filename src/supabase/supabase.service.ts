@@ -112,6 +112,70 @@ export class SupabaseService {
     }
   }
 
+  async createVerifiedUser(
+    email: string,
+    name: string,
+    passwordHash: string,
+  ): Promise<User> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn(
+          'Running in development mode with dummy Supabase config',
+        );
+        // Track this user as verified in development mode
+        this.devVerifiedUsers.add(email);
+        return {
+          id: 'dev-user-id',
+          email,
+          name,
+          password_hash: passwordHash,
+          role: 'USER',
+          is_active: true,
+          email_verified: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+      }
+
+      // Check if user already exists
+      const existingUser = await this.getUserByEmail(email);
+      if (existingUser) {
+        throw new Error('User already exists with this email');
+      }
+
+      // Create user with email_verified: true from the start
+      const { data, error } = await this.supabase
+        .from('users')
+        .insert({
+          email,
+          name,
+          password_hash: passwordHash,
+          role: 'USER',
+          is_active: true,
+          email_verified: true, // Verified from the start
+        })
+        .select()
+        .single();
+
+      if (error) {
+        this.logger.error(`Error creating verified user: ${error.message}`);
+        throw new Error(`Failed to create verified user: ${error.message}`);
+      }
+
+      if (!data) {
+        throw new Error('Failed to create verified user');
+      }
+
+      this.logger.log(`Successfully created verified user: ${data.id}`);
+      return data;
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Error in createVerifiedUser: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    }
+  }
+
   async getUserByEmail(email: string): Promise<User | null> {
     try {
       if (this.isDevelopmentMode) {
