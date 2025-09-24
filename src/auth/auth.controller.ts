@@ -268,7 +268,7 @@ export class AuthController {
           example:
             'Please verify your email before signing in. Check your inbox for the verification code.',
         },
-        error: { type: 'string', example: 'Unauthorized' },
+        error: { type: 'string', example: 'USER_NOT_VERIFIED' },
         statusCode: { type: 'number', example: 401 },
       },
     },

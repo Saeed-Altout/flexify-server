@@ -19,6 +19,7 @@ import {
   UpdateProfileRequest,
 } from './types/auth.types';
 import { StandardResponseDto, SignUpResponseDto } from './dto/auth.dto';
+import { UserNotVerifiedException } from './exceptions/user-not-verified.exception';
 
 @Injectable()
 export class AuthService {
@@ -116,9 +117,7 @@ export class AuthService {
 
       // Check if email is verified
       if (!user.email_verified) {
-        throw new UnauthorizedException(
-          'Please verify your email before signing in. Check your inbox for the verification code.',
-        );
+        throw new UserNotVerifiedException();
       }
 
       // Generate access and refresh tokens

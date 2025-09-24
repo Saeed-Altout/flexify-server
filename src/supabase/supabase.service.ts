@@ -497,6 +497,8 @@ export class SupabaseService {
           token,
           expires_at: expiresAt.toISOString(),
           created_at: new Date().toISOString(),
+        }, {
+          onConflict: 'email'
         });
 
       if (error) {
