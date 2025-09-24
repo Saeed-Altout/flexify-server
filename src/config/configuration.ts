@@ -34,4 +34,8 @@ export default () => ({
     smtpUser: process.env.SMTP_USER,
     smtpPass: process.env.SMTP_PASS,
   },
+
+  app: {
+    frontendUrl: process.env.APP_FRONTEND_URL || 'http://localhost:3000',
+  },
 });
