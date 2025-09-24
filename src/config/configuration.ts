@@ -24,7 +24,7 @@ export default () => ({
       'http://localhost:3000',
       'http://localhost:3001',
       'https://flexify-server.vercel.app',
-      'https://flexifypro.vercel.app/',
+      'https://flexifypro.vercel.app',
     ],
   },
 

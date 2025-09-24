@@ -17,6 +17,8 @@ async function bootstrap() {
       'https://localhost:3000', // HTTPS for SameSite=None
       'https://localhost:3001',
       'https://localhost:5173',
+      'https://flexifypro.vercel.app', // Production frontend
+      'https://flexify-server.vercel.app', // Production API
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
