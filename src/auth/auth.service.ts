@@ -111,10 +111,20 @@ export class AuthService {
 
       // Get user by email
       const user = await this.supabaseService.getUserByEmail(signInDto.email);
-      
+
+      // Check if there's a pending signup (user registered but not verified)
+      const pendingSignup = await this.supabaseService.getPendingSignup(
+        signInDto.email,
+      );
+
       // Case 3: User not registered before and not have an account
-      if (!user) {
+      if (!user && !pendingSignup) {
         throw new AccountNotFoundException();
+      }
+
+      // Case 1: User registered but not verified (has pending signup)
+      if (!user && pendingSignup) {
+        throw new AccountNotVerifiedException();
       }
 
       // Check if user is active
@@ -304,9 +314,11 @@ export class AuthService {
 
       // Check if user exists
       const user = await this.supabaseService.getUserByEmail(sendOtpDto.email);
-      
+
       // Check if there's a pending signup
-      const pendingSignup = await this.supabaseService.getPendingSignup(sendOtpDto.email);
+      const pendingSignup = await this.supabaseService.getPendingSignup(
+        sendOtpDto.email,
+      );
 
       // Generate 5-digit OTP
       const otp = Math.floor(10000 + Math.random() * 90000).toString();

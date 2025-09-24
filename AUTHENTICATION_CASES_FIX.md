@@ -5,7 +5,7 @@
 Fixed the authentication flow to properly handle three distinct cases:
 
 1. **Case 1**: User registers but not verified → User should need to verify
-2. **Case 2**: User registers and needs sign-in but not verified → Custom message "ACCOUNT_NOT_VERIFIED"  
+2. **Case 2**: User registers and needs sign-in but not verified → Custom message "ACCOUNT_NOT_VERIFIED"
 3. **Case 3**: User not registered before and not have an account → Error message "ACCOUNT_NOT_FOUND"
 
 ## 🔧 **Changes Made**
@@ -28,7 +28,8 @@ export class AccountNotVerifiedException extends HttpException {
   constructor() {
     super(
       {
-        message: 'Account not verified. Please verify your email before signing in.',
+        message:
+          'Account not verified. Please verify your email before signing in.',
         error: 'ACCOUNT_NOT_VERIFIED',
         statusCode: HttpStatus.UNAUTHORIZED,
       },
@@ -43,6 +44,7 @@ export class AccountNotVerifiedException extends HttpException {
 **File:** `src/supabase/supabase.service.ts`
 
 Added new methods:
+
 - `createPendingSignup()` - Store user data before verification
 - `getPendingSignup()` - Retrieve pending signup data
 - `deletePendingSignup()` - Clean up after verification
@@ -54,6 +56,7 @@ Added new methods:
 **File:** `src/auth/auth.service.ts`
 
 #### **Sign-up Process (Case 1):**
+
 1. Check if user already exists
 2. Hash password securely
 3. Store user data in `pending_signups` table
@@ -61,6 +64,7 @@ Added new methods:
 5. User must verify before account is created
 
 #### **Sign-in Process (All Cases):**
+
 ```typescript
 // Case 3: User not registered before and not have an account
 if (!user) {
@@ -77,6 +81,7 @@ if (!user.email_verified) {
 ```
 
 #### **Verification Process:**
+
 1. Verify OTP
 2. Get pending signup data
 3. Create user with stored data (name, password)
@@ -85,11 +90,18 @@ if (!user.email_verified) {
 
 ## ✅ **Error Response Format**
 
-### **Case 1: User registers but not verified**
-- User must complete verification before signing in
-- Verification creates the actual user account
+### **Case 1: User registers but not verified (Sign-in attempt)**
+
+```json
+{
+  "message": "Account not verified. Please verify your email before signing in.",
+  "error": "ACCOUNT_NOT_VERIFIED",
+  "statusCode": 401
+}
+```
 
 ### **Case 2: User exists but not verified (Sign-in attempt)**
+
 ```json
 {
   "message": "Account not verified. Please verify your email before signing in.",
@@ -99,6 +111,7 @@ if (!user.email_verified) {
 ```
 
 ### **Case 3: User not registered (Sign-in attempt)**
+
 ```json
 {
   "message": "Account not found. Please check your email or sign up for a new account.",
@@ -110,16 +123,21 @@ if (!user.email_verified) {
 ## 🔄 **Complete Authentication Flow**
 
 ### **New User Registration:**
+
 1. **Sign-up** → Store in `pending_signups` + Send OTP
 2. **Verify Account** → Create user + Mark verified + Clean up
 3. **Sign-in** → Normal authentication
 
 ### **Existing User Sign-in:**
-1. **Check if user exists** → Case 3: ACCOUNT_NOT_FOUND
-2. **Check if verified** → Case 2: ACCOUNT_NOT_VERIFIED  
-3. **Verify password** → Case 1: Normal login
+
+1. **Check if user exists** → If not, check pending signups
+2. **If pending signup exists** → Case 1: ACCOUNT_NOT_VERIFIED
+3. **If user exists but not verified** → Case 2: ACCOUNT_NOT_VERIFIED
+4. **If no user and no pending signup** → Case 3: ACCOUNT_NOT_FOUND
+5. **If user exists and verified** → Normal login
 
 ### **Resend OTP:**
+
 - Works for both verified users and pending signups
 - Uses appropriate name from user record or pending signup
 
@@ -134,6 +152,7 @@ if (!user.email_verified) {
 ## 📋 **Database Tables**
 
 ### **pending_signups**
+
 - `id` (UUID, Primary Key)
 - `email` (VARCHAR, Unique)
 - `name` (VARCHAR)
@@ -142,9 +161,11 @@ if (!user.email_verified) {
 - `expires_at` (TIMESTAMP)
 
 ### **users** (existing)
+
 - `email_verified` (BOOLEAN) - Used to determine verification status
 
 ### **otp_verifications** (existing)
+
 - Used for OTP storage and verification
 
 ## 🎉 **Result**
