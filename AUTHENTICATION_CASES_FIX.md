@@ -91,7 +91,8 @@ if (!user.email_verified) {
 ## ✅ **Error Response Format**
 
 ### **Case 1: User registers but not verified (Sign-in attempt)**
-
+- **Action**: Automatically sends OTP to user's email
+- **Response**: 
 ```json
 {
   "message": "Account not verified. Please verify your email before signing in.",
@@ -101,7 +102,8 @@ if (!user.email_verified) {
 ```
 
 ### **Case 2: User exists but not verified (Sign-in attempt)**
-
+- **Action**: Automatically sends OTP to user's email
+- **Response**: 
 ```json
 {
   "message": "Account not verified. Please verify your email before signing in.",

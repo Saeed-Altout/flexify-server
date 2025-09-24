@@ -124,6 +124,22 @@ export class AuthService {
 
       // Case 1: User registered but not verified (has pending signup)
       if (!user && pendingSignup) {
+        // Send OTP for verification
+        const otp = Math.floor(10000 + Math.random() * 90000).toString();
+        await this.supabaseService.createOtpRecord(signInDto.email, otp);
+        
+        const emailSent = await this.emailService.sendOtpEmail(
+          signInDto.email,
+          otp,
+          pendingSignup.name,
+        );
+
+        if (!emailSent) {
+          this.logger.warn(`Failed to send OTP email to ${signInDto.email}`);
+        }
+
+        this.logger.log(`OTP sent to ${signInDto.email} for verification`);
+        
         throw new AccountNotVerifiedException();
       }
 
@@ -139,6 +155,22 @@ export class AuthService {
 
       // Case 2: User exists but not verified
       if (!user.email_verified) {
+        // Send OTP for verification
+        const otp = Math.floor(10000 + Math.random() * 90000).toString();
+        await this.supabaseService.createOtpRecord(signInDto.email, otp);
+        
+        const emailSent = await this.emailService.sendOtpEmail(
+          signInDto.email,
+          otp,
+          user.name,
+        );
+
+        if (!emailSent) {
+          this.logger.warn(`Failed to send OTP email to ${signInDto.email}`);
+        }
+
+        this.logger.log(`OTP sent to ${signInDto.email} for verification`);
+        
         throw new AccountNotVerifiedException();
       }
 
