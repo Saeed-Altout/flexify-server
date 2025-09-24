@@ -3,11 +3,13 @@
 ## 🚨 **The Problem**
 
 Your password reset emails were showing:
+
 ```
 http://undefined/reset-password?token=...
 ```
 
 Instead of the correct URL:
+
 ```
 https://flexifypro.vercel.app/reset-password?token=...
 ```
@@ -17,6 +19,7 @@ https://flexifypro.vercel.app/reset-password?token=...
 The issue was in the **configuration file** - it wasn't reading the `APP_FRONTEND_URL` environment variable properly.
 
 ### **The Problem:**
+
 1. **Environment Variable**: `APP_FRONTEND_URL=https://flexifypro.vercel.app/` ✅ (Set correctly in .env)
 2. **Configuration Missing**: The `src/config/configuration.ts` file didn't have an `app.frontendUrl` property
 3. **Email Service**: Was trying to access `app.frontendUrl` but it didn't exist
@@ -27,6 +30,7 @@ The issue was in the **configuration file** - it wasn't reading the `APP_FRONTEN
 I added the missing configuration in `src/config/configuration.ts`:
 
 ### **Before (❌ Missing):**
+
 ```typescript
 export default () => ({
   // ... other config
@@ -39,6 +43,7 @@ export default () => ({
 ```
 
 ### **After (✅ Fixed):**
+
 ```typescript
 export default () => ({
   // ... other config
@@ -46,7 +51,7 @@ export default () => ({
     smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
     // ... other email config
   },
-  
+
   app: {
     frontendUrl: process.env.APP_FRONTEND_URL || 'http://localhost:3000',
   },
@@ -56,11 +61,13 @@ export default () => ({
 ## 🔄 **How It Works Now**
 
 ### **Email Service Code:**
+
 ```typescript
 const resetUrl = `${this.configService.get<string>('app.frontendUrl')}/reset-password?token=${resetToken}`;
 ```
 
 ### **Configuration Flow:**
+
 1. **Environment Variable**: `APP_FRONTEND_URL=https://flexifypro.vercel.app/`
 2. **Configuration**: `app.frontendUrl` reads from `process.env.APP_FRONTEND_URL`
 3. **Email Service**: Gets the correct URL from configuration
@@ -78,6 +85,7 @@ curl -X POST http://localhost:3000/auth/forgot-password \
 ```
 
 ### **Expected Email URL:**
+
 ```
 https://flexifypro.vercel.app/reset-password?token=a880c77e12262bcb7e206197a54b38ba02e81bc126d9ff21a6263943db0367b4
 ```
@@ -92,6 +100,7 @@ https://flexifypro.vercel.app/reset-password?token=a880c77e12262bcb7e206197a54b3
 ## 📝 **Environment Variables**
 
 Make sure your `.env` file has:
+
 ```env
 APP_FRONTEND_URL=https://flexifypro.vercel.app/
 ```
