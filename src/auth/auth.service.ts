@@ -127,6 +127,11 @@ export class AuthService {
         throw new AccountNotVerifiedException();
       }
 
+      // At this point, user must exist (we've handled the null cases above)
+      if (!user) {
+        throw new AccountNotFoundException();
+      }
+
       // Check if user is active
       if (!user.is_active) {
         throw new UnauthorizedException('Account is deactivated');
