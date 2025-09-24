@@ -3,37 +3,30 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
+import { corsConfig } from './cors-config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Enable CORS with credentials support
-  app.enableCors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:5173', // Vite default
-      'http://localhost:8080', // Common dev port
-      'https://localhost:3000', // HTTPS for SameSite=None
-      'https://localhost:3001',
-      'https://localhost:5173',
-      'https://flexifypro.vercel.app', // Production frontend
-      'https://flexify-server.vercel.app', // Production API
-    ],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'X-API-Key',
-      'X-Requested-With',
-      'Accept',
-      'Origin',
-    ],
-    exposedHeaders: ['Set-Cookie'],
-    optionsSuccessStatus: 200,
-    preflightContinue: false,
-  });
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  const useEmergencyCors = process.env.USE_EMERGENCY_CORS === 'true';
+  
+  let corsOptions;
+  
+  if (useEmergencyCors) {
+    console.log('🚨 Using emergency CORS configuration (wildcard)');
+    corsOptions = corsConfig.emergency;
+  } else if (isDevelopment) {
+    console.log('🔧 Using development CORS configuration');
+    corsOptions = corsConfig.development;
+  } else {
+    console.log('🌐 Using production CORS configuration');
+    corsOptions = corsConfig.production;
+  }
+
+  console.log('🌐 CORS Configuration:', corsOptions);
+  app.enableCors(corsOptions);
 
   // Allow all HTTP methods
   console.log(
