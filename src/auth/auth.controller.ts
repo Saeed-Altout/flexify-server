@@ -274,6 +274,22 @@ export class AuthController {
     },
   })
   @ApiResponse({
+    status: 404,
+    description: 'Account not found',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example:
+            'Account not found. Please check your email or sign up for a new account.',
+        },
+        error: { type: 'string', example: 'ACCOUNT_NOT_FOUND' },
+        statusCode: { type: 'number', example: 404 },
+      },
+    },
+  })
+  @ApiResponse({
     status: 400,
     description: 'Invalid input data',
   })

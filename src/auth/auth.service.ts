@@ -20,6 +20,7 @@ import {
 } from './types/auth.types';
 import { StandardResponseDto, SignUpResponseDto } from './dto/auth.dto';
 import { UserNotVerifiedException } from './exceptions/user-not-verified.exception';
+import { AccountNotFoundException } from './exceptions/account-not-found.exception';
 
 @Injectable()
 export class AuthService {
@@ -98,12 +99,17 @@ export class AuthService {
       // Get user by email
       const user = await this.supabaseService.getUserByEmail(signInDto.email);
       if (!user) {
-        throw new UnauthorizedException('Invalid credentials');
+        throw new AccountNotFoundException();
       }
 
       // Check if user is active
       if (!user.is_active) {
         throw new UnauthorizedException('Account is deactivated');
+      }
+
+      // Check if email is verified
+      if (!user.email_verified) {
+        throw new UserNotVerifiedException();
       }
 
       // Verify password
@@ -113,11 +119,6 @@ export class AuthService {
       );
       if (!isPasswordValid) {
         throw new UnauthorizedException('Invalid credentials');
-      }
-
-      // Check if email is verified
-      if (!user.email_verified) {
-        throw new UserNotVerifiedException();
       }
 
       // Generate access and refresh tokens
