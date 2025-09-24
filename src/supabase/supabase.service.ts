@@ -59,7 +59,7 @@ export class SupabaseService {
           password_hash: 'dev-hash',
           role: 'USER',
           is_active: true,
-          email_verified: false,
+          email_verified: true, // Set to true in development mode for testing
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -165,7 +165,7 @@ export class SupabaseService {
           password_hash: 'dev-hash',
           role: 'USER',
           is_active: true,
-          email_verified: false,
+          email_verified: updates.email_verified ?? true, // Use the provided value or default to true
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -435,14 +435,17 @@ export class SupabaseService {
 
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-      const { error } = await this.supabase.from('otp_verifications').upsert({
-        email,
-        otp,
-        expires_at: expiresAt.toISOString(),
-        created_at: new Date().toISOString(),
-      }, {
-        onConflict: 'email'
-      });
+      const { error } = await this.supabase.from('otp_verifications').upsert(
+        {
+          email,
+          otp,
+          expires_at: expiresAt.toISOString(),
+          created_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'email',
+        },
+      );
 
       if (error) {
         this.logger.error(`Error creating OTP record: ${error.message}`);
@@ -502,14 +505,17 @@ export class SupabaseService {
 
       const { error } = await this.supabase
         .from('password_reset_tokens')
-        .upsert({
-          email,
-          token,
-          expires_at: expiresAt.toISOString(),
-          created_at: new Date().toISOString(),
-        }, {
-          onConflict: 'email'
-        });
+        .upsert(
+          {
+            email,
+            token,
+            expires_at: expiresAt.toISOString(),
+            created_at: new Date().toISOString(),
+          },
+          {
+            onConflict: 'email',
+          },
+        );
 
       if (error) {
         this.logger.error(
@@ -1270,15 +1276,18 @@ export class SupabaseService {
 
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-      const { error } = await this.supabase.from('pending_signups').upsert({
-        email,
-        name,
-        password_hash: passwordHash,
-        expires_at: expiresAt.toISOString(),
-        created_at: new Date().toISOString(),
-      }, {
-        onConflict: 'email'
-      });
+      const { error } = await this.supabase.from('pending_signups').upsert(
+        {
+          email,
+          name,
+          password_hash: passwordHash,
+          expires_at: expiresAt.toISOString(),
+          created_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'email',
+        },
+      );
 
       if (error) {
         this.logger.error(`Error creating pending signup: ${error.message}`);

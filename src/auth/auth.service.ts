@@ -127,7 +127,7 @@ export class AuthService {
         // Send OTP for verification
         const otp = Math.floor(10000 + Math.random() * 90000).toString();
         await this.supabaseService.createOtpRecord(signInDto.email, otp);
-        
+
         const emailSent = await this.emailService.sendOtpEmail(
           signInDto.email,
           otp,
@@ -139,7 +139,7 @@ export class AuthService {
         }
 
         this.logger.log(`OTP sent to ${signInDto.email} for verification`);
-        
+
         throw new AccountNotVerifiedException();
       }
 
@@ -158,7 +158,7 @@ export class AuthService {
         // Send OTP for verification
         const otp = Math.floor(10000 + Math.random() * 90000).toString();
         await this.supabaseService.createOtpRecord(signInDto.email, otp);
-        
+
         const emailSent = await this.emailService.sendOtpEmail(
           signInDto.email,
           otp,
@@ -170,7 +170,7 @@ export class AuthService {
         }
 
         this.logger.log(`OTP sent to ${signInDto.email} for verification`);
-        
+
         throw new AccountNotVerifiedException();
       }
 
@@ -323,10 +323,18 @@ export class AuthService {
       await this.supabaseService.deletePendingSignup(verifyAccountDto.email);
       await this.supabaseService.deleteOtpRecord(verifyAccountDto.email);
 
-      this.logger.log(`Account verified successfully for: ${user.id}`);
+      // Fetch the updated user to get the correct email_verified status
+      const updatedUser = await this.supabaseService.getUserByEmail(
+        verifyAccountDto.email,
+      );
+      if (!updatedUser) {
+        throw new Error('Failed to fetch updated user');
+      }
+
+      this.logger.log(`Account verified successfully for: ${updatedUser.id}`);
 
       // Return user without password
-      const { password_hash, ...userWithoutPassword } = user;
+      const { password_hash, ...userWithoutPassword } = updatedUser;
 
       return {
         data: {
