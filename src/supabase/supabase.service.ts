@@ -12,6 +12,8 @@ export class SupabaseService {
   private isDevelopmentMode = false;
   private jwtSecret: string;
   private jwtRefreshSecret: string;
+  // In-memory tracking for development mode
+  private devVerifiedUsers = new Set<string>();
 
   constructor(private configService: ConfigService) {
     const supabaseUrl = this.configService.get<string>('supabase.url');
@@ -52,6 +54,8 @@ export class SupabaseService {
         this.logger.warn(
           'Running in development mode with dummy Supabase config',
         );
+        // Track this user as verified in development mode
+        this.devVerifiedUsers.add(email);
         return {
           id: 'dev-user-id',
           email,
@@ -111,6 +115,23 @@ export class SupabaseService {
   async getUserByEmail(email: string): Promise<User | null> {
     try {
       if (this.isDevelopmentMode) {
+        // In development mode, check if user has been verified
+        if (this.devVerifiedUsers.has(email)) {
+          // User has been verified, return mock user
+          return {
+            id: 'dev-user-id',
+            email,
+            name: 'Development User',
+            password_hash: 'dev-hash',
+            role: 'USER',
+            is_active: true,
+            email_verified: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+        }
+        
+        // User not verified yet, return null
         return null;
       }
 
@@ -1309,6 +1330,13 @@ export class SupabaseService {
   } | null> {
     try {
       if (this.isDevelopmentMode) {
+        // In development mode, check if user has been verified
+        if (this.devVerifiedUsers.has(email)) {
+          // User has been verified, no pending signup
+          return null;
+        }
+        
+        // User not verified yet, return mock pending signup
         this.logger.warn('getPendingSignup called in development mode');
         return {
           id: 'dev-id',
