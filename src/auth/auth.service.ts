@@ -20,6 +20,7 @@ import {
 } from './types/auth.types';
 import { StandardResponseDto, SignUpResponseDto } from './dto/auth.dto';
 import { UserNotVerifiedException } from './exceptions/user-not-verified.exception';
+import { AccountNotVerifiedException } from './exceptions/account-not-verified.exception';
 import { AccountNotFoundException } from './exceptions/account-not-found.exception';
 
 @Injectable()
@@ -51,6 +52,18 @@ export class AuthService {
       if (existingUser) {
         throw new ConflictException('User already exists with this email');
       }
+
+      // Hash the password
+      const passwordHash = await this.supabaseService.hashPassword(
+        signUpDto.password,
+      );
+
+      // Store user data in pending signups
+      await this.supabaseService.createPendingSignup(
+        signUpDto.email,
+        signUpDto.name,
+        passwordHash,
+      );
 
       // Generate 5-digit OTP
       const otp = Math.floor(10000 + Math.random() * 90000).toString();
@@ -98,6 +111,8 @@ export class AuthService {
 
       // Get user by email
       const user = await this.supabaseService.getUserByEmail(signInDto.email);
+      
+      // Case 3: User not registered before and not have an account
       if (!user) {
         throw new AccountNotFoundException();
       }
@@ -107,9 +122,9 @@ export class AuthService {
         throw new UnauthorizedException('Account is deactivated');
       }
 
-      // Check if email is verified
+      // Case 2: User exists but not verified
       if (!user.email_verified) {
-        throw new UserNotVerifiedException();
+        throw new AccountNotVerifiedException();
       }
 
       // Verify password
@@ -236,19 +251,30 @@ export class AuthService {
         throw new BadRequestException('Invalid or expired OTP');
       }
 
-      // Get user data from signup (we need to store this temporarily or get it from request)
-      // For now, we'll create the user with a default password that they'll need to change
-      const tempPassword = Math.random().toString(36).slice(-8);
-      const user = await this.supabaseService.createUser(
+      // Get pending signup data
+      const pendingSignup = await this.supabaseService.getPendingSignup(
         verifyAccountDto.email,
-        'User', // We'll need to get this from the signup data
-        tempPassword,
+      );
+
+      if (!pendingSignup) {
+        throw new BadRequestException('No pending signup found for this email');
+      }
+
+      // Create user with the stored data
+      const user = await this.supabaseService.createUser(
+        pendingSignup.email,
+        pendingSignup.name,
+        pendingSignup.password_hash,
       );
 
       // Mark email as verified
       await this.supabaseService.updateUser(user.id, {
         email_verified: true,
       });
+
+      // Clean up pending signup and OTP records
+      await this.supabaseService.deletePendingSignup(verifyAccountDto.email);
+      await this.supabaseService.deleteOtpRecord(verifyAccountDto.email);
 
       this.logger.log(`Account verified successfully for: ${user.id}`);
 
@@ -278,6 +304,9 @@ export class AuthService {
 
       // Check if user exists
       const user = await this.supabaseService.getUserByEmail(sendOtpDto.email);
+      
+      // Check if there's a pending signup
+      const pendingSignup = await this.supabaseService.getPendingSignup(sendOtpDto.email);
 
       // Generate 5-digit OTP
       const otp = Math.floor(10000 + Math.random() * 90000).toString();
@@ -289,7 +318,7 @@ export class AuthService {
       const emailSent = await this.emailService.sendOtpEmail(
         sendOtpDto.email,
         otp,
-        user?.name || 'User', // Use user name if exists, otherwise default
+        user?.name || pendingSignup?.name || 'User', // Use user name, pending signup name, or default
       );
 
       if (!emailSent) {

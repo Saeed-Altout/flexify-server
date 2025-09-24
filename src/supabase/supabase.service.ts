@@ -228,6 +228,16 @@ export class SupabaseService {
     }
   }
 
+  async hashPassword(password: string): Promise<string> {
+    try {
+      const saltRounds = 12;
+      return await bcrypt.hash(password, saltRounds);
+    } catch (error: any) {
+      this.logger.error(`Error hashing password: ${error.message}`);
+      throw error;
+    }
+  }
+
   async verifyPassword(password: string, hash: string): Promise<boolean> {
     try {
       return await bcrypt.compare(password, hash);
@@ -1239,6 +1249,129 @@ export class SupabaseService {
       return data;
     } catch (error: any) {
       this.logger.error(`Error getting technology by ID: ${error.message}`);
+      throw error;
+    }
+  }
+
+  // =====================================================
+  // PENDING SIGNUP OPERATIONS
+  // =====================================================
+
+  async createPendingSignup(
+    email: string,
+    name: string,
+    passwordHash: string,
+  ): Promise<void> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('createPendingSignup called in development mode');
+        return;
+      }
+
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      const { error } = await this.supabase.from('pending_signups').upsert({
+        email,
+        name,
+        password_hash: passwordHash,
+        expires_at: expiresAt.toISOString(),
+        created_at: new Date().toISOString(),
+      }, {
+        onConflict: 'email'
+      });
+
+      if (error) {
+        this.logger.error(`Error creating pending signup: ${error.message}`);
+        throw new Error(`Failed to create pending signup: ${error.message}`);
+      }
+    } catch (error: any) {
+      this.logger.error(`Error in createPendingSignup: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async getPendingSignup(email: string): Promise<{
+    id: string;
+    email: string;
+    name: string;
+    password_hash: string;
+    created_at: string;
+    expires_at: string;
+  } | null> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('getPendingSignup called in development mode');
+        return {
+          id: 'dev-id',
+          email,
+          name: 'Dev User',
+          password_hash: 'dev-hash',
+          created_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        };
+      }
+
+      const { data, error } = await this.supabase
+        .from('pending_signups')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null; // No pending signup found
+        }
+        this.logger.error(`Error getting pending signup: ${error.message}`);
+        throw new Error(`Failed to get pending signup: ${error.message}`);
+      }
+
+      return data;
+    } catch (error: any) {
+      this.logger.error(`Error in getPendingSignup: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async deletePendingSignup(email: string): Promise<void> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('deletePendingSignup called in development mode');
+        return;
+      }
+
+      const { error } = await this.supabase
+        .from('pending_signups')
+        .delete()
+        .eq('email', email);
+
+      if (error) {
+        this.logger.error(`Error deleting pending signup: ${error.message}`);
+        throw new Error(`Failed to delete pending signup: ${error.message}`);
+      }
+    } catch (error: any) {
+      this.logger.error(`Error in deletePendingSignup: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async deleteOtpRecord(email: string): Promise<void> {
+    try {
+      if (this.isDevelopmentMode) {
+        this.logger.warn('deleteOtpRecord called in development mode');
+        return;
+      }
+
+      const { error } = await this.supabase
+        .from('otp_verifications')
+        .delete()
+        .eq('email', email);
+
+      if (error) {
+        this.logger.error(`Error deleting OTP record: ${error.message}`);
+        throw new Error(`Failed to delete OTP record: ${error.message}`);
+      }
+    } catch (error: any) {
+      this.logger.error(`Error in deleteOtpRecord: ${error.message}`);
       throw error;
     }
   }
