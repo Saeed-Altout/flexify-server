@@ -111,13 +111,17 @@ export class AuthService {
 
       // Get user by email
       const user = await this.supabaseService.getUserByEmail(signInDto.email);
-      this.logger.log(`User lookup result for ${signInDto.email}: ${user ? `Found (ID: ${user.id}, verified: ${user.email_verified})` : 'Not found'}`);
+      this.logger.log(
+        `User lookup result for ${signInDto.email}: ${user ? `Found (ID: ${user.id}, verified: ${user.email_verified})` : 'Not found'}`,
+      );
 
       // Check if there's a pending signup (user registered but not verified)
       const pendingSignup = await this.supabaseService.getPendingSignup(
         signInDto.email,
       );
-      this.logger.log(`Pending signup lookup result for ${signInDto.email}: ${pendingSignup ? 'Found' : 'Not found'}`);
+      this.logger.log(
+        `Pending signup lookup result for ${signInDto.email}: ${pendingSignup ? 'Found' : 'Not found'}`,
+      );
 
       // Case 3: User not registered before and not have an account
       if (!user && !pendingSignup) {
@@ -127,7 +131,9 @@ export class AuthService {
 
       // Case 1: User registered but not verified (has pending signup)
       if (!user && pendingSignup) {
-        this.logger.log(`User has pending signup but no user record for: ${signInDto.email}`);
+        this.logger.log(
+          `User has pending signup but no user record for: ${signInDto.email}`,
+        );
         // Send OTP for verification
         const otp = Math.floor(10000 + Math.random() * 90000).toString();
         await this.supabaseService.createOtpRecord(signInDto.email, otp);
@@ -149,7 +155,9 @@ export class AuthService {
 
       // At this point, user must exist (we've handled the null cases above)
       if (!user) {
-        this.logger.error(`Unexpected state: user is null but pendingSignup is also null for ${signInDto.email}`);
+        this.logger.error(
+          `Unexpected state: user is null but pendingSignup is also null for ${signInDto.email}`,
+        );
         throw new AccountNotFoundException();
       }
 
@@ -161,7 +169,9 @@ export class AuthService {
 
       // Case 2: User exists but not verified
       if (!user.email_verified) {
-        this.logger.warn(`Unverified user attempt to sign in: ${signInDto.email} (ID: ${user.id})`);
+        this.logger.warn(
+          `Unverified user attempt to sign in: ${signInDto.email} (ID: ${user.id})`,
+        );
         // Send OTP for verification
         const otp = Math.floor(10000 + Math.random() * 90000).toString();
         await this.supabaseService.createOtpRecord(signInDto.email, otp);
@@ -181,7 +191,9 @@ export class AuthService {
         throw new AccountNotVerifiedException();
       }
 
-      this.logger.log(`User ${user.id} is verified and active, proceeding with authentication`);
+      this.logger.log(
+        `User ${user.id} is verified and active, proceeding with authentication`,
+      );
 
       // Verify password
       const isPasswordValid = await this.supabaseService.verifyPassword(
@@ -304,7 +316,9 @@ export class AuthService {
       );
 
       if (!isOtpValid) {
-        this.logger.warn(`Invalid OTP attempt for email: ${verifyAccountDto.email}`);
+        this.logger.warn(
+          `Invalid OTP attempt for email: ${verifyAccountDto.email}`,
+        );
         throw new BadRequestException('Invalid or expired OTP');
       }
 
@@ -314,11 +328,15 @@ export class AuthService {
       );
 
       if (!pendingSignup) {
-        this.logger.warn(`No pending signup found for email: ${verifyAccountDto.email}`);
+        this.logger.warn(
+          `No pending signup found for email: ${verifyAccountDto.email}`,
+        );
         throw new BadRequestException('No pending signup found for this email');
       }
 
-      this.logger.log(`Creating verified user for email: ${verifyAccountDto.email}`);
+      this.logger.log(
+        `Creating verified user for email: ${verifyAccountDto.email}`,
+      );
 
       // Create user with email_verified: true from the start (best practice)
       const user = await this.supabaseService.createVerifiedUser(
@@ -327,15 +345,21 @@ export class AuthService {
         pendingSignup.password_hash,
       );
 
-      this.logger.log(`User created successfully with ID: ${user.id}, email_verified: ${user.email_verified}`);
+      this.logger.log(
+        `User created successfully with ID: ${user.id}, email_verified: ${user.email_verified}`,
+      );
 
       // Clean up pending signup and OTP records
       try {
         await this.supabaseService.deletePendingSignup(verifyAccountDto.email);
         await this.supabaseService.deleteOtpRecord(verifyAccountDto.email);
-        this.logger.log(`Cleaned up pending records for email: ${verifyAccountDto.email}`);
+        this.logger.log(
+          `Cleaned up pending records for email: ${verifyAccountDto.email}`,
+        );
       } catch (cleanupError) {
-        this.logger.warn(`Failed to clean up pending records for ${verifyAccountDto.email}: ${cleanupError.message}`);
+        this.logger.warn(
+          `Failed to clean up pending records for ${verifyAccountDto.email}: ${cleanupError.message}`,
+        );
         // Don't throw error here as user is already created successfully
       }
 
@@ -354,7 +378,9 @@ export class AuthService {
     } catch (error: any) {
       const errorMessage =
         error instanceof Error ? error.message : JSON.stringify(error);
-      this.logger.error(`Error in verifyAccount for ${verifyAccountDto.email}: ${errorMessage}`);
+      this.logger.error(
+        `Error in verifyAccount for ${verifyAccountDto.email}: ${errorMessage}`,
+      );
       throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
